@@ -9,9 +9,9 @@ Start with `PLAN.md` before making product or architecture changes.
 ## Current Non-UI State
 
 - The active spike is `spikes/e2ee-yjs-append-log/`.
-- It validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, and metadata authentication for client-known fields.
+- It validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, metadata authentication for client-known fields, and delivered-record sequence/replay detection.
 - The server still stores plaintext routing metadata: `roomId`, `seq`, and `senderId`.
-- Production-grade durability, append-log compaction, drop/replay detection, awareness encryption, editor integration, comments, suggestions, and named versions remain open.
+- Production-grade durability, append-log compaction, fork/truncation detection, hash chains or signed checkpoints, awareness encryption, editor integration, comments, suggestions, and named versions remain open.
 
 ## Working Rules
 
@@ -31,4 +31,3 @@ npm test
 npm run typecheck
 npm run spike:e2ee
 ```
-

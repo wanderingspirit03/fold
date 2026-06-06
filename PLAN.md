@@ -39,7 +39,7 @@ Spike result: a minimal custom encrypted Yjs append-log provider in `spikes/e2ee
 
 This is deliberately closer to Excalidraw-style trust than classic SaaS document storage.
 
-The first technical spike proved the basic Yjs encryption shape for a single Markdown text document: all document semantics remain client-side, and the sync server persists opaque encrypted Yjs payloads without inspecting Markdown, comments, or patch content. It also validates WebSocket backlog replay for joining clients, AES-GCM authentication of client-known metadata, and basic file-backed restart/replay. This does not yet prove production-grade durability, compaction, awareness encryption, editor integration, comments, suggestions, or named versions.
+The first technical spike proved the basic Yjs encryption shape for a single Markdown text document: all document semantics remain client-side, and the sync server persists opaque encrypted Yjs payloads without inspecting Markdown, comments, or patch content. It also validates WebSocket backlog replay for joining clients, AES-GCM authentication of client-known metadata, client-side sequence validation for delivered records, and basic file-backed restart/replay. This does not yet prove production-grade durability, compaction, awareness encryption, editor integration, comments, suggestions, or named versions.
 
 ## Collaboration Model
 
@@ -50,6 +50,7 @@ Use Yjs as the real-time collaboration layer.
 - Start from an encrypted append-log model: clients encrypt Yjs updates locally, the server stores and broadcasts opaque `{ roomId, seq, senderId, nonce, ciphertext }` records, and fresh clients replay the encrypted log after local decryption.
 - Subscribe over WebSocket before replaying backlog. The server sends encrypted backlog records over the newly subscribed socket, then streams live records, avoiding the race where updates can land between HTTP history load and WebSocket subscription.
 - Treat `roomId`, `seq`, and `senderId` as routing metadata, not private document content. Client-known metadata is bound to ciphertext with AES-GCM additional authenticated data; server-assigned sequence integrity, drop detection, and replay protection remain future protocol work.
+- Validate delivered records client-side with contiguous sequence checks. This catches delivered gaps, duplicates/replays, and reordered records, but does not yet prove the server has not truncated a suffix, forked history, or withheld all future records.
 - Do not start v1 with normal Hocuspocus persistence, because server-side `Y.Doc` or state-vector persistence conflicts with strict server-unreadability. Hocuspocus can be reconsidered only as a non-decrypting transport layer or for a weaker private-link model.
 - Avoid `y-webrtc` as the default provider because self-hosted persistence and deployment should be predictable.
 
@@ -164,11 +165,12 @@ Dependency policy:
 - Inline comment anchoring can break under collaborative edits unless anchors use robust positions such as block IDs, Yjs relative positions, or a tested hybrid.
 - Markdown import/export may not preserve every detail of agent-generated files, especially when rich editing abstractions differ from raw Markdown.
 - Suggested changes are a separate review system, not a built-in property of CRDT sync.
+- Current sequence hardening is detection-only for delivered records. Stronger malicious-server protection still needs a client-authenticated envelope, hash chain, signed checkpoints, or comparable protocol design.
 
 ## First Implementation Milestones
 
 1. Complete the E2EE plus Yjs persistence spike. Current result: `viable_with_constraints` for a custom encrypted append-log provider.
-2. Extend the spike with durable disk/database persistence, append-log replay after server restart, update compaction strategy, and encrypted awareness/presence assumptions. Current result: minimal file-backed replay is proven; production durability, compaction, and awareness assumptions remain open.
+2. Extend the spike with protocol and durability hardening. Current result: minimal file-backed replay, WebSocket backlog replay, AAD metadata authentication, same-client reconnect, and delivered-record sequence/replay detection are proven; production durability, compaction, awareness assumptions, hash chains, signed checkpoints, and fork/truncation detection remain open.
 3. Decide the canonical document representation.
 4. Create the Milkdown versus BlockNote editor prototype comparison.
 5. Pick the editor based on Markdown fidelity, UX, license fit, and implementation complexity.
@@ -189,6 +191,7 @@ Dependency policy:
 - Verify encrypted persistence by confirming the server cannot read document body, comments, or patch content.
 - Verify the E2EE append-log provider with `npm run spike:e2ee`, `npm test`, and `npm run typecheck`.
 - Verify joining clients receive backlog over WebSocket without missing records created before subscription completes.
+- Verify delivered append-log sequence gaps, duplicates/replays, and reordered records are rejected.
 - Verify the chosen canonical document model preserves acceptable Markdown export quality.
 - Verify CLI publish, patch, comment, export, status, and `--json` output.
 - Verify suggestion mode never overwrites human edits without acceptance.

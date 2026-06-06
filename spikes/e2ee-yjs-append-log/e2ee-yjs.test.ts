@@ -4,9 +4,15 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import WebSocket from 'ws';
 import * as Y from 'yjs';
-import { EncryptedYjsClient } from './client.js';
+import { EncryptedYjsClient, ProtocolIntegrityError } from './client.js';
 import { decryptUpdate, deriveRoomKey } from './crypto.js';
-import { EncryptedAppendLogServer, FileAppendLogStore } from './server.js';
+import {
+  EncryptedAppendLogServer,
+  FileAppendLogStore,
+  type EncryptedAppendLogStore,
+  type EncryptedUpdateRecord,
+  type IncomingEncryptedUpdate,
+} from './server.js';
 
 describe('encrypted Yjs append-log spike', () => {
   it('syncs two clients, persists reloadable encrypted updates, and keeps server storage opaque', async () => {
@@ -195,6 +201,55 @@ describe('encrypted Yjs append-log spike', () => {
     }
   });
 
+  it('detects dropped, replayed, and reordered append-log records', async () => {
+    const roomId = 'sequence-hardening-room';
+    const roomSecret = 'sequence-hardening-key';
+    const records = await createEncryptedRecords(roomId, roomSecret);
+    const scenarios: Array<{ name: string; records: EncryptedUpdateRecord[] }> = [
+      {
+        name: 'dropped record gap',
+        records: [
+          records[0],
+          { ...records[1], seq: 3 },
+        ],
+      },
+      {
+        name: 'replayed duplicate record',
+        records: [
+          records[0],
+          records[0],
+        ],
+      },
+      {
+        name: 'reordered records',
+        records: [
+          records[1],
+          records[0],
+        ],
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const server = new EncryptedAppendLogServer(new StaticAppendLogStore(scenario.records));
+      const serverUrl = await server.start();
+      const reader = new EncryptedYjsClient({
+        serverUrl,
+        roomId,
+        roomSecret,
+        clientId: `reader-${scenario.name}`,
+      });
+
+      try {
+        const connect = reader.connect();
+        await expect(connect, scenario.name).rejects.toThrow(ProtocolIntegrityError);
+        await expect(connect, scenario.name).rejects.toThrow(/append-log sequence/);
+      } finally {
+        reader.disconnect();
+        await server.stop();
+      }
+    }
+  });
+
   it('catches updates appended before a WebSocket subscriber joins', async () => {
     const roomId = 'history-subscribe-race-room';
     const roomSecret = 'race-test-url-fragment-key';
@@ -273,4 +328,44 @@ async function readAppendLogDirectory(directory: string): Promise<string> {
     filenames.map((filename) => readFile(join(directory, filename), 'utf8')),
   );
   return contents.join('\n');
+}
+
+async function createEncryptedRecords(roomId: string, roomSecret: string): Promise<EncryptedUpdateRecord[]> {
+  const server = new EncryptedAppendLogServer();
+  const serverUrl = await server.start();
+  const writer = new EncryptedYjsClient({
+    serverUrl,
+    roomId,
+    roomSecret,
+    clientId: 'writer',
+  });
+
+  try {
+    await writer.connect();
+    writer.markdown.insert(0, 'first update');
+    await waitFor(() => server.store.list(roomId).length === 1);
+    writer.markdown.insert(writer.markdown.length, '\nsecond update');
+    await waitFor(() => server.store.list(roomId).length === 2);
+
+    return server.store.list(roomId);
+  } finally {
+    writer.disconnect();
+    await server.stop();
+  }
+}
+
+class StaticAppendLogStore implements EncryptedAppendLogStore {
+  constructor(private readonly records: EncryptedUpdateRecord[]) {}
+
+  append(_roomId: string, _update: IncomingEncryptedUpdate): EncryptedUpdateRecord {
+    throw new Error('StaticAppendLogStore is read-only');
+  }
+
+  list(roomId: string): EncryptedUpdateRecord[] {
+    return this.records.filter((record) => record.roomId === roomId);
+  }
+
+  serialized(roomId: string): string {
+    return JSON.stringify(this.list(roomId));
+  }
 }

@@ -19,6 +19,7 @@ export class EncryptedYjsClient {
   private roomKey?: CryptoKey;
   private socket?: WebSocket;
   private messageQueue = Promise.resolve();
+  private nextExpectedSeq = 1;
 
   constructor(options: EncryptedYjsClientOptions) {
     this.options = options;
@@ -27,15 +28,24 @@ export class EncryptedYjsClient {
   async connect(): Promise<void> {
     this.roomKey = await deriveRoomKey(this.options.roomId, this.options.roomSecret);
     this.socket = new WebSocket(this.wsUrl());
+    let initialSyncDone = false;
 
     const initialSync = new Promise<void>((resolve, reject) => {
       this.socket?.on('message', (raw) => {
         this.messageQueue = this.messageQueue
           .then(() => this.handleServerMessage(raw.toString()))
           .then((isInitialSyncComplete) => {
-            if (isInitialSyncComplete) resolve();
+            if (isInitialSyncComplete) {
+              initialSyncDone = true;
+              resolve();
+            }
           })
-          .catch(reject);
+          .catch((error: unknown) => {
+            if (this.socket?.readyState === WebSocket.OPEN) {
+              this.socket.close(1008, 'protocol integrity failure');
+            }
+            if (!initialSyncDone) reject(error);
+          });
       });
       this.socket?.once('close', () => reject(new Error('Socket closed before initial sync completed')));
       this.socket?.once('error', reject);
@@ -73,12 +83,32 @@ export class EncryptedYjsClient {
     if (message.type === 'sync-complete') return true;
     if (message.type !== 'encrypted-update' || !message.record) return false;
 
+    this.assertAcceptableSequence(message.record);
     const update = await decryptUpdate(message.record, this.key(), {
       roomId: message.record.roomId,
       senderId: message.record.senderId,
     });
     Y.applyUpdate(this.doc, update, this);
+    this.nextExpectedSeq += 1;
     return false;
+  }
+
+  private assertAcceptableSequence(record: EncryptedUpdateRecord): void {
+    if (record.roomId !== this.options.roomId) {
+      throw new ProtocolIntegrityError(`Received update for unexpected room ${JSON.stringify(record.roomId)}`);
+    }
+
+    if (!Number.isSafeInteger(record.seq) || record.seq < 1) {
+      throw new ProtocolIntegrityError(`Received invalid append-log sequence ${record.seq}`);
+    }
+
+    if (record.seq < this.nextExpectedSeq) {
+      throw new ProtocolIntegrityError(`Received replayed or duplicate append-log sequence ${record.seq}; expected ${this.nextExpectedSeq}`);
+    }
+
+    if (record.seq > this.nextExpectedSeq) {
+      throw new ProtocolIntegrityError(`Detected missing or reordered append-log sequence ${record.seq}; expected ${this.nextExpectedSeq}`);
+    }
   }
 
   private async sendEncryptedUpdate(update: Uint8Array): Promise<void> {
@@ -107,5 +137,12 @@ export class EncryptedYjsClient {
   private key(): CryptoKey {
     if (!this.roomKey) throw new Error('Room key is not initialized');
     return this.roomKey;
+  }
+}
+
+export class ProtocolIntegrityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProtocolIntegrityError';
   }
 }

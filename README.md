@@ -10,7 +10,7 @@ Start with [PLAN.md](PLAN.md).
 
 This repository currently contains the product/technical plan plus the first executable spike: `spikes/e2ee-yjs-append-log/`.
 
-The E2EE Yjs append-log spike currently passes local verification and supports the v1 direction of a custom encrypted WebSocket provider where the server stores opaque encrypted Yjs payloads plus plaintext routing metadata (`roomId`, `seq`, `senderId`). It includes WebSocket backlog replay to avoid the history/subscription race, metadata authentication for client-known fields, and a file-backed append-log restart test.
+The E2EE Yjs append-log spike currently passes local verification and supports the v1 direction of a custom encrypted WebSocket provider where the server stores opaque encrypted Yjs payloads plus plaintext routing metadata (`roomId`, `seq`, `senderId`). It includes WebSocket backlog replay to avoid the history/subscription race, metadata authentication for client-known fields, delivered-record sequence/replay detection, and a file-backed append-log restart test.
 
 ## Guiding Principles
 
