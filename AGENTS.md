@@ -1,0 +1,34 @@
+# Agent Notes
+
+## Project Scope
+
+Agent MD Rooms is an OSS, self-hostable collaboration platform for Markdown files created by coding agents. The target product is a Notion-leaning Markdown room with Excalidraw-style sharing, strict E2EE constraints, real-time collaboration, inline comments, and a machine-friendly CLI.
+
+Start with `PLAN.md` before making product or architecture changes.
+
+## Current Non-UI State
+
+- The active spike is `spikes/e2ee-yjs-append-log/`.
+- It validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, and metadata authentication for client-known fields.
+- The server still stores plaintext routing metadata: `roomId`, `seq`, and `senderId`.
+- Production-grade durability, append-log compaction, drop/replay detection, awareness encryption, editor integration, comments, suggestions, and named versions remain open.
+
+## Working Rules
+
+- Do not build or change UI unless the user explicitly asks; another model may prototype UI separately.
+- Preserve the strict E2EE direction: document payloads must stay unreadable to the server.
+- Be precise about what is encrypted. Plaintext routing metadata is acceptable for the current spike only when documented.
+- Prefer permissive OSS dependencies. Treat MPL, GPL, AGPL, source-available, commercial, or premium packages as explicit approval items.
+- Use web search for current docs and Nia for code/docs/research lookup when helpful.
+- After implementation, verify with a separate subagent before calling the work done.
+
+## Checks
+
+Run these before reporting completion:
+
+```bash
+npm test
+npm run typecheck
+npm run spike:e2ee
+```
+

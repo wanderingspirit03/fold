@@ -1,0 +1,23 @@
+{
+  "name": "agent-md-rooms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OSS plan and spikes for encrypted Markdown rooms created by coding agents.",
+  "scripts": {
+    "spike:e2ee": "tsx spikes/e2ee-yjs-append-log/run-spike.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "yjs": "^13.6.23"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.8"
+  }
+}
