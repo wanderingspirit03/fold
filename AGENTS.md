@@ -12,16 +12,30 @@ Start with `PLAN.md` before making product or architecture changes.
 - V1 canonical document state is raw Markdown in `Y.Text`; editor-native structures are helper/derived state unless they prove lossless Markdown fidelity.
 - The E2EE spike validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, metadata authentication for client-known fields, and delivered-record sequence/replay detection.
 - The document-model spike compares Markdown-canonical `Y.Text` against a non-UI ProseMirror/CommonMark editor-canonical proxy and records the v1 Markdown-canonical decision.
+- The repo now has an early server-backed TypeScript CLI and file-backed append-log server. Local flow starts with `npm run server -- --port 8787 --data ./data`, then `npm run cli -- publish ./notes.md --server http://127.0.0.1:8787`.
+- Current CLI room workflow includes `publish`, `status`, `export`, `propose`, `proposals`, `show-proposal`, `accept`, `reject`, and legacy `patch` as a compatibility wrapper around proposal submission.
+- Proposal records, proposal status/timeline events, persona metadata, and document Markdown are encrypted room payloads decrypted/replayed client-side. Proposal status is derived by replaying encrypted room records, not by trusting mutable plaintext server state.
+- Agent personas should be assigned by the room/system, not self-selected by agents. Preserve distinct, memorable agent personas and visible agent-vs-human identity.
 - The server still stores plaintext routing metadata: `roomId`, `seq`, and `senderId`.
-- Production-grade durability, append-log compaction, fork/truncation detection, hash chains or signed checkpoints, awareness encryption, editor integration, comments, suggestions, and named versions remain open.
+- Production-grade durability, append-log compaction, fork/truncation detection, hash chains or signed checkpoints, awareness encryption, editor integration, inline comments, and named versions remain open.
+
+## Renderer and Editor Direction
+
+- Keep raw Markdown as the durable source of truth for v1.
+- Read mode is locked to `react-markdown` with remark/rehype: `remark-gfm`, `remark-math`, `rehype-katex`, `katex`, `rehype-raw` only behind policy, `rehype-sanitize`, `shiki`, and `rehype-pretty-code`.
+- Never render unsanitized raw HTML from shared rooms.
+- Render Mermaid fences as placeholders first; add live Mermaid only behind a sanitized/isolated component.
+- Edit mode is locked to Milkdown as the first polished Markdown editor candidate: `@milkdown/core`, `@milkdown/react`, `@milkdown/preset-commonmark`, `@milkdown/preset-gfm`, listener/history/clipboard/cursor/code-highlight plugins, and `@milkdown/prose`.
+- Do not reintroduce BlockNote or block-doc-first editors as first-line v1 dependencies unless Markdown round-tripping evidence forces a plan change.
+- The Milkdown prototype must measure Markdown import/export fidelity on headings, lists/task lists, tables, code fences, links/images, frontmatter, Mermaid, math, and long agent reports before deeper UI investment.
 
 ## Working Rules
 
-- Do not build or change UI unless the user explicitly asks; another model may prototype UI separately.
+- Do not build or change UI unless the user explicitly asks; another model may prototype UI separately. If building UI, follow the locked renderer/editor direction above.
 - Preserve the strict E2EE direction: document payloads must stay unreadable to the server.
 - Be precise about what is encrypted. Plaintext routing metadata is acceptable for the current spike only when documented.
 - Prefer permissive OSS dependencies. Treat MPL, GPL, AGPL, source-available, commercial, or premium packages as explicit approval items.
-- Use web search for current docs and Nia for code/docs/research lookup when helpful.
+- Use web search/current docs lookup when dependency or API details may have changed.
 - After implementation, verify with a separate subagent before calling the work done.
 
 ## Checks
