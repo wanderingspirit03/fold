@@ -1,4 +1,6 @@
 import type { MarkdownDocumentSummary } from '../rooms/markdown-snapshot.js';
+import type { ProposalStatus, ProposalView } from '../rooms/proposals.js';
+import type { TimelineEvent } from '../rooms/timeline.js';
 
 export interface PublicRoomResult {
   roomId: string;
@@ -88,6 +90,77 @@ export interface PatchResult {
     baseSha256: string;
     proposedSha256: string;
   };
+  server: {
+    recordCount: number;
+    latestSeq: number;
+  };
+}
+
+export interface ProposeResult {
+  schema: 'mdroom.propose.result.v1';
+  ok: true;
+  mode: 'proposal';
+  room: PublicRoomResult;
+  metadata: {
+    path: string;
+    found: boolean;
+  };
+  base: MarkdownDocumentSummary;
+  proposed: MarkdownDocumentSummary;
+  proposal: ProposalView;
+  timeline: TimelineEvent;
+  server: {
+    recordCount: number;
+    latestSeq: number;
+  };
+}
+
+export interface ProposalsResult {
+  schema: 'mdroom.proposals.result.v1';
+  ok: true;
+  mode: 'proposal-list';
+  room: PublicRoomResult;
+  proposals: ProposalListItem[];
+  server: {
+    recordCount: number;
+    latestSeq: number | null;
+  };
+}
+
+export interface ProposalListItem {
+  id: string;
+  title: string;
+  comment: string;
+  status: ProposalStatus;
+  createdAt: string;
+  updatedAt: string;
+  persona: ProposalView['persona'];
+  base: MarkdownDocumentSummary;
+  proposed: MarkdownDocumentSummary;
+}
+
+export interface ShowProposalResult {
+  schema: 'mdroom.show-proposal.result.v1';
+  ok: true;
+  mode: 'proposal';
+  room: PublicRoomResult;
+  proposal: ProposalView;
+  timeline: TimelineEvent[];
+  server: {
+    recordCount: number;
+    latestSeq: number | null;
+  };
+}
+
+export interface DecideProposalResult {
+  schema: 'mdroom.accept.result.v1' | 'mdroom.reject.result.v1';
+  ok: true;
+  mode: 'proposal-decision';
+  room: PublicRoomResult;
+  proposal: ProposalView;
+  status: 'accepted' | 'rejected';
+  document: MarkdownDocumentSummary | null;
+  timeline: TimelineEvent;
   server: {
     recordCount: number;
     latestSeq: number;

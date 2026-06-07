@@ -216,14 +216,17 @@ export class EncryptedAppendLogServer {
     await new Promise<void>((resolve, reject) => {
       const onError = (error: Error): void => {
         this.server?.off('listening', onListening);
+        this.wss?.off('error', onError);
         reject(error);
       };
       const onListening = (): void => {
         this.server?.off('error', onError);
+        this.wss?.off('error', onError);
         resolve();
       };
 
       this.server?.once('error', onError);
+      this.wss?.once('error', onError);
       this.server?.once('listening', onListening);
       if (options.host) {
         this.server?.listen(port, options.host);

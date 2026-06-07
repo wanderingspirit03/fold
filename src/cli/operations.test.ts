@@ -3,9 +3,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EncryptedAppendLogServer } from '../../spikes/e2ee-yjs-append-log/server.js';
-import { decryptPatchSuggestion } from '../rooms/patch-suggestion.js';
 import { defaultMetadataPath, readRoomMetadata } from '../rooms/metadata.js';
-import { exportMarkdown, patchMarkdown, publishMarkdown, roomStatus } from './operations.js';
+import {
+  acceptProposal,
+  exportMarkdown,
+  listProposals,
+  patchMarkdown,
+  proposeMarkdown,
+  publishMarkdown,
+  rejectProposal,
+  roomStatus,
+  showProposal,
+} from './operations.js';
 
 describe('CLI operations', () => {
   it('publishes Markdown as encrypted local metadata by default', async () => {
@@ -28,7 +37,7 @@ describe('CLI operations', () => {
       expect(result.room.serverRoomUrl).not.toContain('#key=');
       expect(result.metadata.saved).toBe(true);
       expect(result.document.canonical).toBe('y.text:markdown');
-      expect(result.server.recordCount).toBe(1);
+      expect(result.server.recordCount).toBe(2);
 
       const rawMetadata = await readFile(defaultMetadataPath(cwd), 'utf8');
       expect(rawMetadata).not.toContain('Private body.');
@@ -57,7 +66,7 @@ describe('CLI operations', () => {
       });
 
       expect(result.metadata.saved).toBe(false);
-      expect(result.server.recordCount).toBe(1);
+      expect(result.server.recordCount).toBe(2);
       await expect(readFile(defaultMetadataPath(cwd), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     } finally {
       await server.stop();
@@ -88,7 +97,7 @@ describe('CLI operations', () => {
       expect(exported.schema).toBe('mdroom.export.result.v1');
       expect(exported.document.markdown).toBe(markdown);
       expect(exported.output.written).toBe(true);
-      expect(exported.server.recordCount).toBe(1);
+      expect(exported.server.recordCount).toBe(2);
       expect(await readFile(join(cwd, 'out', 'exported.md'), 'utf8')).toBe(markdown);
     } finally {
       await server.stop();
@@ -119,7 +128,7 @@ describe('CLI operations', () => {
       expect(status.metadata.found).toBe(true);
       expect(status.document?.bytes).toBe(Buffer.byteLength('status text', 'utf8'));
       expect(status.server.checked).toBe(true);
-      expect(status.server.recordCount).toBe(1);
+      expect(status.server.recordCount).toBe(2);
       expect(status.room.serverRoomUrl).not.toContain('#key=');
     } finally {
       await server.stop();
@@ -152,7 +161,7 @@ describe('CLI operations', () => {
 
       expect(published.room.serverRoomUrl).toContain('/base/room/');
       expect(status.metadata.found).toBe(true);
-      expect(status.server.recordCount).toBe(1);
+      expect(status.server.recordCount).toBe(2);
       expect(exported.document.markdown).toBe(markdown);
     } finally {
       await server.stop();
@@ -160,7 +169,7 @@ describe('CLI operations', () => {
     }
   });
 
-  it('submits encrypted whole-document patch suggestions without changing export', async () => {
+  it('submits encrypted whole-document patch suggestions as proposals without changing export', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'mdroom-cli-'));
     const server = new EncryptedAppendLogServer();
     const serverUrl = await server.start();
@@ -189,7 +198,7 @@ describe('CLI operations', () => {
 
       expect(patch.schema).toBe('mdroom.patch.result.v1');
       expect(patch.mode).toBe('suggestion');
-      expect(patch.server.recordCount).toBe(2);
+      expect(patch.server.recordCount).toBe(4);
       expect(patch.base.sha256).toBe(published.document.sha256);
       expect(patch.proposed.bytes).toBe(Buffer.byteLength(proposed, 'utf8'));
       expect(exported.document.markdown).toBe(original);
@@ -197,19 +206,98 @@ describe('CLI operations', () => {
       const serverStorage = server.store.serialized(published.room.roomId);
       expect(serverStorage).not.toContain(original);
       expect(serverStorage).not.toContain(proposed);
-      const suggestionRecord = server.store.list(published.room.roomId)[1];
-      expect(suggestionRecord?.senderId).toContain('mdroom-cli:suggestion');
-      const decrypted = await decryptPatchSuggestion(
-        {
-          roomId: published.room.roomId,
-          roomSecret: published.room.url.split('#key=')[1] ?? '',
-          serverUrl,
-        },
-        suggestionRecord!,
-        suggestionRecord!.senderId,
-      );
-      expect(decrypted.proposed.markdown).toBe(proposed);
-      expect(decrypted.summary).toBe('Update body copy');
+      const proposalRecord = server.store.list(published.room.roomId)[2];
+      expect(proposalRecord?.senderId).toContain('mdroom-cli:proposal');
+      const proposals = await listProposals({ cwd, room: published.room.url });
+      expect(proposals.proposals).toHaveLength(1);
+      expect(proposals.proposals[0]?.title).toBe('Update body copy');
+      expect(proposals.proposals[0]?.status).toBe('pending');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('lists, shows, accepts, and rejects encrypted proposal records by replaying events', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'mdroom-cli-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      const original = '# Proposal Base\n\nOriginal body.';
+      const acceptedMarkdown = '# Proposal Base\n\nAccepted body.';
+      const rejectedMarkdown = '# Proposal Base\n\nRejected body.';
+      await writeFile(join(cwd, 'room.md'), original, 'utf8');
+      await writeFile(join(cwd, 'accepted.md'), acceptedMarkdown, 'utf8');
+      await writeFile(join(cwd, 'rejected.md'), rejectedMarkdown, 'utf8');
+      const published = await publishMarkdown({
+        cwd,
+        filePath: 'room.md',
+        serverUrl,
+        save: true,
+      });
+
+      const acceptedProposal = await proposeMarkdown({
+        cwd,
+        filePath: 'accepted.md',
+        room: published.room.token,
+        title: 'Accept me',
+        comment: 'Apply this one.',
+      });
+      const rejectedProposal = await proposeMarkdown({
+        cwd,
+        filePath: 'rejected.md',
+        room: published.room.token,
+        title: 'Reject me',
+        comment: 'Do not apply this one.',
+      });
+
+      let proposals = await listProposals({ cwd, room: published.room.token });
+      expect(proposals.proposals.map((proposal) => proposal.status)).toEqual(['pending', 'pending']);
+      expect(proposals.proposals[0]?.persona.kind).toBe('agent');
+      expect(proposals.proposals[0]?.proposed).not.toHaveProperty('markdown');
+
+      const shown = await showProposal({
+        cwd,
+        room: published.room.token,
+        proposalId: acceptedProposal.proposal.id,
+      });
+      expect(shown.proposal.proposed.markdown).toBe(acceptedMarkdown);
+      expect(shown.timeline.map((event) => event.type)).toContain('proposal_submitted');
+
+      const accepted = await acceptProposal({
+        cwd,
+        room: published.room.token,
+        proposalId: acceptedProposal.proposal.id,
+      });
+      await expect(acceptProposal({
+        cwd,
+        room: published.room.token,
+        proposalId: rejectedProposal.proposal.id,
+      })).rejects.toThrow(/current document/);
+      const rejected = await rejectProposal({
+        cwd,
+        room: published.room.token,
+        proposalId: rejectedProposal.proposal.id,
+      });
+      proposals = await listProposals({ cwd, room: published.room.token });
+      const exported = await exportMarkdown({ cwd, room: published.room.token });
+
+      expect(accepted.schema).toBe('mdroom.accept.result.v1');
+      expect(accepted.proposal.status).toBe('accepted');
+      expect(rejected.schema).toBe('mdroom.reject.result.v1');
+      expect(rejected.proposal.status).toBe('rejected');
+      expect(proposals.proposals.map((proposal) => proposal.status)).toEqual(['accepted', 'rejected']);
+      expect(exported.document.markdown).toBe(acceptedMarkdown);
+
+      const serverStorage = server.store.serialized(published.room.roomId);
+      expect(serverStorage).not.toContain(original);
+      expect(serverStorage).not.toContain(acceptedMarkdown);
+      expect(serverStorage).not.toContain(rejectedMarkdown);
+      await expect(rejectProposal({
+        cwd,
+        room: published.room.token,
+        proposalId: acceptedProposal.proposal.id,
+      })).rejects.toThrow(/already accepted/);
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });

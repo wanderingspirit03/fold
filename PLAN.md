@@ -151,11 +151,15 @@ Proposed commands:
 ```bash
 mdroom publish file.md
 mdroom patch file.md --room <url-or-token>
-mdroom patch file.md --room <url-or-token> --agent "Captain Diffbeard" --title "Tighten positioning" --comment "I made the opening sharper and added a concrete ICP section."
+mdroom propose file.md --room <url-or-token> --title "Tighten positioning" --comment "I made the opening sharper and added a concrete ICP section."
+mdroom proposals --room <url-or-token>
+mdroom show-proposal <proposal-id> --room <url-or-token>
+mdroom accept <proposal-id> --room <url-or-token>
+mdroom reject <proposal-id> --room <url-or-token>
+mdroom patch file.md --room <url-or-token> --summary "Tighten positioning"
 mdroom comment --room <url-or-token> --text "..."
 mdroom export --room <url-or-token>
 mdroom status --room <url-or-token>
-mdroom agent create --name "Patch Goblin" --role "Copy Editor"
 mdroom context --room <url-or-token>
 ```
 
@@ -168,7 +172,7 @@ CLI requirements:
 - Accept an explicit room URL or token for stateless automation.
 - Store encrypted-room access tokens locally only when the user or agent opts into local metadata for that room.
 - Never send the room key to the server.
-- Support agent identity flags on agent-originated commands, such as `--agent`, `--agent-role`, or locally configured default agent personas.
+- Assign visible agent personas by room/system logic from stable participant fingerprints. Agents should not self-declare their visible room persona through user-facing CLI flags.
 - Support patch metadata flags from day one: `--title`, `--comment`, and `--json` fields that make the patch reviewable like a commit.
 
 ## Agent Edit Modes

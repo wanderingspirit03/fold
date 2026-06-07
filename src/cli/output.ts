@@ -1,5 +1,14 @@
 import type { CommandContext } from '@stricli/core';
-import type { ExportResult, PatchResult, PublishResult, StatusResult } from './results.js';
+import type {
+  DecideProposalResult,
+  ExportResult,
+  PatchResult,
+  ProposalsResult,
+  ProposeResult,
+  PublishResult,
+  ShowProposalResult,
+  StatusResult,
+} from './results.js';
 
 export function writeJson(context: CommandContext, value: unknown): void {
   context.process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
@@ -53,4 +62,51 @@ export function writePatchHuman(context: CommandContext, result: PatchResult): v
     `→ Server records: ${result.server.recordCount}`,
     '',
   ].join('\n'));
+}
+
+export function writeProposeHuman(context: CommandContext, result: ProposeResult): void {
+  context.process.stdout.write([
+    '✓ Submitted encrypted proposal',
+    `→ Room: ${result.room.serverRoomUrl}`,
+    `→ Proposal: ${result.proposal.id}`,
+    `→ Title: ${result.proposal.title}`,
+    `→ Persona: ${result.proposal.persona.name} (${result.proposal.persona.label})`,
+    `→ Status: ${result.proposal.status}`,
+    `→ Server records: ${result.server.recordCount}`,
+    '',
+  ].join('\n'));
+}
+
+export function writeProposalsHuman(context: CommandContext, result: ProposalsResult): void {
+  if (result.proposals.length === 0) {
+    context.process.stdout.write('No proposals found.\n');
+    return;
+  }
+
+  context.process.stdout.write(`${result.proposals.map((proposal) => [
+    `${proposal.id}  ${proposal.status}  ${proposal.title}`,
+    `  ${proposal.persona.name} (${proposal.persona.label})`,
+  ].join('\n')).join('\n')}\n`);
+}
+
+export function writeShowProposalHuman(context: CommandContext, result: ShowProposalResult): void {
+  context.process.stdout.write([
+    `${result.proposal.id}  ${result.proposal.status}`,
+    `Title: ${result.proposal.title}`,
+    `Persona: ${result.proposal.persona.name} (${result.proposal.persona.label})`,
+    result.proposal.comment ? `Comment: ${result.proposal.comment}` : null,
+    `Base: ${result.proposal.base.sha256}`,
+    `Proposed: ${result.proposal.proposed.sha256}`,
+    '',
+  ].filter(Boolean).join('\n'));
+}
+
+export function writeDecisionHuman(context: CommandContext, result: DecideProposalResult): void {
+  context.process.stdout.write([
+    `✓ Proposal ${result.status}`,
+    `→ Proposal: ${result.proposal.id}`,
+    result.document ? `→ Document: ${result.document.sha256}` : null,
+    `→ Server records: ${result.server.recordCount}`,
+    '',
+  ].filter(Boolean).join('\n'));
 }

@@ -50,16 +50,58 @@ export async function createEncryptedMarkdownUpdate(
   try {
     doc.getText(MARKDOWN_YTEXT_NAME).insert(0, markdown);
     const update = Y.encodeStateAsUpdate(doc);
-    const roomKey = await deriveRoomKey(access.roomId, access.roomSecret);
-    const encrypted = await encryptUpdate(update, roomKey, {
-      roomId: access.roomId,
-      senderId,
-    });
+    return encryptMarkdownYjsUpdate(update, access, senderId);
+  } finally {
+    doc.destroy();
+  }
+}
 
-    return {
-      senderId,
-      ...encrypted,
-    };
+export async function createEncryptedMarkdownReplacementUpdate(
+  currentMarkdown: string,
+  replacementMarkdown: string,
+  access: RoomAccess,
+  senderId = DOCUMENT_UPDATE_SENDER_ID,
+): Promise<IncomingEncryptedUpdate> {
+  const doc = new Y.Doc();
+  try {
+    const text = doc.getText(MARKDOWN_YTEXT_NAME);
+    text.insert(0, currentMarkdown);
+    const beforeReplacement = Y.encodeStateVector(doc);
+    text.delete(0, text.length);
+    text.insert(0, replacementMarkdown);
+    const update = Y.encodeStateAsUpdate(doc, beforeReplacement);
+    return encryptMarkdownYjsUpdate(update, access, senderId);
+  } finally {
+    doc.destroy();
+  }
+}
+
+export async function createEncryptedMarkdownReplacementUpdateFromRecords(
+  records: EncryptedUpdateRecord[],
+  replacementMarkdown: string,
+  access: RoomAccess,
+  senderId = DOCUMENT_UPDATE_SENDER_ID,
+): Promise<IncomingEncryptedUpdate> {
+  const doc = new Y.Doc();
+  try {
+    assertContiguousRecords(records, access.roomId);
+    const roomKey = await deriveRoomKey(access.roomId, access.roomSecret);
+    for (const record of records) {
+      if (record.senderId !== DOCUMENT_UPDATE_SENDER_ID) continue;
+
+      const update = await decryptUpdate(record, roomKey, {
+        roomId: record.roomId,
+        senderId: record.senderId,
+      });
+      Y.applyUpdate(doc, update, 'server-replacement');
+    }
+
+    const text = doc.getText(MARKDOWN_YTEXT_NAME);
+    const beforeReplacement = Y.encodeStateVector(doc);
+    text.delete(0, text.length);
+    text.insert(0, replacementMarkdown);
+    const update = Y.encodeStateAsUpdate(doc, beforeReplacement);
+    return encryptMarkdownYjsUpdate(update, access, senderId);
   } finally {
     doc.destroy();
   }
@@ -96,7 +138,7 @@ export async function decryptMarkdownFromRecords(
     assertContiguousRecords(records, access.roomId);
     const roomKey = await deriveRoomKey(access.roomId, access.roomSecret);
     for (const record of records) {
-      if (record.senderId.startsWith(SUGGESTION_UPDATE_SENDER_ID_PREFIX)) continue;
+      if (record.senderId !== DOCUMENT_UPDATE_SENDER_ID) continue;
 
       const update = await decryptUpdate(record, roomKey, {
         roomId: record.roomId,
@@ -117,6 +159,23 @@ export function summarizeMarkdown(markdown: string): MarkdownDocumentSummary {
     canonical: MARKDOWN_CANONICAL,
     bytes,
     sha256: createHash('sha256').update(markdown).digest('hex'),
+  };
+}
+
+async function encryptMarkdownYjsUpdate(
+  update: Uint8Array,
+  access: RoomAccess,
+  senderId: string,
+): Promise<IncomingEncryptedUpdate> {
+  const roomKey = await deriveRoomKey(access.roomId, access.roomSecret);
+  const encrypted = await encryptUpdate(update, roomKey, {
+    roomId: access.roomId,
+    senderId,
+  });
+
+  return {
+    senderId,
+    ...encrypted,
   };
 }
 
