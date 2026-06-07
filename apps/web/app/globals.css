@@ -1,0 +1,55 @@
+@import "katex/dist/katex.min.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 180 5% 12%;
+  --border: 195 13% 88%;
+  --input: 195 13% 88%;
+  --ring: 180 5% 12%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 263.4 70% 50.4%;
+  }
+}
+
+body {
+  font-feature-settings: "rlig" 1, "calt" 1;
+  background-color: #ffffff;
+  color: #1d1f20;
+  font-family: Inter, "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Milkdown styling improvements reserved for the Crepe spike. */
+.milkdown {
+  width: 100%;
+  max-width: 100%;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+}
+
+.milkdown .editor {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.milkdown .editor .paragraph {
+  font-size: 1rem !important;
+  line-height: 1.625 !important;
+}
+
+.ProseMirror-focused {
+  outline: 2px solid #1d1f20;
+  outline-offset: 2px;
+}

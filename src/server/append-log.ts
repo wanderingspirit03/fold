@@ -279,6 +279,16 @@ export class EncryptedAppendLogServer {
   }
 
   private async handleHttp(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'content-type',
+      });
+      response.end();
+      return;
+    }
+
     const url = new URL(request.url ?? '/', 'http://localhost');
     const updatesRoomId = roomIdFromPath(url.pathname, '/rooms/', '/updates');
     const statusRoomId = roomIdFromPath(url.pathname, '/rooms/', '/status');
@@ -416,7 +426,12 @@ function roomStatus(roomId: string, records: EncryptedUpdateRecord[]): RoomStatu
 }
 
 function sendJson(response: http.ServerResponse, statusCode: number, body: unknown): void {
-  response.writeHead(statusCode, { 'content-type': 'application/json' });
+  response.writeHead(statusCode, {
+    'content-type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'content-type',
+  });
   response.end(JSON.stringify(body));
 }
 
