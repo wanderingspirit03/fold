@@ -1,5 +1,5 @@
 import type { EncryptedPayload } from '../../spikes/e2ee-yjs-append-log/crypto.js';
-import type { EncryptedUpdateRecord, IncomingEncryptedUpdate } from '../../spikes/e2ee-yjs-append-log/server.js';
+import type { EncryptedUpdateRecord, IncomingEncryptedUpdate } from '../server/append-log.js';
 import type { RoomAccess } from './room-reference.js';
 
 export interface RoomStatusResponse {

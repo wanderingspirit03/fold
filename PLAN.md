@@ -2,17 +2,18 @@
 
 ## Summary
 
-Build an OSS, self-hostable collaboration platform for agent-created `.md` files. The first product should feel like a Notion-leaning document editor for Markdown, with Excalidraw-style encrypted room links, live collaboration, inline comments, agent-friendly CLI workflows, and durable Markdown export.
+Build an OSS, self-hostable collaboration platform for `.md` files created by humans and agents. The first product should feel like an Excalidraw-style private room plus a Notion-leaning Markdown workspace: instant encrypted sharing links, polished reading and editing, distinct human and agent personas, reviewable agent changes, inline comments, agent-friendly CLI workflows, and durable Markdown export.
 
-The core collaboration unit is one Markdown document. Folders, workspaces, full agent-run archives, and SaaS-style account systems are intentionally deferred.
+The core collaboration unit is one Markdown document in a room. A lightweight personal workspace helps each user find their rooms, agents, pending reviews, and recent Markdown artifacts. Heavy team workspaces, full agent-run archives, billing, and enterprise account systems are intentionally deferred.
 
 ## Product Goals
 
-- Let a coding agent publish a Markdown file into a collaborative room with one CLI command.
+- Let any human or autonomous agent turn a Markdown file into a private collaborative room with one command or upload.
 - Let humans read, edit, comment, and resolve threads in a polished web UI.
-- Let agents submit follow-up edits or comments through the CLI.
+- Let agents submit follow-up edits, review comments, and change explanations through the CLI or future webhooks.
 - Keep Markdown portable: users can always export the current accepted document as raw `.md`.
 - Make self-hosting easy enough for OSS users to deploy without heavy infrastructure.
+- Make human and agent participation legible: who changed what, why they changed it, and what still needs review.
 
 ## Core User Experience
 
@@ -23,6 +24,52 @@ The core collaboration unit is one Markdown document. Folders, workspaces, full 
 - Inline comments attach to selected text or document blocks.
 - Comments support replies, presence, and resolved state.
 - Named versions capture important checkpoints such as initial publish, accepted agent patches, and manual saves.
+- Each room has recognizable human and agent personas, so collaborators are visually distinct and agent actions do not appear as anonymous writes.
+- Agent changes appear like lightweight commits: a title, summary/comment, diff, status, discussion thread, and resulting version if accepted.
+- A personal workspace shows recent rooms, rooms shared with the user, rooms created by agents, pending suggestions, unresolved comments, and archived rooms.
+
+## Personal Workspace and Personas
+
+The product should feel like a lightweight personal Markdown workspace, not a heavy enterprise suite. Users get a home base for rooms and agent collaborators, while individual rooms remain share-link-first.
+
+Workspace views:
+
+- `Recent rooms`: rooms the user created, opened, or edited recently.
+- `Shared with me`: rooms opened from share links and optionally saved locally.
+- `Created by agents`: rooms published by autonomous agents or agent workflows.
+- `Needs review`: rooms with pending suggestions, unresolved comments, or explicit decision requests.
+- `Archive`: rooms the user wants out of the active workspace.
+
+Room cards should show the document title, short Markdown preview, privacy/sharing mode, pending suggestions, unresolved comments, latest accepted version, and the last active human or agent persona.
+
+### Human and Agent Personas
+
+Humans and agents should be first-class participants. Every participant gets a display name, avatar/color, and presence identity. Agents are clearly marked as agents and can include role metadata such as `Research Agent`, `Copy Editor`, `Implementation Agent`, or `QA Agent`.
+
+Agent identities should be distinct, memorable, and a little funny by default, similar to platforms that assign random playful names. Avoid making every agent feel like a generic bot. Examples:
+
+- `Patch Goblin` — proposes mechanical doc fixes and cleanup patches.
+- `Captain Diffbeard` — submits larger change sets with detailed explanations.
+- `Markdown Ferret` — finds broken links, formatting issues, and stale sections.
+- `Professor Breadcrumbs` — leaves context notes and decision trails.
+- `Lint Gremlin` — nitpicks tables, headings, task lists, and frontmatter.
+- `Source Raccoon` — asks for citations and flags unsupported claims.
+- `Tiny Scribe` — writes concise summaries and changelog notes.
+- `Diagram Badger` — comments on Mermaid, architecture, and visual explanations.
+- `Release Pixie` — turns plans into launch/release checklists.
+- `Uncertainty Otter` — marks low-confidence claims and open questions.
+
+Persona rules:
+
+- Agent personas must be visibly different from humans, for example with a bot badge, hexagon avatar, or `Agent` label.
+- The UI should distinguish autonomous agents from human-triggered agents, for example `autonomous` vs `run by Nick`.
+- Users can rename personas, but random defaults should make rooms feel alive immediately.
+- The default tone should be charming but restrained; funny names should not make serious review workflows feel unserious.
+- Persona data is room metadata and should follow the E2EE model where it reveals sensitive role or project context.
+
+### Room Persona and Mood
+
+Rooms can also have lightweight generated identities based on the Markdown artifact type, such as `Launch War Room`, `Research Library`, `Design Critique Studio`, `Bug Autopsy Room`, or `Campaign Draft Room`. This can drive iconography, accent color, and empty-state copy without changing the document model.
 
 ## Safety Model
 
@@ -104,9 +151,12 @@ Proposed commands:
 ```bash
 mdroom publish file.md
 mdroom patch file.md --room <url-or-token>
+mdroom patch file.md --room <url-or-token> --agent "Captain Diffbeard" --title "Tighten positioning" --comment "I made the opening sharper and added a concrete ICP section."
 mdroom comment --room <url-or-token> --text "..."
 mdroom export --room <url-or-token>
 mdroom status --room <url-or-token>
+mdroom agent create --name "Patch Goblin" --role "Copy Editor"
+mdroom context --room <url-or-token>
 ```
 
 CLI requirements:
@@ -118,6 +168,8 @@ CLI requirements:
 - Accept an explicit room URL or token for stateless automation.
 - Store encrypted-room access tokens locally only when the user or agent opts into local metadata for that room.
 - Never send the room key to the server.
+- Support agent identity flags on agent-originated commands, such as `--agent`, `--agent-role`, or locally configured default agent personas.
+- Support patch metadata flags from day one: `--title`, `--comment`, and `--json` fields that make the patch reviewable like a commit.
 
 ## Agent Edit Modes
 
@@ -131,6 +183,96 @@ Default room mode should be `suggestions`.
 Suggested changes are modeled separately from Yjs document sync. The agent can submit proposed Markdown or structured patches, and the client renders them as encrypted review items before applying accepted changes to the live document.
 
 The first patch format should be whole-document Markdown replacement plus a generated diff for review. `mdroom patch file.md` should submit a reviewable suggestion by default; trusted direct edits require an explicit room policy and CLI intent such as `--direct`. Structured AST patches or editor-native transaction proposals can come later if whole-document diffs feel too blunt.
+
+### Agent Change Objects
+
+Agent changes should be modeled as explicit encrypted room objects, separate from accepted Yjs document sync. Each agent change should behave like a lightweight commit/review request.
+
+Required fields:
+
+- `id`: stable patch/change identifier.
+- `authorPersonaId`: human or agent persona that created the change.
+- `authorKind`: `human`, `agent`, or `autonomous_agent`.
+- `title`: short human-readable change title.
+- `comment`: agent or human explanation of why the change exists.
+- `baseVersionId`: accepted document version the change was prepared against.
+- `proposedMarkdown`: whole-document Markdown replacement for v1.
+- `diff`: generated display diff from base Markdown to proposed Markdown.
+- `status`: `pending`, `accepted`, `rejected`, or `superseded`.
+- `createdAt` and `updatedAt`.
+- `discussionThreadIds`: comments attached to the change.
+
+Review behavior:
+
+- Default agent patches create pending suggestions, never silent overwrites.
+- Accepting a change applies the proposed Markdown to the canonical document and creates a named version.
+- Rejecting a change preserves the discussion and marks the suggestion rejected.
+- `Accept with edits` should eventually let a human modify the proposed Markdown before creating the accepted version.
+- Direct mode remains explicit and should still create a timeline event with the agent's change comment.
+
+### Agent Comments and Review Notes
+
+Agents must be able to comment independently of document changes. Comments can be document-level in v1 and anchored later.
+
+Comment types:
+
+- `note`: general explanation or context.
+- `question`: asks a human to decide something.
+- `blocker`: marks something that should not ship unresolved.
+- `suggestion`: proposes a local improvement without submitting a full patch.
+- `source_needed`: flags unsupported claims.
+- `uncertainty`: marks a low-confidence area.
+- `decision`: records a human or agent decision.
+
+Agent self-comments are encouraged on every patch. If a CLI patch omits `--comment`, the CLI can prompt interactively for humans or accept an explicit `--comment ""` in non-interactive automation.
+
+Future browser interactions can support `@agent` summons, such as `@copy-editor make this less corporate` or `@research-agent verify these claims`, with agents replying as suggestions rather than direct mutations by default.
+
+### Agent Handoff Context
+
+Rooms should eventually provide a clean context packet for another agent:
+
+```bash
+mdroom context --room <url-or-token>
+```
+
+The context packet should include the accepted Markdown, room instructions, unresolved comments, pending suggestions, accepted/rejected patch summaries, open decisions, and any safe persona metadata needed for continuation. This makes the room useful as an agent-to-agent handoff layer without scraping chat history.
+
+### Room Instructions
+
+Each room may include visible or hidden instructions for agents, such as `Keep edits concise`, `Preserve Markdown tables`, `Do not alter frontmatter`, or `Marketing tone: sharp, not hypey`. These instructions should be part of encrypted room state.
+
+## Review, Timeline, and Versions
+
+The room should make collaboration legible through explicit review surfaces.
+
+Review mode should show pending agent suggestions, unresolved comments, confidence/uncertainty flags, human decisions needed, and accept/reject controls.
+
+The room timeline records meaningful events:
+
+- Room created from a Markdown file.
+- Human joined or saved the room locally.
+- Agent persona created or connected.
+- Agent suggested changes.
+- Human commented, resolved, accepted, rejected, or edited a suggestion.
+- Direct edit applied.
+- Version created.
+- Markdown exported.
+
+Named versions should be human-readable, such as `Initial agent draft`, `After Sarah review`, `Accepted research pass`, `Final launch copy`, or `Pre-meeting version`. Accepting an agent patch should create a version named from the patch title by default.
+
+Export should support both the current accepted Markdown and an optional room bundle:
+
+```text
+document.md
+comments.json
+versions/
+patches/
+timeline.json
+personas.json
+```
+
+All non-public bundle contents must respect the room encryption model.
 
 ## OSS and Deployment
 
@@ -198,6 +340,7 @@ Build the first browser room experience.
 - Decrypt room content locally in the browser.
 - Render Markdown in read mode.
 - Show non-sensitive room status.
+- Show room title, generated room mood/persona, participant personas, and agent badges when available.
 - Support Markdown export/download.
 
 Goal: humans can view what agents publish.
@@ -221,7 +364,9 @@ Make agent patch suggestions useful.
 - List encrypted patch suggestions.
 - Decrypt suggestions client-side.
 - Show whole-document diffs.
+- Show agent persona, patch title, patch comment, status, and discussion thread.
 - Support accept and reject.
+- Support timeline events for suggested, accepted, rejected, and superseded changes.
 - Apply accepted patches as real document updates.
 - Keep rejected or pending suggestions separate from accepted Markdown export.
 
@@ -232,6 +377,7 @@ Goal: agents can propose changes and humans can review them safely.
 Add review discussion around documents and patches.
 
 - Start with encrypted document-level comments.
+- Support agent comments and typed review notes such as question, blocker, source-needed, uncertainty, and decision.
 - Add replies and resolved state.
 - Later validate anchored comments using robust positions such as block IDs, Yjs relative positions, or a hybrid.
 - Keep comment payloads unreadable to the server.
@@ -244,6 +390,7 @@ Add understandable checkpoints.
 
 - Capture the initial publish.
 - Capture accepted patch versions.
+- Name accepted agent patch versions from the patch title and author persona.
 - Support manual saved versions.
 - Export any named version.
 - Keep version metadata safe under the E2EE model.
@@ -255,6 +402,7 @@ Goal: room history becomes recoverable and explainable.
 Make the platform feel cohesive and reliable.
 
 - Improve CLI errors, JSON schemas, and room metadata management.
+- Improve personal workspace room cards, random persona naming, agent badges, and review-mode ergonomics.
 - Add example agent workflows.
 - Finish license and dependency audits.
 - Improve onboarding docs.
@@ -298,3 +446,6 @@ Goal: move from promising spike to usable OSS product.
 - Should comments attach to exact text ranges, block IDs, or both?
 - Should CLI comments initially be document-level only, or support anchors such as `--line 42` and `--heading "Plan"` in v1?
 - Should the first hosted demo use a simple ephemeral server or persistent storage from the start?
+- How playful should random agent persona names be by default, and should serious teams be able to switch to conservative naming?
+- Which persona fields are safe as plaintext routing/display metadata, if any, versus encrypted room state?
+- Should workspace membership be purely local/link-based in v1, or should users have optional lightweight accounts for syncing their room list across devices?

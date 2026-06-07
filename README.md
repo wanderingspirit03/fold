@@ -1,8 +1,8 @@
 # Agent MD Rooms
 
-Agent MD Rooms is an early OSS product plan and spike repo for a real-time collaboration platform around Markdown files created by coding agents.
+Agent MD Rooms is an early OSS product plan and spike repo for private collaborative rooms around Markdown files created by humans and agents.
 
-The goal is a Notion-leaning editor and reader where agents can publish Markdown, humans can review and comment, and both sides can collaborate through encrypted shareable rooms.
+The goal is an Excalidraw-style sharing layer and Notion-leaning reader/editor where any `.md` file can become a room: humans and agents can review, edit, comment, suggest patches, keep distinct personas, and export clean Markdown.
 
 Start with [PLAN.md](PLAN.md).
 
@@ -12,10 +12,48 @@ This repository currently contains the product/technical plan plus the first exe
 
 The E2EE Yjs append-log spike currently passes local verification and supports the v1 direction of a custom encrypted WebSocket provider where the server stores opaque encrypted Yjs payloads plus plaintext routing metadata (`roomId`, `seq`, `senderId`). It includes WebSocket backlog replay to avoid the history/subscription race, metadata authentication for client-known fields, delivered-record sequence/replay detection, and a file-backed append-log restart test.
 
+## Local Server Flow
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the append-log server with file-backed persistence:
+
+```bash
+npm run server -- --port 8787 --data ./data
+```
+
+The server defaults to `--host 127.0.0.1`, `--port 8787`, and `--data ./data/append-log` when flags are omitted. Check it with:
+
+```bash
+curl http://127.0.0.1:8787/health
+```
+
+Publish a Markdown file into an encrypted room:
+
+```bash
+npm run cli -- publish ./notes.md --server http://127.0.0.1:8787
+```
+
+The publish output includes a room URL and an `mdroom:v1:` token. Use either as `--room` for follow-up commands:
+
+```bash
+npm run cli -- status --room '<room-url-or-token>'
+npm run cli -- export --room '<room-url-or-token>' --output ./exported.md
+npm run cli -- patch ./proposal.md --room '<room-url-or-token>' --summary 'Tighten the draft'
+```
+
+The room key stays in the URL fragment or local token and is not sent to the server. The server persists encrypted update payloads plus plaintext routing metadata only.
+
 ## Guiding Principles
 
 - Markdown stays portable and exportable.
 - Agent workflows should be CLI-first and machine-friendly.
 - Sharing should feel lightweight, like Excalidraw room links.
 - Editing should feel polished, closer to Notion than a raw text editor.
+- Humans and agents should be legible participants with distinct personas, not anonymous writes.
+- Agent changes should carry commit-like explanations, diffs, review status, and comments.
 - OSS dependencies should be permissive by default and license-reviewed before adoption.
