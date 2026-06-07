@@ -10,5 +10,5 @@
     "lib": ["ES2022", "DOM"],
     "types": ["node", "vitest"]
   },
-  "include": ["spikes/**/*.ts"]
+  "include": ["spikes/**/*.ts", "src/**/*.ts"]
 }
