@@ -8,8 +8,10 @@ Start with `PLAN.md` before making product or architecture changes.
 
 ## Current Non-UI State
 
-- The active spike is `spikes/e2ee-yjs-append-log/`.
-- It validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, metadata authentication for client-known fields, and delivered-record sequence/replay detection.
+- The active spikes are `spikes/e2ee-yjs-append-log/` and `spikes/document-model/`.
+- V1 canonical document state is raw Markdown in `Y.Text`; editor-native structures are helper/derived state unless they prove lossless Markdown fidelity.
+- The E2EE spike validates encrypted Yjs update payloads, WebSocket backlog replay, same-client reconnect, basic file-backed JSONL restart/replay, metadata authentication for client-known fields, and delivered-record sequence/replay detection.
+- The document-model spike compares Markdown-canonical `Y.Text` against a non-UI ProseMirror/CommonMark editor-canonical proxy and records the v1 Markdown-canonical decision.
 - The server still stores plaintext routing metadata: `roomId`, `seq`, and `senderId`.
 - Production-grade durability, append-log compaction, fork/truncation detection, hash chains or signed checkpoints, awareness encryption, editor integration, comments, suggestions, and named versions remain open.
 
@@ -30,4 +32,6 @@ Run these before reporting completion:
 npm test
 npm run typecheck
 npm run spike:e2ee
+npm run spike:document-model
+npm run spike:document-model:report
 ```

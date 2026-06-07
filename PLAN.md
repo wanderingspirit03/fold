@@ -56,13 +56,9 @@ Use Yjs as the real-time collaboration layer.
 
 Important caveat: Yjs solves real-time synchronization, not review workflows by itself. Inline comments, anchors, suggestions, accept/reject flows, and named versions need explicit product and data modeling.
 
-The canonical document representation must be decided before implementation. Candidate models are:
+V1 canonical document representation is raw Markdown text in `Y.Text`.
 
-- Yjs/ProseMirror document state as canonical, with Markdown as import/export.
-- Markdown text as canonical, with editor state derived from it.
-- Hybrid model with editor state canonical during collaboration and Markdown snapshots at named checkpoints.
-
-The current default to validate is the hybrid model, because it protects collaborative editing ergonomics while preserving Markdown portability.
+Editor-native structures may be used as UI helpers, but they must not become the durable source of truth unless they prove lossless Markdown fidelity for agent-authored files. The document-model comparison spike showed that Markdown-canonical preserves sample files byte-for-byte, while plain `prosemirror-markdown` loses frontmatter, task-list syntax, and pipe table structure.
 
 ## Editor Strategy
 
@@ -86,7 +82,7 @@ The prototype should compare both on the same real agent-generated Markdown exam
 - Real-time editing behavior
 - Inline comment anchoring
 
-Default recommendation after verification: start implementation with Milkdown unless the prototype proves the Notion-like UX gap is too expensive.
+Default recommendation after verification: keep Markdown-canonical as the durable v1 model. Explore Milkdown/ProseMirror as an editing surface only if it can operate as a helper over raw Markdown or prove lossless fidelity for required Markdown features.
 
 Markdown round-tripping is a product risk, not a solved assumption. The prototype must measure how much formatting and structure survive import/export, especially for frontmatter, tables, Mermaid, math, code fences, and long agent reports.
 
@@ -171,7 +167,7 @@ Dependency policy:
 
 1. Complete the E2EE plus Yjs persistence spike. Current result: `viable_with_constraints` for a custom encrypted append-log provider.
 2. Extend the spike with protocol and durability hardening. Current result: minimal file-backed replay, WebSocket backlog replay, AAD metadata authentication, same-client reconnect, and delivered-record sequence/replay detection are proven; production durability, compaction, awareness assumptions, hash chains, signed checkpoints, and fork/truncation detection remain open.
-3. Decide the canonical document representation.
+3. Use Markdown-canonical `Y.Text` as the v1 document representation.
 4. Create the Milkdown versus BlockNote editor prototype comparison.
 5. Pick the editor based on Markdown fidelity, UX, license fit, and implementation complexity.
 6. Implement encrypted single-room document creation and loading.

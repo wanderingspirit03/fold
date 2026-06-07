@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Document Model Comparison</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f7f9;
+      color: #20242a;
+    }
+    body {
+      margin: 0;
+    }
+    header {
+      padding: 28px 32px 18px;
+      background: #ffffff;
+      border-bottom: 1px solid #d8dde6;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: #596273;
+      max-width: 920px;
+      line-height: 1.5;
+    }
+    main {
+      padding: 24px 32px 40px;
+    }
+    .sample {
+      margin-bottom: 28px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 0 0 10px;
+    }
+    .summary {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #3b4350;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+    .pane {
+      background: #ffffff;
+      border: 1px solid #d8dde6;
+      border-radius: 8px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .pane h3 {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 13px;
+      background: #eef1f5;
+      border-bottom: 1px solid #d8dde6;
+    }
+    pre {
+      margin: 0;
+      padding: 12px;
+      min-height: 260px;
+      max-height: 520px;
+      overflow: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre;
+    }
+    .diff {
+      margin-top: 12px;
+      background: #ffffff;
+      border: 1px solid #d8dde6;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .diff h3 {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 13px;
+      background: #fff4e5;
+      border-bottom: 1px solid #efd3a6;
+    }
+    .diff pre {
+      min-height: 0;
+      max-height: 360px;
+    }
+    .same {
+      color: #7b8493;
+    }
+    .removed {
+      display: block;
+      color: #9f1c2d;
+      background: #ffe9ed;
+    }
+    .added {
+      display: block;
+      color: #125c32;
+      background: #e8f7ee;
+    }
+    @media (max-width: 1100px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      main, header {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Document Model Comparison</h1>
+    <p>Compare the same agent-authored Markdown through raw Markdown/Y.Text versus ProseMirror editor-canonical serialization.</p>
+  </header>
+  <main><section class="sample">
+      <h2>agent-plan.md</h2>
+      <div class="summary">
+        <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
+        <div><strong>Editor canonical:</strong> exact round-trip: no; lost: frontmatter, taskLists</div>
+      </div>
+      <div class="grid">
+        <article class="pane"><h3>Original Markdown</h3><pre><code>---
+title: Agent Plan
+owner: coding-agent
+---
+
+# Agent Plan
+
+## Goals
+
+- [ ] Build CLI publish
+- [x] Verify E2EE spike
+- [ ] Compare document models
+
+## Notes
+
+Agents should preserve Markdown as a portable artifact.
+
+</code></pre></article>
+        <article class="pane"><h3>Markdown-Canonical Export</h3><pre><code>---
+title: Agent Plan
+owner: coding-agent
+---
+
+# Agent Plan
+
+## Goals
+
+- [ ] Build CLI publish
+- [x] Verify E2EE spike
+- [ ] Compare document models
+
+## Notes
+
+Agents should preserve Markdown as a portable artifact.
+
+</code></pre></article>
+        <article class="pane"><h3>Editor-Canonical Export</h3><pre><code>---
+
+## title: Agent Plan owner: coding-agent
+
+# Agent Plan
+
+## Goals
+
+* \[ \] Build CLI publish
+* \[x\] Verify E2EE spike
+* \[ \] Compare document models
+
+## Notes
+
+Agents should preserve Markdown as a portable artifact.</code></pre></article>
+      </div>
+      <div class="diff">
+        <h3>Editor-Canonical Changes vs Original</h3>
+        <pre><code><span class="same">  ---</span>
+<span class="removed">- title: Agent Plan</span>
+<span class="removed">- owner: coding-agent</span>
+<span class="removed">- ---</span>
+<span class="same">  </span>
+<span class="added">+ ## title: Agent Plan owner: coding-agent</span>
+<span class="added">+ </span>
+<span class="same">  # Agent Plan</span>
+<span class="same">  </span>
+<span class="same">  ## Goals</span>
+<span class="same">  </span>
+<span class="removed">- - [ ] Build CLI publish</span>
+<span class="removed">- - [x] Verify E2EE spike</span>
+<span class="removed">- - [ ] Compare document models</span>
+<span class="added">+ * \[ \] Build CLI publish</span>
+<span class="added">+ * \[x\] Verify E2EE spike</span>
+<span class="added">+ * \[ \] Compare document models</span>
+<span class="same">  </span>
+<span class="same">  ## Notes</span>
+<span class="same">  </span>
+<span class="same">  Agents should preserve Markdown as a portable artifact.</span>
+<span class="removed">- </span>
+<span class="removed">- </span></code></pre>
+      </div>
+    </section>
+<section class="sample">
+      <h2>code-report.md</h2>
+      <div class="summary">
+        <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
+        <div><strong>Editor canonical:</strong> exact round-trip: no; lost: tables</div>
+      </div>
+      <div class="grid">
+        <article class="pane"><h3>Original Markdown</h3><pre><code># Code Report
+
+The agent changed `client.ts` and verified the protocol hardening.
+
+```ts
+export function example(value: string): string {
+  return value.trim();
+}
+```
+
+```bash
+npm test
+npm run typecheck
+```
+
+## Findings
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Sync | Pass | WebSocket backlog replay works |
+| Crypto | Pass | Metadata is authenticated |
+| UI | Pending | Not started |
+
+</code></pre></article>
+        <article class="pane"><h3>Markdown-Canonical Export</h3><pre><code># Code Report
+
+The agent changed `client.ts` and verified the protocol hardening.
+
+```ts
+export function example(value: string): string {
+  return value.trim();
+}
+```
+
+```bash
+npm test
+npm run typecheck
+```
+
+## Findings
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Sync | Pass | WebSocket backlog replay works |
+| Crypto | Pass | Metadata is authenticated |
+| UI | Pending | Not started |
+
+</code></pre></article>
+        <article class="pane"><h3>Editor-Canonical Export</h3><pre><code># Code Report
+
+The agent changed `client.ts` and verified the protocol hardening.
+
+```ts
+export function example(value: string): string {
+  return value.trim();
+}
+```
+
+```bash
+npm test
+npm run typecheck
+```
+
+## Findings
+
+| Area | Status | Notes | | --- | --- | --- | | Sync | Pass | WebSocket backlog replay works | | Crypto | Pass | Metadata is authenticated | | UI | Pending | Not started |</code></pre></article>
+      </div>
+      <div class="diff">
+        <h3>Editor-Canonical Changes vs Original</h3>
+        <pre><code><span class="same">  # Code Report</span>
+<span class="same">  </span>
+<span class="same">  The agent changed `client.ts` and verified the protocol hardening.</span>
+<span class="same">  </span>
+<span class="same">  ```ts</span>
+<span class="same">  export function example(value: string): string {</span>
+<span class="same">    return value.trim();</span>
+<span class="same">  }</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ```bash</span>
+<span class="same">  npm test</span>
+<span class="same">  npm run typecheck</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Findings</span>
+<span class="same">  </span>
+<span class="removed">- | Area | Status | Notes |</span>
+<span class="removed">- | --- | --- | --- |</span>
+<span class="removed">- | Sync | Pass | WebSocket backlog replay works |</span>
+<span class="removed">- | Crypto | Pass | Metadata is authenticated |</span>
+<span class="removed">- | UI | Pending | Not started |</span>
+<span class="removed">- </span>
+<span class="removed">- </span>
+<span class="added">+ | Area | Status | Notes | | --- | --- | --- | | Sync | Pass | WebSocket backlog replay works | | Crypto | Pass | Metadata is authenticated | | UI | Pending | Not started |</span></code></pre>
+      </div>
+    </section>
+<section class="sample">
+      <h2>rich-agent-output.md</h2>
+      <div class="summary">
+        <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
+        <div><strong>Editor canonical:</strong> exact round-trip: no; lost: none</div>
+      </div>
+      <div class="grid">
+        <article class="pane"><h3>Original Markdown</h3><pre><code># Rich Agent Output
+
+## Mermaid
+
+```mermaid
+flowchart LR
+  Agent --&gt; Markdown
+  Markdown --&gt; Room
+```
+
+## Math
+
+Inline math: $E = mc^2$.
+
+Block math:
+
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+
+## Links And Images
+
+[Project repo](https://github.com/wanderingspirit03/agent-md-rooms)
+
+![Diagram](./diagram.png)
+
+</code></pre></article>
+        <article class="pane"><h3>Markdown-Canonical Export</h3><pre><code># Rich Agent Output
+
+## Mermaid
+
+```mermaid
+flowchart LR
+  Agent --&gt; Markdown
+  Markdown --&gt; Room
+```
+
+## Math
+
+Inline math: $E = mc^2$.
+
+Block math:
+
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+
+## Links And Images
+
+[Project repo](https://github.com/wanderingspirit03/agent-md-rooms)
+
+![Diagram](./diagram.png)
+
+</code></pre></article>
+        <article class="pane"><h3>Editor-Canonical Export</h3><pre><code># Rich Agent Output
+
+## Mermaid
+
+```mermaid
+flowchart LR
+  Agent --&gt; Markdown
+  Markdown --&gt; Room
+```
+
+## Math
+
+Inline math: $E = mc^2$.
+
+Block math:
+
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+
+## Links And Images
+
+[Project repo](https://github.com/wanderingspirit03/agent-md-rooms)
+
+![Diagram](./diagram.png)</code></pre></article>
+      </div>
+      <div class="diff">
+        <h3>Editor-Canonical Changes vs Original</h3>
+        <pre><code><span class="same">  # Rich Agent Output</span>
+<span class="same">  </span>
+<span class="same">  ## Mermaid</span>
+<span class="same">  </span>
+<span class="same">  ```mermaid</span>
+<span class="same">  flowchart LR</span>
+<span class="same">    Agent --&gt; Markdown</span>
+<span class="same">    Markdown --&gt; Room</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Math</span>
+<span class="same">  </span>
+<span class="same">  Inline math: $E = mc^2$.</span>
+<span class="same">  </span>
+<span class="same">  Block math:</span>
+<span class="same">  </span>
+<span class="same">  ```math</span>
+<span class="same">  \sum_{i=1}^{n} i = \frac{n(n+1)}{2}</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Links And Images</span>
+<span class="same">  </span>
+<span class="same">  [Project repo](https://github.com/wanderingspirit03/agent-md-rooms)</span>
+<span class="same">  </span>
+<span class="same">  ![Diagram](./diagram.png)</span>
+<span class="removed">- </span>
+<span class="removed">- </span></code></pre>
+      </div>
+    </section></main>
+</body>
+</html>

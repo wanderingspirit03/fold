@@ -6,10 +6,14 @@
   "description": "OSS plan and spikes for encrypted Markdown rooms created by coding agents.",
   "scripts": {
     "spike:e2ee": "tsx spikes/e2ee-yjs-append-log/run-spike.ts",
+    "spike:document-model": "vitest run spikes/document-model",
+    "spike:document-model:report": "tsx spikes/document-model/run-comparison.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "prosemirror-markdown": "^1.13.4",
+    "prosemirror-model": "^1.25.7",
     "ws": "^8.18.0",
     "yjs": "^13.6.23"
   },
