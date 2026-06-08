@@ -21,6 +21,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const DOCUMENT_SENDER_ID = "mdroom-cli:document";
 const LIVE_FILE_PATH = "reports/launch-review.md";
+const DEFAULT_PROJECT_FILE_PATH = "docs/PLAN.md";
 
 interface ProjectFileSnapshot {
   type: "project_file_snapshot";
@@ -42,10 +43,12 @@ export default function RoomPage() {
   const [clientId] = useState(() => `web-client-${Math.random().toString(36).slice(2, 11)}`);
 
   const [markdown, setMarkdown] = useState("");
-  const [selectedFilePath, setSelectedFilePath] = useState(LIVE_FILE_PATH);
+  const [selectedFilePath, setSelectedFilePath] = useState(DEFAULT_PROJECT_FILE_PATH);
   const [virtualFiles, setVirtualFiles] = useState<Record<string, string>>(() => createInitialVirtualFiles());
   const [projectFileUpdatedAt, setProjectFileUpdatedAt] = useState<Record<string, string>>({});
   const [editMode, setEditMode] = useState<"read" | "edit">("read");
+  const [hasLoadedPreferredFile, setHasLoadedPreferredFile] = useState(false);
+  const [pendingPreferredFilePath, setPendingPreferredFilePath] = useState("");
   const [localMyPersona, setLocalMyPersona] = useState<RoomPersona | null>(null);
 
   const [isConnected, setIsConnected] = useState(false);
@@ -91,6 +94,34 @@ export default function RoomPage() {
   useEffect(() => {
     virtualFilesRef.current = virtualFiles;
   }, [virtualFiles]);
+
+  useEffect(() => {
+    if (!roomId || hasLoadedPreferredFile) return;
+    const knownFiles = createProjectFiles(selectedFilePath, virtualFilesRef.current, {});
+    let storedPath = "";
+    try {
+      storedPath = window.localStorage.getItem(lastOpenedFileStorageKey(roomId)) || "";
+    } catch {
+      storedPath = "";
+    }
+    const initialFile = chooseInitialProjectFile(storedPath, knownFiles);
+    const normalizedStored = storedPath ? normalizeProjectFilePath(storedPath) : "";
+    if (normalizedStored && normalizedStored !== initialFile && !knownFiles.some((file) => file.path === normalizedStored)) {
+      setPendingPreferredFilePath(normalizedStored);
+    }
+    setSelectedFilePath(initialFile);
+    setHasLoadedPreferredFile(true);
+  }, [hasLoadedPreferredFile, roomId, selectedFilePath]);
+
+  useEffect(() => {
+    if (!roomId || !hasLoadedPreferredFile || !selectedFilePath) return;
+    if (pendingPreferredFilePath && selectedFilePath !== pendingPreferredFilePath) return;
+    try {
+      window.localStorage.setItem(lastOpenedFileStorageKey(roomId), selectedFilePath);
+    } catch {
+      // Last-opened file is convenience state; failing to persist should not affect the room.
+    }
+  }, [hasLoadedPreferredFile, pendingPreferredFilePath, roomId, selectedFilePath]);
 
   const handleConfigureKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -468,6 +499,16 @@ export default function RoomPage() {
     () => createProjectFiles(selectedFilePath, virtualFiles, projectFileUpdatedAt),
     [selectedFilePath, virtualFiles, projectFileUpdatedAt],
   );
+  useEffect(() => {
+    if (!pendingPreferredFilePath) return;
+    if (projectFiles.some((file) => file.path === pendingPreferredFilePath)) {
+      setSelectedFilePath(pendingPreferredFilePath);
+      setPendingPreferredFilePath("");
+      return;
+    }
+    if (syncProgress) setPendingPreferredFilePath("");
+  }, [pendingPreferredFilePath, projectFiles, syncProgress]);
+
   const selectedMarkdown = selectedFilePath === LIVE_FILE_PATH
     ? markdown
     : virtualFiles[selectedFilePath] || `# ${selectedFilePath}\n\nNo local Markdown loaded for this file yet.`;
@@ -682,6 +723,27 @@ function createProjectFiles(
     active: file.path === selectedFilePath,
     status: file.status || (projectFileUpdatedAt[file.path] ? "synced" : undefined),
   }));
+}
+
+function lastOpenedFileStorageKey(roomId: string) {
+  return `fold:last-opened-file:${roomId}`;
+}
+
+function chooseInitialProjectFile(
+  storedPath: string,
+  files: Array<{ path: string }>,
+) {
+  const available = new Set(files.map((file) => file.path));
+  const normalizedStored = storedPath ? normalizeProjectFilePath(storedPath) : "";
+  const candidates = [
+    normalizedStored,
+    DEFAULT_PROJECT_FILE_PATH,
+    "README.md",
+    "docs/README.md",
+    LIVE_FILE_PATH,
+    files[0]?.path || "",
+  ];
+  return candidates.find((path) => path && available.has(path)) || DEFAULT_PROJECT_FILE_PATH;
 }
 
 function normalizeProjectFilePath(rawPath: string) {
