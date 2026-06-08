@@ -280,11 +280,11 @@ function inlineMarkerClassName(
   status?: NonNullable<MarkdownRendererProps["textHighlights"]>[number]["status"],
   active = false,
 ) {
-  const base = "inline cursor-pointer rounded-[3px] px-0.5 text-left text-document-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong";
-  const activeClass = active ? "shadow-[0_0_0_2px_hsl(var(--midnight-soft))] ring-1 ring-midnight-strong/50" : "";
+  const base = "inline cursor-pointer rounded-[2px] px-px text-left text-document-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong";
+  const activeClass = active ? "bg-midnight-soft shadow-[0_0_0_2px_hsl(var(--midnight-soft))] ring-1 ring-midnight-strong/45" : "";
   if (kind === "suggestion") {
     const opacity = status === "accepted" || status === "rejected" ? "opacity-70" : "";
-    return `${base} ${activeClass} ${opacity} border-b border-dashed border-midnight/55 ${active ? "bg-midnight-soft" : "bg-transparent hover:bg-midnight-soft"}`;
+    return `${base} ${activeClass} ${opacity} border-b-2 border-dashed border-midnight/50 ${active ? "" : "bg-transparent hover:bg-midnight-soft"}`;
   }
-  return `${base} ${activeClass} border-b border-midnight/45 bg-midnight-soft hover:bg-midnight-soft/80`;
+  return `${base} ${activeClass} border-b-2 border-midnight/45 ${active ? "" : "bg-transparent hover:bg-midnight-soft"}`;
 }

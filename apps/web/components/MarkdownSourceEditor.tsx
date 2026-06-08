@@ -53,8 +53,8 @@ export default function MarkdownSourceEditor({
         {properties.length > 0 && (
           <div className="border-b border-document-edge bg-black/[0.018] px-6 py-3 sm:px-12 lg:px-16">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {properties.map((property) => (
-                <span key={property.key} className="text-xs leading-5 text-document-subtle">
+              {properties.map((property, index) => (
+                <span key={`${property.key}:${index}`} className="text-xs leading-5 text-document-subtle">
                   <span className="font-medium text-document-muted">{property.key}</span>
                   <span className="mx-1 text-document-subtle">:</span>
                   <span>{property.value}</span>
