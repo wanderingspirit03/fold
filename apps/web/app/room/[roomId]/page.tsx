@@ -501,12 +501,14 @@ export default function RoomPage() {
         recordCount={logRecords.length}
         pendingCount={selectedFilePendingCount}
         reviewCount={selectedFileComments.length + selectedFilePendingCount}
+        selectedQuote={selectedQuote}
         persona={localMyPersona}
         mode={editMode}
         error={syncError}
         onBack={() => router.push("/")}
         onExport={handleDownloadMarkdown}
         onCreateFile={handleCreateProjectFile}
+        onFocusCommentComposer={() => setComposerFocusToken((token) => token + 1)}
         onModeChange={(nextMode) => {
           if (editMode === "edit" && nextMode !== "edit") flushProjectFileSnapshot(selectedFilePath);
           setEditMode(nextMode);

@@ -10,7 +10,9 @@ import {
   FileText,
   FolderClosed,
   FolderOpen,
+  ListChecks,
   MessageSquare,
+  MessageSquarePlus,
   PanelRightOpen,
   Pencil,
   Plus,
@@ -41,6 +43,7 @@ interface RoomShellProps {
   recordCount: number;
   pendingCount: number;
   reviewCount: number;
+  selectedQuote?: string;
   persona?: RoomPersona | null;
   mode: RoomMode;
   error?: string | null;
@@ -49,6 +52,7 @@ interface RoomShellProps {
   onModeChange: (mode: RoomMode) => void;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
+  onFocusCommentComposer?: () => void;
   document: ReactNode;
   bench: ReactNode;
 }
@@ -59,7 +63,9 @@ export function RoomShell({
   selectedFilePath,
   connected,
   ready,
+  pendingCount,
   reviewCount,
+  selectedQuote = "",
   persona,
   mode,
   error,
@@ -68,6 +74,7 @@ export function RoomShell({
   onModeChange,
   onFileSelect,
   onCreateFile,
+  onFocusCommentComposer,
   document,
   bench,
 }: RoomShellProps) {
@@ -273,6 +280,9 @@ export function RoomShell({
             files={files}
             selectedFilePath={selectedFilePath}
             mode={mode}
+            pendingCount={pendingCount}
+            reviewCount={reviewCount}
+            selectedQuote={selectedQuote}
             onClose={() => setCommandOpen(false)}
             onFileSelect={(path) => {
               onFileSelect(path);
@@ -294,6 +304,10 @@ export function RoomShell({
             }}
             onOpenReview={() => {
               setReviewOpen(true);
+              setCommandOpen(false);
+            }}
+            onFocusCommentComposer={() => {
+              onFocusCommentComposer?.();
               setCommandOpen(false);
             }}
           />
@@ -721,28 +735,37 @@ type PaletteItem = {
   detail: string;
   icon: ReactNode;
   action: () => void;
+  disabled?: boolean;
 };
 
 function ProjectCommandPalette({
   files,
   selectedFilePath,
   mode,
+  pendingCount,
+  reviewCount,
+  selectedQuote,
   onClose,
   onFileSelect,
   onCreateFile,
   onModeChange,
   onExport,
   onOpenReview,
+  onFocusCommentComposer,
 }: {
   files: ProjectFile[];
   selectedFilePath: string;
   mode: RoomMode;
+  pendingCount: number;
+  reviewCount: number;
+  selectedQuote: string;
   onClose: () => void;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onModeChange: (mode: RoomMode) => void;
   onExport: () => void;
   onOpenReview: () => void;
+  onFocusCommentComposer: () => void;
 }) {
   const [query, setQuery] = useState("");
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -750,6 +773,8 @@ function ProjectCommandPalette({
   const normalizedQuery = query.trim().toLowerCase();
   const requestedPath = normalizePaletteFilePath(query);
   const matchingFile = requestedPath ? files.some((file) => file.path.toLowerCase() === requestedPath.toLowerCase()) : false;
+  const commentCount = Math.max(0, reviewCount - pendingCount);
+  const trimmedQuote = selectedQuote.trim();
 
   useEffect(() => {
     window.requestAnimationFrame(() => inputRef.current?.focus());
@@ -765,10 +790,25 @@ function ProjectCommandPalette({
 
   const staticItems: PaletteItem[] = [
     {
-      id: "review",
-      label: "Review current file",
-      detail: selectedFilePath,
+      id: "add-comment",
+      label: "Add comment to selection",
+      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : "Select text in read mode first",
+      icon: <MessageSquarePlus className="h-4 w-4" />,
+      action: onFocusCommentComposer,
+      disabled: !trimmedQuote,
+    },
+    {
+      id: "show-comments",
+      label: "Show comments",
+      detail: `${commentCount} ${commentCount === 1 ? "comment" : "comments"} in current file`,
       icon: <MessageSquare className="h-4 w-4" />,
+      action: onOpenReview,
+    },
+    {
+      id: "show-suggestions",
+      label: "Show pending suggestions",
+      detail: `${pendingCount} ${pendingCount === 1 ? "suggestion" : "suggestions"} in current file`,
+      icon: <ListChecks className="h-4 w-4" />,
       action: onOpenReview,
     },
     {
@@ -818,7 +858,7 @@ function ProjectCommandPalette({
 
   const runFirstItem = (event: React.FormEvent) => {
     event.preventDefault();
-    items[0]?.action();
+    items.find((item) => !item.disabled)?.action();
   };
 
   const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -887,10 +927,12 @@ function ProjectCommandPalette({
               <button
                 key={item.id}
                 type="button"
+                disabled={item.disabled}
                 onClick={item.action}
                 className={cn(
                   "flex h-11 w-full items-center gap-3 rounded px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
-                  index === 0 ? "bg-studio-sunken" : "hover:bg-studio-sunken",
+                  item.disabled && "cursor-not-allowed opacity-45",
+                  !item.disabled && (index === 0 ? "bg-studio-sunken" : "hover:bg-studio-sunken"),
                 )}
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-studio-line bg-studio-sunken text-ink-subtle">
@@ -919,6 +961,10 @@ function normalizePaletteFilePath(value: string) {
     .join("/");
   if (!collapsed) return "";
   return collapsed.toLowerCase().endsWith(".md") ? collapsed : `${collapsed}.md`;
+}
+
+function truncatePaletteDetail(value: string) {
+  return value.length > 72 ? `${value.slice(0, 69)}...` : value;
 }
 
 function ModeIconButton({
