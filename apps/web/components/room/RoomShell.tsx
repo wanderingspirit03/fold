@@ -122,6 +122,7 @@ export function RoomShell({
   const reviewLabel = reviewCount > 0
     ? `Open review, ${reviewCount} ${reviewCount === 1 ? "item" : "items"}`
     : "Open review";
+  const commentCount = Math.max(0, reviewCount - pendingCount);
   const securityLabel = !connected ? "E2EE offline" : !ready ? "E2EE replaying" : "E2EE";
 
   useEffect(() => {
@@ -280,24 +281,12 @@ export function RoomShell({
                     </ModeIconButton>
                   </div>
                   {persona && <PersonaChip persona={persona} compact className="hidden lg:inline-flex" />}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setReviewOpen(true)}
-                        aria-label={reviewLabel}
-                        title={reviewLabel}
-                        className="relative"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        {reviewCount > 0 && (
-                          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-midnight-strong" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{reviewLabel}</TooltipContent>
-                  </Tooltip>
+                  <ReviewStatusControl
+                    commentCount={commentCount}
+                    pendingCount={pendingCount}
+                    reviewLabel={reviewLabel}
+                    onOpenReview={() => setReviewOpen(true)}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
@@ -1318,6 +1307,80 @@ function ProjectCommandPalette({
         </div>
       </div>
     </>
+  );
+}
+
+function ReviewStatusControl({
+  commentCount,
+  pendingCount,
+  reviewLabel,
+  onOpenReview,
+}: {
+  commentCount: number;
+  pendingCount: number;
+  reviewLabel: string;
+  onOpenReview: () => void;
+}) {
+  const hasItems = commentCount + pendingCount > 0;
+  const commentLabel = `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`;
+  const suggestionLabel = `${pendingCount} pending ${pendingCount === 1 ? "suggestion" : "suggestions"}`;
+
+  if (!hasItems) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenReview}
+            aria-label={reviewLabel}
+            title={reviewLabel}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{reviewLabel}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <div className="flex h-9 items-center rounded-md border border-studio-line bg-studio-sunken p-0.5">
+      {commentCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Open review, ${commentLabel}`}
+              title={commentLabel}
+              onClick={onOpenReview}
+              className="inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded px-2 text-xs font-medium text-ink-muted transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>{commentCount}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{commentLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {pendingCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Open review, ${suggestionLabel}`}
+              title={suggestionLabel}
+              onClick={onOpenReview}
+              className="inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded px-2 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              <span>{pendingCount}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{suggestionLabel}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
   );
 }
 
