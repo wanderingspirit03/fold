@@ -178,7 +178,7 @@ export function DocumentSurface({
         onKeyUp={captureSelection}
         className={cn(
           "relative min-h-[520px] rounded-md border border-document-edge bg-document px-6 py-8 text-document-ink sm:min-h-[680px]",
-          "shadow-[0_10px_30px_rgba(0,0,0,0.12),0_1px_0_rgba(255,255,255,0.68)_inset]",
+          "shadow-[0_4px_18px_rgba(0,0,0,0.10),0_1px_0_rgba(255,255,255,0.56)_inset]",
           "selection:bg-midnight-soft selection:text-document-ink sm:px-12 lg:px-16",
         )}
       >
@@ -188,7 +188,7 @@ export function DocumentSurface({
               type="button"
               aria-label={`Open ${fileComments.length} file ${fileComments.length === 1 ? "comment" : "comments"}`}
               title="File comments"
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-document-edge bg-document px-2 text-[11px] font-medium text-document-subtle shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-colors hover:border-midnight/35 hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              className="inline-flex h-9 items-center gap-1 rounded-md border border-document-edge bg-document/90 px-2.5 text-[11px] font-medium text-document-subtle transition-colors hover:border-midnight/35 hover:bg-document hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
               onClick={() => {
                 setFileCommentsOpen((open) => !open);
                 setFileComposerOpen(false);
@@ -203,7 +203,7 @@ export function DocumentSurface({
             type="button"
             aria-label="Add file comment"
             title="Add file comment"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-document-edge bg-document text-document-subtle shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-colors hover:border-midnight/35 hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-document-edge bg-document/90 text-document-subtle transition-colors hover:border-midnight/35 hover:bg-document hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
             onClick={() => {
               setFileComposerOpen((open) => !open);
               setFileCommentsOpen(false);

@@ -45,9 +45,9 @@ export default function MarkdownSourceEditor({
   return (
     <div
       data-editor-shell="true"
-      className="overflow-hidden rounded-md border border-document-edge bg-document text-document-ink shadow-[0_10px_30px_rgba(0,0,0,0.1),0_1px_0_rgba(255,255,255,0.64)_inset]"
+      className="overflow-hidden rounded-md border border-document-edge bg-document text-document-ink shadow-[0_4px_18px_rgba(0,0,0,0.10),0_1px_0_rgba(255,255,255,0.56)_inset]"
     >
-      <div className="relative min-h-[560px] bg-document sm:min-h-[680px]">
+      <div className="flex min-h-[560px] flex-col bg-document sm:min-h-[680px]">
         <Textarea
           aria-label="Markdown source"
           value={markdown}
@@ -56,12 +56,12 @@ export default function MarkdownSourceEditor({
           onBlur={() => onCommitRef.current?.(markdown)}
           placeholder="Write Markdown..."
           spellCheck={false}
-          className="min-h-[560px] resize-none rounded-none border-0 bg-document px-6 pb-16 pt-8 font-mono text-[13px] leading-6 text-document-ink shadow-none outline-none placeholder:text-document-subtle selection:bg-midnight-soft focus-visible:ring-0 sm:min-h-[680px] sm:px-12 sm:pb-20 sm:pt-10 lg:px-16"
+          className="min-h-[520px] flex-1 resize-none rounded-none border-0 bg-document px-6 pb-8 pt-8 font-mono text-[13px] leading-6 text-document-ink shadow-none outline-none placeholder:text-document-subtle selection:bg-midnight-soft focus-visible:ring-0 sm:min-h-[640px] sm:px-12 sm:pt-10 lg:px-16"
         />
         <div
           data-editor-stats="true"
           aria-label={`${counts.lines} lines, ${counts.words} words`}
-          className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end gap-3 border-t border-document-edge bg-document/95 px-4 py-2 font-mono text-[11px] text-document-subtle"
+          className="flex items-center justify-end gap-3 border-t border-document-edge bg-document px-4 py-2 font-mono text-[11px] text-document-subtle"
         >
           <span>{counts.lines} lines</span>
           <span aria-hidden="true" className="text-document-edge">/</span>
