@@ -61,6 +61,33 @@ export function DocumentSurface({
     window.requestAnimationFrame(() => composerRef.current?.focus());
   }, [selectedQuote, anchorPoint]);
 
+  useEffect(() => {
+    if (!activeCommentCard && !anchorPoint) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setActiveCommentCard(null);
+      setAnchorPoint(null);
+      onSelectedQuoteChange("");
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest("[data-comment-popover]")) return;
+      if (target.closest("[data-comment-composer]")) return;
+      if (target.closest("[data-inline-comment-marker]")) return;
+      setActiveCommentCard(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [activeCommentCard, anchorPoint, onSelectedQuoteChange]);
+
   const captureSelection = (event?: React.SyntheticEvent) => {
     const target = event?.target;
     if (target instanceof HTMLElement && target.closest("[data-comment-composer]")) return;
@@ -154,7 +181,7 @@ export function DocumentSurface({
                 .map((comment) => ({
                   id: comment.id,
                   text: comment.selectedQuote!,
-                  label: "Comment",
+                  label: "comment",
                   before: comment.beforeContext,
                   after: comment.afterContext,
                 }))}
@@ -186,6 +213,7 @@ export function DocumentSurface({
         )}
         {activeComment && activeCommentCard && (
           <div
+            data-comment-popover
             className="absolute z-20 w-[min(310px,calc(100%-2rem))] rounded-md border border-midnight/30 bg-studio-paper p-3 text-ink shadow-[0_18px_46px_rgba(0,0,0,0.24)]"
             style={{ top: activeCommentCard.top, left: activeCommentCard.left }}
           >
@@ -196,7 +224,7 @@ export function DocumentSurface({
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-ink">{activeComment.persona?.name || "Comment"}</p>
-                  <p className="text-[11px] text-ink-subtle">Comment</p>
+                  <p className="font-mono text-[11px] text-ink-subtle">{formatTime(activeComment.createdAt)}</p>
                 </div>
               </div>
               <button
@@ -242,7 +270,16 @@ export function DocumentSurface({
                 className="border-studio-line bg-studio-sunken text-ink placeholder:text-ink-subtle"
               />
               <div className="mt-2 flex items-center justify-between gap-2">
-                <span className="text-xs text-ink-subtle">Comment</span>
+                <button
+                  type="button"
+                  className="text-xs text-ink-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                  onClick={() => {
+                    setAnchorPoint(null);
+                    onSelectedQuoteChange("");
+                  }}
+                >
+                  Cancel
+                </button>
                 <Button type="button" size="sm" onClick={() => onPostComment()}>
                   <Send className="h-3.5 w-3.5" />
                   Save
@@ -269,4 +306,10 @@ function expandPartialWordSelection(markdown: string, selectedText: string) {
   while (end < markdown.length && /[A-Za-z0-9_-]/.test(markdown[end])) end += 1;
 
   return markdown.slice(start, end).trim() || quote;
+}
+
+function formatTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

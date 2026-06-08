@@ -1,5 +1,4 @@
 import React from "react";
-import { MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize from "rehype-sanitize";
@@ -31,33 +30,33 @@ export default function MarkdownRenderer({
         components={{
           h1: ({ children }) => (
             <h1 className="mb-6 mt-0 border-b border-document-edge pb-5 text-[2rem] font-semibold leading-tight tracking-normal text-document-ink">
-              {renderWithCommentPills(children, textHighlights, onTextHighlightClick)}
+              {renderWithInlineComments(children, textHighlights, onTextHighlightClick)}
             </h1>
           ),
           h2: ({ children }) => (
             <h2 className="mb-3 mt-9 text-xl font-semibold tracking-normal text-document-ink">
-              {renderWithCommentPills(children, textHighlights, onTextHighlightClick)}
+              {renderWithInlineComments(children, textHighlights, onTextHighlightClick)}
             </h2>
           ),
           h3: ({ children }) => (
             <h3 className="mb-2 mt-7 text-base font-semibold text-document-ink">
-              {renderWithCommentPills(children, textHighlights, onTextHighlightClick)}
+              {renderWithInlineComments(children, textHighlights, onTextHighlightClick)}
             </h3>
           ),
           h4: ({ children }) => (
             <h4 className="mb-2 mt-5 text-sm font-semibold text-document-ink">
-              {renderWithCommentPills(children, textHighlights, onTextHighlightClick)}
+              {renderWithInlineComments(children, textHighlights, onTextHighlightClick)}
             </h4>
           ),
           p: ({ children }) => (
             <p className="my-3.5 text-[15.5px] leading-7 text-document-muted">
-              {renderWithCommentPills(children, textHighlights, onTextHighlightClick)}
+              {renderWithInlineComments(children, textHighlights, onTextHighlightClick)}
             </p>
           ),
           ul: ({ children }) => <ul className="my-3.5 list-disc space-y-1.5 pl-6 text-[15.5px] leading-7">{children}</ul>,
           ol: ({ children }) => <ol className="my-3.5 list-decimal space-y-1.5 pl-6 text-[15.5px] leading-7">{children}</ol>,
           li: ({ children }) => (
-            <li className="pl-1">{renderWithCommentPills(children, textHighlights, onTextHighlightClick)}</li>
+            <li className="pl-1">{renderWithInlineComments(children, textHighlights, onTextHighlightClick)}</li>
           ),
           input: ({ type, checked, ...props }) => {
             if (type === "checkbox") {
@@ -139,7 +138,7 @@ export default function MarkdownRenderer({
   );
 }
 
-function renderWithCommentPills(
+function renderWithInlineComments(
   children: React.ReactNode,
   highlights: NonNullable<MarkdownRendererProps["textHighlights"]>,
   onTextHighlightClick?: MarkdownRendererProps["onTextHighlightClick"],
@@ -148,11 +147,11 @@ function renderWithCommentPills(
 
   return React.Children.map(children, (child) => {
     if (typeof child !== "string") return child;
-    return renderStringWithCommentPills(child, highlights, onTextHighlightClick);
+    return renderStringWithInlineComments(child, highlights, onTextHighlightClick);
   });
 }
 
-function renderStringWithCommentPills(
+function renderStringWithInlineComments(
   text: string,
   highlights: NonNullable<MarkdownRendererProps["textHighlights"]>,
   onTextHighlightClick?: MarkdownRendererProps["onTextHighlightClick"],
@@ -175,28 +174,27 @@ function renderStringWithCommentPills(
   let cursor = 0;
   for (const match of nonOverlapping) {
     if (match.start > cursor) parts.push(text.slice(cursor, match.start));
+    const highlightedText = text.slice(match.start, match.end);
     parts.push(
-      <span key={`${match.highlight.id}-${match.start}`} className="relative inline border-b border-midnight/30 text-document-ink">
-        {text.slice(match.start, match.end)}
-        <button
-          type="button"
-          data-inline-comment-marker
-          title={match.highlight.label}
-          aria-label={`Show inline ${match.highlight.label.toLowerCase()}`}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onTextHighlightClick?.(match.highlight.id, event);
-          }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          className="absolute -right-4 -top-2 inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-midnight/30 bg-midnight-soft text-midnight shadow-[0_1px_4px_rgba(30,58,138,0.18)] transition-colors hover:border-midnight/50 hover:bg-document focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
-        >
-          <MessageSquare className="h-2.5 w-2.5" />
-        </button>
-      </span>,
+      <button
+        key={`${match.highlight.id}-${match.start}`}
+        type="button"
+        data-inline-comment-marker
+        title={match.highlight.label}
+        aria-label={`Open inline ${match.highlight.label.toLowerCase()} for ${truncateForLabel(highlightedText)}`}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onTextHighlightClick?.(match.highlight.id, event);
+        }}
+        className="inline cursor-pointer rounded-[3px] border-b border-midnight/45 bg-midnight-soft px-0.5 text-left text-document-ink transition-colors hover:bg-midnight-soft/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+      >
+        {highlightedText}
+      </button>,
     );
     cursor = match.end;
   }
@@ -262,4 +260,9 @@ function rangesOverlap(a: HighlightMatch, b: HighlightMatch) {
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function truncateForLabel(value: string) {
+  const normalized = normalizeWhitespace(value);
+  return normalized.length > 56 ? `${normalized.slice(0, 53)}...` : normalized;
 }

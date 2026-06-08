@@ -822,7 +822,7 @@ function createInitialVirtualFiles(): Record<string, string> {
       "",
       "- Keep Markdown canonical.",
       "- Make file navigation real.",
-      "- Add inline comment pills.",
+      "- Add inline comment markers.",
       "- Keep review overlays lightweight.",
     ].join("\n"),
     "docs/AGENTS.md": [
@@ -841,7 +841,7 @@ function createInitialVirtualFiles(): Record<string, string> {
       "",
       "- Left project file sidebar",
       "- Center Markdown file",
-      "- Small inline comment pills",
+      "- Small inline comment markers",
       "- Review drawer only when opened",
     ].join("\n"),
     "docs/DESIGN.md": [
