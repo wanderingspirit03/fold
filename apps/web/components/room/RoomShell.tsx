@@ -7,7 +7,6 @@ import {
   Bot,
   Check,
   ChevronDown,
-  Clipboard,
   Command,
   Copy,
   Download,
@@ -279,19 +278,30 @@ export function RoomShell({
                     </TooltipTrigger>
                     <TooltipContent>{reviewLabel}</TooltipContent>
                   </Tooltip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAgentInviteOpen(true)}
+                    disabled={!agentInvite}
+                    className="hidden h-8 gap-1.5 px-2.5 text-xs sm:inline-flex"
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                    Connect agent
+                  </Button>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setAgentInviteOpen(true)}
-                        aria-label="Invite agent"
+                        aria-label="Connect agent"
                         disabled={!agentInvite}
+                        className="sm:hidden"
                       >
                         <Bot className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Invite agent</TooltipContent>
+                    <TooltipContent>Connect agent</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1323,32 +1333,28 @@ function AgentInviteDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(672px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
+      <DialogContent className="w-[min(560px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
         <DialogHeader className="min-w-0 border-b border-studio-line px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2 text-[11px] font-medium uppercase text-ink-subtle">
             <Bot className="h-3.5 w-3.5 text-midnight-strong" />
-            Agent invite
+            Agent handoff
           </div>
           <DialogTitle className="mt-1 text-[15px]">
-            {invite ? `Onboard ${invite.alias}` : "Onboard an agent"}
+            {invite ? `Connect ${invite.alias}` : "Connect an agent"}
           </DialogTitle>
           <DialogDescription className="mt-1 text-xs leading-5 text-ink-subtle">
-            Copy one handoff block. It includes the room token, skill link, and proposal-first workflow.
+            Copy a secure CLI handoff for this project. The room token is included only in the copied text.
           </DialogDescription>
         </DialogHeader>
         <div className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
-          <div className="grid gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
-            <div className="flex min-h-9 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-3">
-              <Bot className="h-4 w-4 shrink-0 text-ink-subtle" />
-              <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">
-                {invite?.alias ?? "No alias"}
-              </p>
+          <div className="grid gap-2">
+            <div className="grid min-h-10 gap-1 rounded-md border border-studio-line bg-studio-sunken px-3 py-2">
+              <p className="text-[11px] font-medium uppercase text-ink-subtle">Room alias</p>
+              <p className="truncate font-mono text-xs text-ink">{invite?.alias ?? "No alias"}</p>
             </div>
-            <div className="flex min-h-9 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-3">
-              <Clipboard className="h-4 w-4 shrink-0 text-ink-subtle" />
-              <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">
-                {invite ? invite.skillUrl : "No invite available"}
-              </p>
+            <div className="grid min-h-10 gap-1 rounded-md border border-studio-line bg-studio-sunken px-3 py-2">
+              <p className="text-[11px] font-medium uppercase text-ink-subtle">Agent skill</p>
+              <p className="truncate font-mono text-xs text-ink">{invite ? invite.skillUrl : "No invite available"}</p>
             </div>
           </div>
           {invite?.warnings?.length ? (
@@ -1359,9 +1365,7 @@ function AgentInviteDialog({
               </div>
             </div>
           ) : null}
-          <pre className="max-h-[380px] w-full max-w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all rounded-md border border-studio-line bg-studio-sunken p-3 font-mono text-xs leading-5 text-ink">
-            {invite?.text ?? "Configure the room key before inviting an agent."}
-          </pre>
+          <AgentInviteWorkflow disabled={!invite} />
         </div>
         <DialogFooter className="min-w-0 border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -1369,11 +1373,35 @@ function AgentInviteDialog({
           </Button>
           <Button onClick={onCopy} disabled={!invite}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied" : "Copy invite"}
+            {copied ? "Copied" : "Copy handoff"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AgentInviteWorkflow({ disabled }: { disabled: boolean }) {
+  const items = [
+    { label: "Copy handoff", detail: "Room token and agent skill" },
+    { label: "Agent joins", detail: "Local CLI stores the project alias" },
+    { label: "Review changes", detail: "Edits arrive as proposals" },
+  ];
+
+  return (
+    <div className={cn("grid gap-1.5", disabled && "opacity-50")}>
+      {items.map((item, index) => (
+        <div key={item.label} className="flex min-h-10 items-center gap-3 rounded-md border border-studio-line bg-studio-sunken px-3">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-studio-line bg-studio-paper text-[11px] font-medium text-ink-subtle">
+            {index + 1}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium text-ink">{item.label}</span>
+            <span className="block truncate text-[11px] text-ink-subtle">{item.detail}</span>
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
