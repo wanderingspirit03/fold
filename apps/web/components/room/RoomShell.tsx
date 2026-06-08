@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   Bot,
   Check,
@@ -436,6 +437,7 @@ export function RoomShell({
 interface AgentInvite {
   alias: string;
   skillUrl: string;
+  warnings?: string[];
   text: string;
 }
 
@@ -1321,29 +1323,47 @@ function AgentInviteDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
-        <DialogHeader className="border-b border-studio-line px-4 py-3 sm:px-5">
+      <DialogContent className="w-[min(672px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
+        <DialogHeader className="min-w-0 border-b border-studio-line px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2 text-[11px] font-medium uppercase text-ink-subtle">
             <Bot className="h-3.5 w-3.5 text-midnight-strong" />
             Agent invite
           </div>
-          <DialogTitle className="mt-1 text-[15px]">Copy onboarding instructions</DialogTitle>
-          <DialogDescription className="mt-1 text-xs leading-5">
-            Paste this block into an agent session so it can install the room alias and read the local skill.
+          <DialogTitle className="mt-1 text-[15px]">
+            {invite ? `Onboard ${invite.alias}` : "Onboard an agent"}
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-xs leading-5 text-ink-subtle">
+            Copy one handoff block. It includes the room token, skill link, and proposal-first workflow.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 px-4 py-4 sm:px-5">
-          <div className="flex min-h-9 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-3">
-            <Clipboard className="h-4 w-4 shrink-0 text-ink-subtle" />
-            <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">
-              {invite ? invite.skillUrl : "No invite available"}
-            </p>
+        <div className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
+          <div className="grid gap-2 sm:grid-cols-[120px_minmax(0,1fr)]">
+            <div className="flex min-h-9 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-3">
+              <Bot className="h-4 w-4 shrink-0 text-ink-subtle" />
+              <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">
+                {invite?.alias ?? "No alias"}
+              </p>
+            </div>
+            <div className="flex min-h-9 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-3">
+              <Clipboard className="h-4 w-4 shrink-0 text-ink-subtle" />
+              <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">
+                {invite ? invite.skillUrl : "No invite available"}
+              </p>
+            </div>
           </div>
-          <pre className="max-h-[320px] overflow-auto rounded-md border border-studio-line bg-studio-sunken p-3 font-mono text-xs leading-5 text-ink">
+          {invite?.warnings?.length ? (
+            <div className="rounded-md border border-midnight/30 bg-midnight-soft px-3 py-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                <p className="text-xs leading-5 text-ink-muted">{invite.warnings.join(" ")}</p>
+              </div>
+            </div>
+          ) : null}
+          <pre className="max-h-[380px] w-full max-w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all rounded-md border border-studio-line bg-studio-sunken p-3 font-mono text-xs leading-5 text-ink">
             {invite?.text ?? "Configure the room key before inviting an agent."}
           </pre>
         </div>
-        <DialogFooter className="border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
+        <DialogFooter className="min-w-0 border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

@@ -3,6 +3,7 @@ apps/web/node_modules/
 .next/
 apps/web/.next/
 .fold/
+.mdroom/
 data/
 dist/
 coverage/

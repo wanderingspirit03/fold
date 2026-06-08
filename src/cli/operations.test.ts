@@ -343,6 +343,9 @@ describe('CLI operations', () => {
 
       expect(status.room.alias).toBe('launch');
       expect(invite.invite.text).toContain('fold room add');
+      expect(invite.invite.text).toContain('npm run --silent cli -- room add');
+      expect(invite.invite.text).toContain('fold export --room "launch" --output ./fold-project --json');
+      expect(invite.invite.text).toContain('fold propose ./fold-project --room "launch"');
       expect(invite.invite.text).toContain('--alias');
       expect(invite.invite.text).toContain('fold:v1:');
       expect(invite.invite.text).not.toContain('#key=');

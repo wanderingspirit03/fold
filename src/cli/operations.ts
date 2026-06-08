@@ -612,15 +612,26 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
   const roomUrl = roomUrlForAccess(access);
   const warnings = shareabilityWarnings(access);
   const skillUrl = `${access.appUrl.replace(/\/$/, '')}/.well-known/fold/agent-skill.md`;
+  const agentInviteText = [
+    'Join this Fold project room:',
+    '',
+    `1. Read the agent skill: ${skillUrl}`,
+    '',
+    '2. Save the room alias:',
+    `   fold room add ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)}`,
+    '',
+    '   If the Fold CLI is not globally installed in this repo, use:',
+    `   npm run --silent cli -- room add ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)}`,
+    '',
+    '3. Confirm access:',
+    `   fold status --room ${JSON.stringify(options.alias)} --json`,
+    '',
+    '4. Work through proposals, not direct mutation:',
+    `   fold export --room ${JSON.stringify(options.alias)} --output ./fold-project --json`,
+    `   fold propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+  ].join('\n');
   const text = options.audience === 'agent'
-    ? [
-      'Read the Fold agent skill:',
-      skillUrl,
-      '',
-      'Then run:',
-      `fold room add ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)}`,
-      `fold status --room ${JSON.stringify(options.alias)} --json`,
-    ].join('\n')
+    ? agentInviteText
     : [
       'Open this Fold project:',
       roomUrl,

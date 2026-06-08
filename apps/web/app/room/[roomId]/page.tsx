@@ -932,6 +932,10 @@ function createAgentInvite({
   const alias = `room-${roomId.slice(0, 8)}`;
   const normalizedAppUrl = appUrl.replace(/\/$/, "");
   const normalizedSyncUrl = syncUrl.replace(/\/$/, "");
+  const warnings = shareabilityWarnings({
+    appUrl: normalizedAppUrl,
+    syncUrl: normalizedSyncUrl,
+  });
   const token = createRoomToken({
     roomId,
     roomSecret,
@@ -942,15 +946,44 @@ function createAgentInvite({
   return {
     alias,
     skillUrl,
+    warnings,
     text: [
-      "Read the Fold agent skill:",
-      skillUrl,
+      "Join this Fold project room:",
       "",
-      "Then run:",
-      `fold room add ${JSON.stringify(token)} --alias ${JSON.stringify(alias)}`,
-      `fold status --room ${JSON.stringify(alias)} --json`,
+      `1. Read the agent skill: ${skillUrl}`,
+      "",
+      "2. Save the room alias:",
+      `   fold room add ${JSON.stringify(token)} --alias ${JSON.stringify(alias)}`,
+      "",
+      "   If the Fold CLI is not globally installed in this repo, use:",
+      `   npm run --silent cli -- room add ${JSON.stringify(token)} --alias ${JSON.stringify(alias)}`,
+      "",
+      "3. Confirm access:",
+      `   fold status --room ${JSON.stringify(alias)} --json`,
+      "",
+      "4. Work through proposals, not direct mutation:",
+      `   fold export --room ${JSON.stringify(alias)} --output ./fold-project --json`,
+      `   fold propose ./fold-project --room ${JSON.stringify(alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
     ].join("\n"),
   };
+}
+
+function shareabilityWarnings(access: { appUrl: string; syncUrl: string }) {
+  const warnings: string[] = [];
+  for (const [label, value] of [["appUrl", access.appUrl], ["syncUrl", access.syncUrl]] as const) {
+    const host = new URL(value).hostname;
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+    ) {
+      warnings.push(`${label} ${value} may only be reachable on this machine or local network.`);
+    }
+  }
+  return warnings;
 }
 
 function createRoomToken(access: { roomId: string; roomSecret: string; appUrl: string; syncUrl: string }) {
