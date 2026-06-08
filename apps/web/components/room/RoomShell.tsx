@@ -11,6 +11,7 @@ import {
   FolderClosed,
   FolderOpen,
   ListChecks,
+  Link2,
   MessageSquare,
   MessageSquarePlus,
   PanelRightOpen,
@@ -52,6 +53,7 @@ interface RoomShellProps {
   onModeChange: (mode: RoomMode) => void;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
+  onCopyProjectLink?: () => void;
   onFocusCommentComposer?: () => void;
   document: ReactNode;
   bench: ReactNode;
@@ -74,6 +76,7 @@ export function RoomShell({
   onModeChange,
   onFileSelect,
   onCreateFile,
+  onCopyProjectLink,
   onFocusCommentComposer,
   document,
   bench,
@@ -124,6 +127,24 @@ export function RoomShell({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const copyProjectLink = async () => {
+    const link = window.location.href;
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const input = window.document.createElement("input");
+      input.value = link;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      window.document.body.appendChild(input);
+      input.select();
+      window.document.execCommand("copy");
+      window.document.body.removeChild(input);
+    }
+    onCopyProjectLink?.();
+  };
 
   return (
     <TooltipProvider>
@@ -300,6 +321,10 @@ export function RoomShell({
             }}
             onExport={() => {
               onExport();
+              setCommandOpen(false);
+            }}
+            onCopyProjectLink={() => {
+              void copyProjectLink();
               setCommandOpen(false);
             }}
             onOpenReview={() => {
@@ -750,6 +775,7 @@ function ProjectCommandPalette({
   onCreateFile,
   onModeChange,
   onExport,
+  onCopyProjectLink,
   onOpenReview,
   onFocusCommentComposer,
 }: {
@@ -764,6 +790,7 @@ function ProjectCommandPalette({
   onCreateFile: (path: string) => void;
   onModeChange: (mode: RoomMode) => void;
   onExport: () => void;
+  onCopyProjectLink: () => void;
   onOpenReview: () => void;
   onFocusCommentComposer: () => void;
 }) {
@@ -810,6 +837,13 @@ function ProjectCommandPalette({
       detail: `${pendingCount} ${pendingCount === 1 ? "suggestion" : "suggestions"} in current file`,
       icon: <ListChecks className="h-4 w-4" />,
       action: onOpenReview,
+    },
+    {
+      id: "copy-link",
+      label: "Copy project link",
+      detail: "Encrypted share link",
+      icon: <Link2 className="h-4 w-4" />,
+      action: onCopyProjectLink,
     },
     {
       id: "export",
