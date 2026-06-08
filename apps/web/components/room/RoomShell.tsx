@@ -418,10 +418,6 @@ export function RoomShell({
               void copyProjectLink();
               setCommandOpen(false);
             }}
-            onInviteAgent={() => {
-              setAgentInviteOpen(true);
-              setCommandOpen(false);
-            }}
             onOpenReview={() => {
               setReviewOpen(true);
               setCommandOpen(false);
@@ -1039,7 +1035,6 @@ function ProjectCommandPalette({
   onModeChange,
   onExport,
   onCopyProjectLink,
-  onInviteAgent,
   onOpenReview,
   onFocusCommentComposer,
 }: {
@@ -1056,7 +1051,6 @@ function ProjectCommandPalette({
   onModeChange: (mode: RoomMode) => void;
   onExport: () => void;
   onCopyProjectLink: () => void;
-  onInviteAgent: () => void;
   onOpenReview: () => void;
   onFocusCommentComposer: () => void;
 }) {
@@ -1110,13 +1104,6 @@ function ProjectCommandPalette({
       detail: "Add local .md to project",
       icon: <Upload className="h-4 w-4" />,
       action: onImportFile,
-    },
-    {
-      id: "invite-agent",
-      label: "Invite agent",
-      detail: "Copy CLI onboarding block",
-      icon: <Bot className="h-4 w-4" />,
-      action: onInviteAgent,
     },
     {
       id: "copy-link",
