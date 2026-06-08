@@ -101,6 +101,9 @@ export function RoomShell({
       .slice(0, 4),
     [files, recentFilePaths],
   );
+  const reviewLabel = reviewCount > 0
+    ? `Open review, ${reviewCount} ${reviewCount === 1 ? "item" : "items"}`
+    : "Open review";
 
   useEffect(() => {
     if (!selectedFilePath) return;
@@ -237,7 +240,8 @@ export function RoomShell({
                         variant="ghost"
                         size="icon"
                         onClick={() => setReviewOpen(true)}
-                        aria-label="Open comments and suggestions"
+                        aria-label={reviewLabel}
+                        title={reviewLabel}
                         className="relative"
                       >
                         <MessageSquare className="h-4 w-4" />
@@ -246,7 +250,7 @@ export function RoomShell({
                         )}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Comments and suggestions</TooltipContent>
+                    <TooltipContent>{reviewLabel}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
