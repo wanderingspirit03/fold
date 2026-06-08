@@ -278,23 +278,21 @@ export function DocumentSurface({
             <form
               data-comment-composer
               onSubmit={onPostComment}
-              className="rounded-md border border-midnight/35 bg-studio-paper p-2.5 text-ink shadow-[0_18px_46px_rgba(0,0,0,0.24)]"
+              className="rounded-md border border-midnight/30 bg-studio-paper p-2 text-ink shadow-[0_16px_42px_rgba(0,0,0,0.22)]"
             >
-              <div className="mb-2 flex items-start gap-2 rounded border border-studio-line bg-studio-sunken px-2 py-1.5">
-                <MessageSquarePlus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" />
-                <p className="line-clamp-2 text-xs leading-5 text-ink-muted">
-                  <span className="text-ink-subtle">Selected</span> "{selectedQuote}"
-                </p>
+              <div className="mb-2 flex items-start gap-2 px-1">
+                <MessageSquarePlus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+                <p className="line-clamp-2 text-xs leading-5 text-ink-subtle">"{selectedQuote}"</p>
               </div>
               <Textarea
                 ref={composerRef}
                 aria-label="Inline comment"
-                placeholder="Type a comment here"
-                rows={3}
+                placeholder="Comment"
+                rows={2}
                 value={newCommentText}
                 onChange={(event) => onNewCommentTextChange(event.target.value)}
                 required
-                className="border-studio-line bg-studio-sunken text-ink placeholder:text-ink-subtle"
+                className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
               />
               <div className="mt-2 flex items-center justify-between gap-2">
                 <button
@@ -307,9 +305,9 @@ export function DocumentSurface({
                 >
                   Cancel
                 </button>
-                <Button type="button" size="sm" onClick={() => onPostComment()}>
+                <Button type="submit" size="sm">
                   <Send className="h-3.5 w-3.5" />
-                  Save
+                  Add
                 </Button>
               </div>
             </form>
