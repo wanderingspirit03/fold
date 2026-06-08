@@ -1007,11 +1007,10 @@ function ProjectCommandPalette({
   const staticItems: PaletteItem[] = [
     {
       id: "add-comment",
-      label: "Add comment to selection",
-      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : "Select text in read mode first",
+      label: trimmedQuote ? "Add comment to selection" : "Add file comment",
+      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
       icon: <MessageSquarePlus className="h-4 w-4" />,
       action: onFocusCommentComposer,
-      disabled: !trimmedQuote,
     },
     {
       id: "show-comments",

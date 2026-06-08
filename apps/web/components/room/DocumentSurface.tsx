@@ -63,10 +63,15 @@ export function DocumentSurface({
 
   useEffect(() => {
     if (composerFocusToken === 0) return;
+    if (selectedQuote && anchorPoint) {
+      setFileComposerOpen(false);
+      window.requestAnimationFrame(() => composerRef.current?.focus());
+      return;
+    }
     setFileComposerOpen(true);
     setAnchorPoint(null);
     onSelectedQuoteChange("");
-  }, [composerFocusToken]);
+  }, [anchorPoint, composerFocusToken, onSelectedQuoteChange, selectedQuote]);
 
   useEffect(() => {
     if (!fileComposerOpen || selectedQuote) return;
