@@ -34,8 +34,8 @@ export default function MarkdownTextareaEditor({
   const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).length : 0;
 
   return (
-    <div className="flex min-h-[560px] w-full flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-[0_0_18px_rgba(208,214,215,0.28)]">
-      <div className="flex items-center justify-between border-b border-line-soft bg-bone px-3 py-2">
+    <div className="flex min-h-[620px] w-full flex-col overflow-hidden rounded-[10px] border border-document-edge bg-document shadow-[0_18px_60px_rgba(50,43,34,0.10)]">
+      <div className="flex items-center justify-between border-b border-document-edge bg-studio-paper px-3 py-2">
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -66,7 +66,7 @@ export default function MarkdownTextareaEditor({
 
       {tab === "write" ? (
         <Textarea
-          className="min-h-[520px] flex-1 resize-none rounded-none border-0 bg-white p-5 font-mono text-sm leading-6 shadow-none focus-visible:ring-0"
+          className="min-h-[580px] flex-1 resize-none rounded-none border-0 bg-document p-5 font-mono text-sm leading-6 shadow-none focus-visible:ring-0 sm:p-8"
           placeholder="# Write Markdown"
           value={markdown}
           onChange={handleTextChange}
