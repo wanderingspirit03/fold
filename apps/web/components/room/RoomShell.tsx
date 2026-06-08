@@ -1085,18 +1085,25 @@ function ProjectCommandPalette({
       return `${item.label} ${item.detail}`.toLowerCase().includes(normalizedQuery);
     })
     .slice(0, 10);
+  const firstEnabledIndex = Math.max(0, items.findIndex((item) => !item.disabled));
+  const listboxId = "project-command-palette-results";
+  const activeOptionId = items[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined;
   const activeItem = items[activeIndex] && !items[activeIndex].disabled
     ? items[activeIndex]
     : items.find((item) => !item.disabled);
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+    setActiveIndex(firstEnabledIndex);
+  }, [firstEnabledIndex, query]);
 
   useEffect(() => {
-    if (activeIndex < items.length) return;
-    setActiveIndex(Math.max(0, items.length - 1));
-  }, [activeIndex, items.length]);
+    if (items.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+    if (activeIndex < items.length && !items[activeIndex]?.disabled) return;
+    setActiveIndex(firstEnabledIndex);
+  }, [activeIndex, firstEnabledIndex, items]);
 
   const runFirstItem = (event: React.FormEvent) => {
     event.preventDefault();
@@ -1131,7 +1138,7 @@ function ProjectCommandPalette({
     if (!dialog) return;
     const focusable = Array.from(
       dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
       ),
     ).filter((element) => element.offsetParent !== null);
     if (focusable.length === 0) return;
@@ -1174,7 +1181,11 @@ function ProjectCommandPalette({
             <Search className="h-4 w-4 shrink-0" />
             <input
               ref={inputRef}
+              role="combobox"
               aria-label="Search commands and files"
+              aria-expanded="true"
+              aria-controls={listboxId}
+              aria-activedescendant={activeOptionId}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Open file or command"
@@ -1183,18 +1194,24 @@ function ProjectCommandPalette({
             <span className="rounded border border-studio-line px-1.5 py-0.5 font-mono text-[10px] text-ink-subtle">Esc</span>
           </label>
         </form>
-        <div className="max-h-[420px] overflow-y-auto p-1.5">
+        <div id={listboxId} role="listbox" className="max-h-[420px] overflow-y-auto p-1.5">
           {items.length === 0 ? (
             <p className="px-3 py-4 text-sm text-ink-subtle">No matches</p>
           ) : (
             items.map((item, index) => (
               <button
                 key={item.id}
+                id={`${listboxId}-option-${index}`}
                 type="button"
+                role="option"
                 disabled={item.disabled}
+                tabIndex={-1}
                 aria-selected={index === activeIndex}
+                aria-disabled={item.disabled || undefined}
                 onClick={item.action}
-                onMouseEnter={() => setActiveIndex(index)}
+                onMouseEnter={() => {
+                  if (!item.disabled) setActiveIndex(index);
+                }}
                 className={cn(
                   "flex h-11 w-full items-center gap-3 rounded px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
                   item.disabled && "cursor-not-allowed opacity-45",
