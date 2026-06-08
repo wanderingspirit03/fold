@@ -313,10 +313,10 @@ export function RoomShell({
             <button
               type="button"
               aria-label="Close review overlay"
-              className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]"
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
               onClick={() => setReviewOpen(false)}
             />
-            <div className="fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-hidden rounded-t-md border-t border-studio-line bg-rail shadow-[0_-24px_80px_rgba(0,0,0,0.45)] md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-full md:max-w-[390px] md:rounded-none md:border-l md:border-t-0 md:shadow-[-24px_0_80px_rgba(0,0,0,0.45)]">
+            <div className="fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-hidden rounded-t-md border-t border-studio-line bg-rail shadow-[0_-12px_36px_rgba(0,0,0,0.26)] md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-full md:max-w-[390px] md:rounded-none md:border-l md:border-t-0 md:shadow-[-10px_0_32px_rgba(0,0,0,0.22)]">
               <div className="flex h-12 items-center justify-between border-b border-studio-line px-4">
                 <div className="flex items-center gap-2">
                   <PanelRightOpen className="h-4 w-4 text-midnight-strong" />

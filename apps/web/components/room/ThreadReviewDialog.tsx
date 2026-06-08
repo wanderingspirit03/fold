@@ -32,7 +32,7 @@ export function ThreadReviewDialog({
 
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_28px_90px_rgba(0,0,0,0.38)]">
+      <DialogContent className="max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
         {proposal && (
           <>
             <DialogHeader className="border-b border-studio-line px-4 py-3 sm:px-5">
@@ -49,7 +49,7 @@ export function ThreadReviewDialog({
             </DialogHeader>
 
             <div className="min-h-0 overflow-y-auto px-4 py-3 sm:px-5">
-              <div className="mb-3 flex min-h-8 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-2.5 py-1.5">
+              <div className="mb-3 flex min-h-8 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken/70 px-2.5 py-1.5">
                 <Quote className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
                 <p className="min-w-0 truncate text-xs leading-5 text-ink-muted">
                   {proposal.selectedQuote
@@ -60,9 +60,9 @@ export function ThreadReviewDialog({
                 </p>
               </div>
 
-              <div className="overflow-hidden rounded-md border border-document-edge bg-document">
-                <div className="border-b border-document-edge bg-black/[0.025] px-4 py-2">
-                  <p className="text-[11px] font-medium uppercase text-document-subtle">Suggested Markdown</p>
+              <div className="overflow-hidden rounded-md border border-document-edge bg-document shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                <div className="border-b border-document-edge bg-black/[0.018] px-4 py-2">
+                  <p className="text-[11px] font-medium text-document-subtle">Suggestion preview</p>
                 </div>
                 <div className="max-h-[54dvh] overflow-y-auto px-4 py-5 sm:px-6">
                   {parsedProposal?.properties.length ? (
