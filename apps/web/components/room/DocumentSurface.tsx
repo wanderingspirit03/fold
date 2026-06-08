@@ -8,6 +8,7 @@ import { extractMarkdownProperties } from "../../lib/markdown-properties";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { PersonaChip } from "./PersonaChip";
 import type { ChatComment, Proposal, RoomMode } from "./types";
 
 interface DocumentSurfaceProps {
@@ -370,23 +371,22 @@ export function DocumentSurface({
         {activeComment && activeCommentCard && (
           <div
             data-comment-popover
-            className="absolute z-20 w-[min(310px,calc(100%-2rem))] rounded-md border border-midnight/30 bg-studio-paper p-3 text-ink shadow-[0_18px_46px_rgba(0,0,0,0.24)]"
+            className="absolute z-20 w-[min(310px,calc(100%-2rem))] rounded-md border border-midnight/25 bg-studio-paper p-2.5 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
             style={{ top: activeCommentCard.top, left: activeCommentCard.left }}
           >
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-midnight-soft text-[11px] font-semibold text-midnight-strong">
-                  {activeComment.persona?.name?.slice(0, 1) || "C"}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-ink">{activeComment.persona?.name || "Comment"}</p>
-                  <p className="font-mono text-[11px] text-ink-subtle">{formatTime(activeComment.createdAt)}</p>
-                </div>
+                {activeComment.persona ? (
+                  <PersonaChip persona={activeComment.persona} compact />
+                ) : (
+                  <p className="truncate text-xs font-medium text-ink">Comment</p>
+                )}
+                <p className="shrink-0 font-mono text-[11px] text-ink-subtle">{formatTime(activeComment.createdAt)}</p>
               </div>
               <button
                 type="button"
                 aria-label="Close comment"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
                 onClick={() => setActiveCommentCard(null)}
               >
                 <X className="h-3.5 w-3.5" />
