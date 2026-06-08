@@ -55,6 +55,8 @@ export default function RoomPage() {
   const [selectedFilePath, setSelectedFilePath] = useState(DEFAULT_PROJECT_FILE_PATH);
   const [virtualFiles, setVirtualFiles] = useState<Record<string, string>>(() => createInitialVirtualFiles());
   const [projectFileUpdatedAt, setProjectFileUpdatedAt] = useState<Record<string, string>>({});
+  const [hasRemoteProjectState, setHasRemoteProjectState] = useState(false);
+  const [projectPrimaryPath, setProjectPrimaryPath] = useState("");
   const [editMode, setEditMode] = useState<"read" | "edit">("read");
   const [hasLoadedPreferredFile, setHasLoadedPreferredFile] = useState(false);
   const [pendingPreferredFilePath, setPendingPreferredFilePath] = useState("");
@@ -81,6 +83,8 @@ export default function RoomPage() {
   const keyRef = useRef<CryptoKey | null>(null);
   const fileSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const virtualFilesRef = useRef(virtualFiles);
+  const hasRemoteProjectStateRef = useRef(false);
+  const projectPrimaryPathRef = useRef("");
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -158,6 +162,10 @@ export default function RoomPage() {
         setTimeline([]);
         setComments([]);
         setProjectFileUpdatedAt({});
+        setHasRemoteProjectState(false);
+        setProjectPrimaryPath("");
+        hasRemoteProjectStateRef.current = false;
+        projectPrimaryPathRef.current = "";
 
         const cryptoKey = await deriveRoomKey(roomId, roomSecret);
         keyRef.current = cryptoKey;
@@ -265,6 +273,10 @@ export default function RoomPage() {
 
     if (rec.senderId.startsWith("fold-cli:proposal")) {
       const parsed = await decryptJson<any>(payload, cryptKey, rec);
+      const proposedProject = isProjectSnapshot(parsed.proposedProject)
+        ? normalizeProjectSnapshot(parsed.proposedProject)
+        : undefined;
+      const fallbackFilePath = proposedProject?.primaryPath || projectPrimaryPathRef.current || LIVE_FILE_PATH;
       setProposals((prev) => upsertProposal(prev, {
         id: parsed.id,
         title: parsed.title,
@@ -275,13 +287,13 @@ export default function RoomPage() {
         createdAt: parsed.createdAt,
         status: "pending",
         kind: parsed.kind,
-        filePath: parsed.filePath || parsed.path || LIVE_FILE_PATH,
+        filePath: parsed.filePath || parsed.path || fallbackFilePath,
         anchorType: parsed.anchorType || parsed.anchor?.anchorType,
         selectedQuote: parsed.selectedQuote || parsed.anchor?.selectedQuote,
         createdFromMarkdown: parsed.createdFromMarkdown || parsed.anchor?.createdFromMarkdown,
         beforeContext: parsed.beforeContext || parsed.anchor?.beforeContext,
         afterContext: parsed.afterContext || parsed.anchor?.afterContext,
-        proposedProject: isProjectSnapshot(parsed.proposedProject) ? parsed.proposedProject : undefined,
+        proposedProject,
       }));
       return;
     }
@@ -316,7 +328,17 @@ export default function RoomPage() {
     if (rec.senderId.startsWith("web-client:file")) {
       const parsed = await decryptJson<ProjectFileSnapshot>(payload, cryptKey, rec);
       if (parsed.type !== "project_file_snapshot" || !parsed.path) return;
-      setVirtualFiles((prev) => ({ ...prev, [parsed.path]: parsed.markdown }));
+      const isFirstRemoteProjectFile = !hasRemoteProjectStateRef.current;
+      hasRemoteProjectStateRef.current = true;
+      if (!projectPrimaryPathRef.current) projectPrimaryPathRef.current = parsed.path;
+      setHasRemoteProjectState(true);
+      setProjectPrimaryPath((current) => current || parsed.path);
+      if (isFirstRemoteProjectFile) {
+        setSelectedFilePath(parsed.path);
+      }
+      setVirtualFiles((prev) => (
+        isFirstRemoteProjectFile ? { [parsed.path]: parsed.markdown } : { ...prev, [parsed.path]: parsed.markdown }
+      ));
       setProjectFileUpdatedAt((prev) => ({ ...prev, [parsed.path]: parsed.updatedAt }));
       return;
     }
@@ -392,6 +414,10 @@ export default function RoomPage() {
     const normalized = normalizeProjectSnapshot(snapshot);
     const files = Object.fromEntries(normalized.files.map((file) => [file.path, file.markdown]));
     const updatedAt = Object.fromEntries(normalized.files.map((file) => [file.path, normalized.updatedAt]));
+    hasRemoteProjectStateRef.current = true;
+    projectPrimaryPathRef.current = normalized.primaryPath;
+    setHasRemoteProjectState(true);
+    setProjectPrimaryPath(normalized.primaryPath);
     setVirtualFiles(files);
     setProjectFileUpdatedAt(updatedAt);
     if (!hasLoadedPreferredFile || !files[selectedFilePath]) {
@@ -560,8 +586,8 @@ export default function RoomPage() {
   };
 
   const projectFiles = useMemo(
-    () => createProjectFiles(selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals),
-    [selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals],
+    () => createProjectFiles(selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals, !hasRemoteProjectState, projectPrimaryPath || LIVE_FILE_PATH),
+    [selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals, hasRemoteProjectState, projectPrimaryPath],
   );
   useEffect(() => {
     if (!pendingPreferredFilePath) return;
@@ -576,8 +602,9 @@ export default function RoomPage() {
   const selectedMarkdown = selectedFilePath === LIVE_FILE_PATH
     ? markdown
     : virtualFiles[selectedFilePath] || `# ${selectedFilePath}\n\nNo local Markdown loaded for this file yet.`;
-  const selectedFileComments = comments.filter((comment) => (comment.filePath || LIVE_FILE_PATH) === selectedFilePath);
-  const selectedFileProposals = proposals.filter((proposal) => (proposal.filePath || LIVE_FILE_PATH) === selectedFilePath);
+  const defaultRecordFilePath = projectPrimaryPath || LIVE_FILE_PATH;
+  const selectedFileComments = comments.filter((comment) => (comment.filePath || defaultRecordFilePath) === selectedFilePath);
+  const selectedFileProposals = proposals.filter((proposal) => (proposal.filePath || defaultRecordFilePath) === selectedFilePath);
   const selectedProposalIds = new Set(selectedFileProposals.map((proposal) => proposal.id));
   const selectedFileTimeline = timeline.filter((event) => !event.proposalId || selectedProposalIds.has(event.proposalId));
   const selectedFilePendingCount = selectedFileProposals.filter((proposal) => proposal.status === "pending").length;
@@ -808,10 +835,12 @@ function createProjectFiles(
   projectFileUpdatedAt: Record<string, string>,
   comments: ChatComment[],
   proposals: Proposal[],
+  includeLegacyLiveFile = true,
+  defaultRecordFilePath = LIVE_FILE_PATH,
 ) {
   const filesByPath = new Map<string, { name: string; path: string; folder: string; status?: string }>();
-  const commentCounts = countRecordsByFile(comments);
-  const pendingProposalCounts = countRecordsByFile(proposals.filter((proposal) => proposal.status === "pending"));
+  const commentCounts = countRecordsByFile(comments, defaultRecordFilePath);
+  const pendingProposalCounts = countRecordsByFile(proposals.filter((proposal) => proposal.status === "pending"), defaultRecordFilePath);
   const addFile = (path: string, status?: string) => {
     const normalized = normalizeProjectFilePath(path);
     if (!normalized) return;
@@ -824,9 +853,14 @@ function createProjectFiles(
   };
 
   Object.keys(virtualFiles).forEach((path) => addFile(path));
-  [
-    { name: "launch-review.md", path: LIVE_FILE_PATH, folder: "reports", status: "live" },
-  ].forEach((file) => filesByPath.set(file.path, file));
+  if (includeLegacyLiveFile) {
+    filesByPath.set(LIVE_FILE_PATH, {
+      name: "launch-review.md",
+      path: LIVE_FILE_PATH,
+      folder: "reports",
+      status: "live",
+    });
+  }
 
   const files = Array.from(filesByPath.values()).sort((a, b) => {
     const folderOrder = ["docs", "reports", ""];
@@ -845,10 +879,10 @@ function createProjectFiles(
   }));
 }
 
-function countRecordsByFile(records: Array<{ filePath?: string }>) {
+function countRecordsByFile(records: Array<{ filePath?: string }>, defaultFilePath = LIVE_FILE_PATH) {
   const counts = new Map<string, number>();
   for (const record of records) {
-    const path = record.filePath || LIVE_FILE_PATH;
+    const path = record.filePath || defaultFilePath;
     counts.set(path, (counts.get(path) || 0) + 1);
   }
   return counts;
