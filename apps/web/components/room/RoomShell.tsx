@@ -941,10 +941,6 @@ function buildProjectFileTree(files: ProjectFile[], query: string): ProjectFileT
     return folder;
   };
 
-  if (!query) {
-    ["docs", "reports"].forEach((name) => ensureFolder(name, name));
-  }
-
   for (const file of files) {
     if (query && !`${file.name} ${file.path}`.toLowerCase().includes(query)) continue;
     const parts = file.path.split("/").filter(Boolean);
