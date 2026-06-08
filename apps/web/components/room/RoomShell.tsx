@@ -383,6 +383,8 @@ interface ProjectFile {
   folder: string;
   active?: boolean;
   status?: string;
+  commentCount?: number;
+  pendingCount?: number;
 }
 
 function ProjectFileSidebar({
@@ -698,8 +700,36 @@ function SidebarFile({
     >
       <File className="h-3.5 w-3.5 shrink-0 text-ink-subtle group-hover:text-ink-muted" />
       <span className="min-w-0 flex-1 truncate">{file.name}</span>
+      <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} />
       {file.status && <span className="rounded bg-studio-sunken px-1 text-[10px] text-ink-subtle">{file.status}</span>}
     </button>
+  );
+}
+
+function FileReviewIndicators({
+  commentCount,
+  pendingCount,
+}: {
+  commentCount: number;
+  pendingCount: number;
+}) {
+  const total = commentCount + pendingCount;
+  if (total === 0) return null;
+
+  const label = [
+    commentCount ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}` : "",
+    pendingCount ? `${pendingCount} pending ${pendingCount === 1 ? "suggestion" : "suggestions"}` : "",
+  ].filter(Boolean).join(", ");
+
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className="inline-flex h-5 shrink-0 items-center gap-1 rounded bg-studio-sunken px-1.5 text-[10px] font-medium text-ink-subtle group-hover:text-ink-muted"
+    >
+      <MessageSquare className="h-3 w-3" aria-hidden />
+      <span>{total}</span>
+    </span>
   );
 }
 

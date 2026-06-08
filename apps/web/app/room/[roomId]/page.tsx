@@ -97,7 +97,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!roomId || hasLoadedPreferredFile) return;
-    const knownFiles = createProjectFiles(selectedFilePath, virtualFilesRef.current, {});
+    const knownFiles = createProjectFiles(selectedFilePath, virtualFilesRef.current, {}, [], []);
     let storedPath = "";
     try {
       storedPath = window.localStorage.getItem(lastOpenedFileStorageKey(roomId)) || "";
@@ -516,8 +516,8 @@ export default function RoomPage() {
   };
 
   const projectFiles = useMemo(
-    () => createProjectFiles(selectedFilePath, virtualFiles, projectFileUpdatedAt),
-    [selectedFilePath, virtualFiles, projectFileUpdatedAt],
+    () => createProjectFiles(selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals),
+    [selectedFilePath, virtualFiles, projectFileUpdatedAt, comments, proposals],
   );
   useEffect(() => {
     if (!pendingPreferredFilePath) return;
@@ -715,8 +715,12 @@ function createProjectFiles(
   selectedFilePath: string,
   virtualFiles: Record<string, string>,
   projectFileUpdatedAt: Record<string, string>,
+  comments: ChatComment[],
+  proposals: Proposal[],
 ) {
   const filesByPath = new Map<string, { name: string; path: string; folder: string; status?: string }>();
+  const commentCounts = countRecordsByFile(comments);
+  const pendingProposalCounts = countRecordsByFile(proposals.filter((proposal) => proposal.status === "pending"));
   const addFile = (path: string, status?: string) => {
     const normalized = normalizeProjectFilePath(path);
     if (!normalized) return;
@@ -745,7 +749,18 @@ function createProjectFiles(
     ...file,
     active: file.path === selectedFilePath,
     status: file.status || (projectFileUpdatedAt[file.path] ? "synced" : undefined),
+    commentCount: commentCounts.get(file.path) || 0,
+    pendingCount: pendingProposalCounts.get(file.path) || 0,
   }));
+}
+
+function countRecordsByFile(records: Array<{ filePath?: string }>) {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    const path = record.filePath || LIVE_FILE_PATH;
+    counts.set(path, (counts.get(path) || 0) + 1);
+  }
+  return counts;
 }
 
 function lastOpenedFileStorageKey(roomId: string) {
