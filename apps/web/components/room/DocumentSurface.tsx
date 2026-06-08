@@ -149,9 +149,6 @@ export function DocumentSurface({
 
   return (
     <section className="mx-auto w-full max-w-[880px]">
-      <div className="mb-2 flex items-center gap-2 px-1 text-xs text-ink-subtle">
-        <span>Markdown file</span>
-      </div>
       <div
         data-document-surface="true"
         ref={readSurfaceRef}
