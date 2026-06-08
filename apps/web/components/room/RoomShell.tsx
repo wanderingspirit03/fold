@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Check,
   ChevronDown,
   Command,
   Download,
@@ -87,6 +88,7 @@ export function RoomShell({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [projectFilesOpen, setProjectFilesOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [projectLinkCopied, setProjectLinkCopied] = useState(false);
   const [recentFilePaths, setRecentFilePaths] = useState<string[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const selectedFile = useMemo(
@@ -150,6 +152,8 @@ export function RoomShell({
       window.document.execCommand("copy");
       window.document.body.removeChild(input);
     }
+    setProjectLinkCopied(true);
+    window.setTimeout(() => setProjectLinkCopied(false), 1400);
     onCopyProjectLink?.();
   };
   const openImportPicker = () => importInputRef.current?.click();
@@ -179,6 +183,7 @@ export function RoomShell({
             recentFiles={recentFiles}
             onBack={onBack}
             onCopyProjectLink={copyProjectLink}
+            projectLinkCopied={projectLinkCopied}
             onFileSelect={onFileSelect}
             onCreateFile={onCreateFile}
             onImportFile={openImportPicker}
@@ -280,6 +285,7 @@ export function RoomShell({
                 roomId={roomId}
                 onBack={onBack}
                 onCopyProjectLink={copyProjectLink}
+                projectLinkCopied={projectLinkCopied}
                 onClose={() => setProjectFilesOpen(false)}
               />
               <ProjectFilesBody
@@ -397,6 +403,7 @@ function ProjectFileSidebar({
   recentFiles,
   onBack,
   onCopyProjectLink,
+  projectLinkCopied = false,
   onFileSelect,
   onCreateFile,
   onImportFile,
@@ -406,13 +413,19 @@ function ProjectFileSidebar({
   recentFiles: ProjectFile[];
   onBack: () => void;
   onCopyProjectLink: () => void;
+  projectLinkCopied?: boolean;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onImportFile: () => void;
 }) {
   return (
     <aside className="hidden min-h-dvh flex-col bg-studio-paper text-ink md:flex">
-      <ProjectFilesHeader roomId={roomId} onBack={onBack} onCopyProjectLink={onCopyProjectLink} />
+      <ProjectFilesHeader
+        roomId={roomId}
+        onBack={onBack}
+        onCopyProjectLink={onCopyProjectLink}
+        projectLinkCopied={projectLinkCopied}
+      />
       <ProjectFilesBody
         files={files}
         recentFiles={recentFiles}
@@ -428,11 +441,13 @@ function ProjectFilesHeader({
   roomId,
   onBack,
   onCopyProjectLink,
+  projectLinkCopied = false,
   onClose,
 }: {
   roomId: string;
   onBack: () => void;
   onCopyProjectLink: () => void;
+  projectLinkCopied?: boolean;
   onClose?: () => void;
 }) {
   return (
@@ -449,11 +464,20 @@ function ProjectFilesHeader({
       </div>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" onClick={onCopyProjectLink} aria-label="Copy project link" className="h-11 w-11">
-            <Link2 className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCopyProjectLink}
+            aria-label={projectLinkCopied ? "Project link copied" : "Copy project link"}
+            className={cn(
+              "h-11 w-11 transition-all duration-200",
+              projectLinkCopied && "scale-95 bg-midnight-soft text-midnight-strong",
+            )}
+          >
+            {projectLinkCopied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Copy project link</TooltipContent>
+        <TooltipContent>{projectLinkCopied ? "Copied" : "Copy project link"}</TooltipContent>
       </Tooltip>
       {onClose && (
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close project files" className="h-11 w-11">

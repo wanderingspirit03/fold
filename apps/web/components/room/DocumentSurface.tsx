@@ -49,7 +49,13 @@ export function DocumentSurface({
     top: number;
     left: number;
   } | null>(null);
+  const [fileCommentsOpen, setFileCommentsOpen] = useState(false);
+  const [fileComposerOpen, setFileComposerOpen] = useState(false);
   const parsedMarkdown = useMemo(() => extractMarkdownProperties(markdown), [markdown]);
+  const fileComments = useMemo(
+    () => comments.filter((comment) => comment.anchorType !== "text-range" || !comment.selectedQuote),
+    [comments],
+  );
   const activeComment = useMemo(
     () => comments.find((comment) => comment.id === activeCommentCard?.commentId) || null,
     [comments, activeCommentCard],
@@ -57,8 +63,15 @@ export function DocumentSurface({
 
   useEffect(() => {
     if (composerFocusToken === 0) return;
-    composerRef.current?.focus();
+    setFileComposerOpen(true);
+    setAnchorPoint(null);
+    onSelectedQuoteChange("");
   }, [composerFocusToken]);
+
+  useEffect(() => {
+    if (!fileComposerOpen || selectedQuote) return;
+    window.requestAnimationFrame(() => composerRef.current?.focus());
+  }, [fileComposerOpen, selectedQuote]);
 
   useEffect(() => {
     if (!selectedQuote || !anchorPoint) return;
@@ -80,8 +93,10 @@ export function DocumentSurface({
       if (!(target instanceof HTMLElement)) return;
       if (target.closest("[data-comment-popover]")) return;
       if (target.closest("[data-comment-composer]")) return;
+      if (target.closest("[data-file-comment-control]")) return;
       if (target.closest("[data-inline-comment-marker]")) return;
       setActiveCommentCard(null);
+      setFileCommentsOpen(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -160,6 +175,115 @@ export function DocumentSurface({
           "selection:bg-midnight-soft selection:text-document-ink sm:px-12 lg:px-16",
         )}
       >
+        <div data-file-comment-control className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+          {fileComments.length > 0 && (
+            <button
+              type="button"
+              aria-label={`Open ${fileComments.length} file ${fileComments.length === 1 ? "comment" : "comments"}`}
+              title="File comments"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-document-edge bg-document px-2 text-[11px] font-medium text-document-subtle shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-colors hover:border-midnight/35 hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              onClick={() => {
+                setFileCommentsOpen((open) => !open);
+                setFileComposerOpen(false);
+                setActiveCommentCard(null);
+              }}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>{fileComments.length}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Add file comment"
+            title="Add file comment"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-document-edge bg-document text-document-subtle shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-colors hover:border-midnight/35 hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+            onClick={() => {
+              setFileComposerOpen((open) => !open);
+              setFileCommentsOpen(false);
+              setActiveCommentCard(null);
+              setAnchorPoint(null);
+              onSelectedQuoteChange("");
+            }}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {fileCommentsOpen && fileComments.length > 0 && (
+          <div
+            data-comment-popover
+            className="mb-6 ml-auto w-[min(340px,100%)] rounded-md border border-midnight/25 bg-studio-paper p-2.5 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
+                <MessageSquare className="h-3.5 w-3.5 text-midnight-strong" />
+                <span>File comments</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Close file comments"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                onClick={() => setFileCommentsOpen(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              {fileComments.map((comment) => (
+                <div key={comment.id} className="rounded-md border border-studio-line bg-studio-sunken/60 px-2.5 py-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="truncate text-xs font-medium text-ink">{comment.persona?.name || "Comment"}</p>
+                    <p className="shrink-0 font-mono text-[11px] text-ink-subtle">{formatTime(comment.createdAt)}</p>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-ink-muted">{comment.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {fileComposerOpen && !selectedQuote && (
+          <div className="mb-6 ml-auto w-[min(340px,100%)]">
+            <form
+              data-comment-composer
+              onSubmit={(event) => {
+                if (!newCommentText.trim()) {
+                  event.preventDefault();
+                  return;
+                }
+                onPostComment(event);
+                setFileComposerOpen(false);
+              }}
+              className="rounded-md border border-midnight/25 bg-studio-paper p-2 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
+            >
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+                <p className="text-xs text-ink-subtle">File comment</p>
+              </div>
+              <Textarea
+                ref={composerRef}
+                aria-label="File comment"
+                placeholder="Comment"
+                rows={2}
+                value={newCommentText}
+                onChange={(event) => onNewCommentTextChange(event.target.value)}
+                required
+                className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  className="text-xs text-ink-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                  onClick={() => setFileComposerOpen(false)}
+                >
+                  Cancel
+                </button>
+                <Button type="submit" size="sm">
+                  <Send className="h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
         {markdown.trim() ? (
           <>
             {parsedMarkdown.properties.length > 0 && (
