@@ -74,10 +74,38 @@ export function RoomShell({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [projectFilesOpen, setProjectFilesOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [recentFilePaths, setRecentFilePaths] = useState<string[]>([]);
   const selectedFile = useMemo(
     () => files.find((file) => file.path === selectedFilePath) ?? files[0],
     [files, selectedFilePath],
   );
+  const recentStorageKey = `fold:recent-files:${roomId}`;
+  const recentFiles = useMemo(
+    () => recentFilePaths
+      .map((path) => files.find((file) => file.path === path))
+      .filter((file): file is ProjectFile => Boolean(file))
+      .slice(0, 4),
+    [files, recentFilePaths],
+  );
+
+  useEffect(() => {
+    if (!selectedFilePath) return;
+    let storedPaths: string[] = [];
+    try {
+      const stored = window.localStorage.getItem(recentStorageKey);
+      storedPaths = stored ? JSON.parse(stored) : [];
+    } catch {
+      storedPaths = [];
+    }
+
+    const next = [selectedFilePath, ...storedPaths.filter((path) => path !== selectedFilePath)].slice(0, 8);
+    setRecentFilePaths(next);
+    try {
+      window.localStorage.setItem(recentStorageKey, JSON.stringify(next));
+    } catch {
+      // Recent files are convenience state; failing to persist should not block navigation.
+    }
+  }, [recentStorageKey, selectedFilePath]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -97,6 +125,7 @@ export function RoomShell({
           <ProjectFileSidebar
             roomId={roomId}
             files={files}
+            recentFiles={recentFiles}
             onBack={onBack}
             onFileSelect={onFileSelect}
             onCreateFile={onCreateFile}
@@ -196,6 +225,7 @@ export function RoomShell({
               <ProjectFilesHeader roomId={roomId} onBack={onBack} onClose={() => setProjectFilesOpen(false)} />
               <ProjectFilesBody
                 files={files}
+                recentFiles={recentFiles}
                 onFileSelect={(path) => {
                   onFileSelect(path);
                   setProjectFilesOpen(false);
@@ -284,12 +314,14 @@ interface ProjectFile {
 function ProjectFileSidebar({
   roomId,
   files,
+  recentFiles,
   onBack,
   onFileSelect,
   onCreateFile,
 }: {
   roomId: string;
   files: ProjectFile[];
+  recentFiles: ProjectFile[];
   onBack: () => void;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
@@ -299,6 +331,7 @@ function ProjectFileSidebar({
       <ProjectFilesHeader roomId={roomId} onBack={onBack} />
       <ProjectFilesBody
         files={files}
+        recentFiles={recentFiles}
         onFileSelect={onFileSelect}
         onCreateFile={onCreateFile}
       />
@@ -338,10 +371,12 @@ function ProjectFilesHeader({
 
 function ProjectFilesBody({
   files,
+  recentFiles,
   onFileSelect,
   onCreateFile,
 }: {
   files: ProjectFile[];
+  recentFiles: ProjectFile[];
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
 }) {
@@ -406,8 +441,16 @@ function ProjectFilesBody({
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+        {!normalizedQuery && recentFiles.length > 1 && (
+          <SidebarSection title="Recent">
+            {recentFiles.map((file) => (
+              <SidebarFile key={`recent:${file.path}`} file={file} depth={0} onFileSelect={handleFileSelect} />
+            ))}
+          </SidebarSection>
+        )}
         <SidebarSection
           title="Project"
+          className={cn(!normalizedQuery && recentFiles.length > 1 && "mt-4")}
           action={
             <button
               type="button"
@@ -465,9 +508,19 @@ function ProjectFilesBody({
   );
 }
 
-function SidebarSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+function SidebarSection({
+  title,
+  action,
+  className,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <section>
+    <section className={className}>
       <div className="mb-1 flex items-center justify-between px-2">
         <p className="text-[11px] font-medium uppercase text-ink-subtle">{title}</p>
         {action}
