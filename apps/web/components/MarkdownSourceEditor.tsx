@@ -36,6 +36,11 @@ export default function MarkdownSourceEditor({
     setMarkdown(nextMarkdown);
     onChangeRef.current(nextMarkdown);
   };
+  const handleSourceKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+    event.preventDefault();
+    onCommitRef.current?.(markdown);
+  };
 
   return (
     <div
@@ -47,6 +52,7 @@ export default function MarkdownSourceEditor({
           aria-label="Markdown source"
           value={markdown}
           onChange={handleSourceChange}
+          onKeyDown={handleSourceKeyDown}
           onBlur={() => onCommitRef.current?.(markdown)}
           placeholder="Write Markdown..."
           spellCheck={false}
