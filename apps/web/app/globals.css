@@ -35,7 +35,7 @@
 }
 
 html[data-theme="light"] {
-  --background: 40 34% 95%;
+  --background: 220 18% 95%;
   --foreground: 240 6% 10%;
   --border: 240 6% 10% / 0.11;
   --input: 240 6% 10% / 0.12;
@@ -43,23 +43,23 @@ html[data-theme="light"] {
   --ink: 240 6% 10%;
   --ink-soft: 240 6% 18%;
   --ink-muted: 230 7% 38%;
-  --ink-subtle: 225 6% 55%;
+  --ink-subtle: 225 6% 45%;
   --line-soft: 240 6% 10% / 0.12;
-  --bone: 40 18% 92%;
+  --bone: 220 14% 92%;
   --air: 222 35% 20%;
-  --porcelain: 42 28% 88%;
-  --studio: 42 34% 95%;
-  --studio-paper: 42 36% 98%;
+  --porcelain: 222 42% 92%;
+  --studio: 220 18% 95%;
+  --studio-paper: 220 28% 98%;
   --studio-line: 240 6% 10% / 0.1;
-  --studio-sunken: 42 28% 91%;
-  --document: 42 36% 98%;
+  --studio-sunken: 220 16% 91%;
+  --document: 42 20% 99%;
   --document-edge: 240 6% 10% / 0.11;
   --document-ink: 240 6% 12%;
   --document-muted: 222 8% 33%;
-  --document-subtle: 224 7% 48%;
-  --rail: 42 34% 96%;
+  --document-subtle: 224 7% 46%;
+  --rail: 220 24% 97%;
   --midnight: 222 64% 33%;
-  --midnight-soft: 222 64% 33% / 0.12;
+  --midnight-soft: 222 64% 33% / 0.14;
   --midnight-strong: 220 52% 42%;
   --logo-current: url("/brand/fold-logo-dark.svg");
 }
