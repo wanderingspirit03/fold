@@ -22,6 +22,7 @@ Primary reference: `DESIGN.md`.
 - Added dark-first layered studio tokens with midnight-blue accent and light theme support.
 - Added Fold logo assets in the app chrome and browser tab.
 - Built a project file sidebar with folder expand/collapse, recent files, search, create, and import.
+- Made the mobile project file drawer focus the file filter on open for faster project navigation.
 - Improved sidebar file search with path-aware and simple fuzzy matching for larger projects.
 - Hid legacy seeded/mock folders and routine `synced` badges so the file tree reads like a real project.
 - Kept raw Markdown canonical while rendering read mode with sanitized `react-markdown`.

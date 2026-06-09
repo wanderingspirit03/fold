@@ -360,6 +360,7 @@ export function RoomShell({
               <ProjectFilesBody
                 files={files}
                 recentFiles={recentFiles}
+                autoFocusSearch
                 onFileSelect={(path) => {
                   onFileSelect(path);
                   setProjectFilesOpen(false);
@@ -593,12 +594,14 @@ function ProjectFilesHeader({
 function ProjectFilesBody({
   files,
   recentFiles,
+  autoFocusSearch = false,
   onFileSelect,
   onCreateFile,
   onImportFile,
 }: {
   files: ProjectFile[];
   recentFiles: ProjectFile[];
+  autoFocusSearch?: boolean;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onImportFile: () => void;
@@ -644,6 +647,11 @@ function ProjectFilesBody({
     if (!isCreatingFile) return;
     window.requestAnimationFrame(() => createInputRef.current?.focus());
   }, [isCreatingFile]);
+
+  useEffect(() => {
+    if (!autoFocusSearch) return;
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, [autoFocusSearch]);
 
   return (
     <div className="flex h-[calc(100dvh-48px)] flex-col">
