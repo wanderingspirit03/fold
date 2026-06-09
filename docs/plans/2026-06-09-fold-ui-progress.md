@@ -44,6 +44,7 @@ Primary reference: `DESIGN.md`.
 - Tightened suggestion rows further and sorted pending suggestions first in the review drawer.
 - Added command palette / quick switcher and made the header filename open it.
 - Grouped command palette results into create/files/actions with active-file and review-count metadata.
+- Improved quick-switcher search ranking with path-aware and simple fuzzy file matching for larger projects.
 - Added quiet saved/checkpoint timestamps to file chrome, sidebar rows, and quick-switch metadata.
 - Simplified the blank Markdown document state and added a direct edit affordance.
 - Fixed blank project files so an intentionally empty Markdown file does not fall back to missing-file copy.
