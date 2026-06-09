@@ -39,6 +39,7 @@ Primary reference: `DESIGN.md`.
 - Flattened the review drawer scope header so it reads as editor chrome instead of a nested summary card.
 - Flattened suggestion rows so review items read more like compact document annotations than PR cards.
 - Added command palette / quick switcher and made the header filename open it.
+- Grouped command palette results into create/files/actions with active-file and review-count metadata.
 - Removed duplicate root-file path text from the top file header and command palette while preserving full-path search.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
@@ -48,6 +49,7 @@ Primary reference: `DESIGN.md`.
 ## In Progress
 
 - Keep reducing visible text and secondary chrome while preserving accessible labels/tooltips.
+- Keep checking whether the command palette feels like an Obsidian-style quick switcher under larger project file sets.
 - Continue checking mobile widths for overlap and horizontal scroll.
 - Keep collaboration objects streaming through the encrypted room pipeline; avoid designs that depend on manual refresh or static server-readable fetches.
 
@@ -55,7 +57,6 @@ Primary reference: `DESIGN.md`.
 
 - Improve proposal/review drawer density and action clarity.
 - Make suggestion anchors more visible inside the document when a proposal targets selected text.
-- Add a stronger file-search/quick-switch polish pass if the command palette still feels generic.
 - Add resolved comment state and a simple way to reopen or hide resolved notes.
 - Make future multi-user presence and typing/editing states stream from encrypted room/awareness data without revealing document content to the server.
 - Add named versions/checkpoints for accepted changes and manual saves.

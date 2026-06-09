@@ -1032,8 +1032,10 @@ type PaletteItem = {
   id: string;
   label: string;
   detail?: string;
+  group: "create" | "files" | "actions";
   searchText?: string;
   icon: ReactNode;
+  meta?: ReactNode;
   action: () => void;
   disabled?: boolean;
 };
@@ -1098,6 +1100,7 @@ function ProjectCommandPalette({
       id: "add-comment",
       label: trimmedQuote ? "Add comment to selection" : "Add file comment",
       detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
+      group: "actions",
       icon: <MessageSquarePlus className="h-4 w-4" />,
       action: onFocusCommentComposer,
     },
@@ -1105,6 +1108,7 @@ function ProjectCommandPalette({
       id: "show-comments",
       label: "Show comments",
       detail: `${commentCount} ${commentCount === 1 ? "comment" : "comments"} in current file`,
+      group: "actions",
       icon: <MessageSquare className="h-4 w-4" />,
       action: onOpenReview,
     },
@@ -1112,6 +1116,7 @@ function ProjectCommandPalette({
       id: "show-suggestions",
       label: "Show pending suggestions",
       detail: `${pendingCount} ${pendingCount === 1 ? "suggestion" : "suggestions"} in current file`,
+      group: "actions",
       icon: <ListChecks className="h-4 w-4" />,
       action: onOpenReview,
     },
@@ -1119,6 +1124,7 @@ function ProjectCommandPalette({
       id: "import-file",
       label: "Import Markdown file",
       detail: "Add local .md to project",
+      group: "actions",
       icon: <Upload className="h-4 w-4" />,
       action: onImportFile,
     },
@@ -1126,6 +1132,7 @@ function ProjectCommandPalette({
       id: "copy-link",
       label: "Copy project link",
       detail: "Encrypted share link",
+      group: "actions",
       icon: <Link2 className="h-4 w-4" />,
       action: onCopyProjectLink,
     },
@@ -1133,6 +1140,7 @@ function ProjectCommandPalette({
       id: "export",
       label: "Export current file",
       detail: selectedFilePath,
+      group: "actions",
       icon: <Download className="h-4 w-4" />,
       action: onExport,
     },
@@ -1140,6 +1148,7 @@ function ProjectCommandPalette({
       id: "read",
       label: "Switch to read",
       detail: mode === "read" ? "Current mode" : selectedFilePath,
+      group: "actions",
       icon: <FileText className="h-4 w-4" />,
       action: () => onModeChange("read"),
     },
@@ -1147,6 +1156,7 @@ function ProjectCommandPalette({
       id: "edit",
       label: "Switch to edit",
       detail: mode === "edit" ? "Current mode" : selectedFilePath,
+      group: "actions",
       icon: <Pencil className="h-4 w-4" />,
       action: () => onModeChange("edit"),
     },
@@ -1155,8 +1165,10 @@ function ProjectCommandPalette({
     id: `file:${file.path}`,
     label: file.name,
     detail: filePathDetail(file),
+    group: "files",
     searchText: file.path,
-    icon: <File className="h-4 w-4" />,
+    icon: file.path === selectedFilePath ? <Check className="h-4 w-4" /> : <File className="h-4 w-4" />,
+    meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} />,
     action: () => onFileSelect(file.path),
   }));
   const createItem: PaletteItem[] = requestedPath && !matchingFile
@@ -1164,6 +1176,7 @@ function ProjectCommandPalette({
       id: `create:${requestedPath}`,
       label: `Create ${requestedPath.split("/").pop() || requestedPath}`,
       detail: requestedPath,
+      group: "create",
       icon: <Plus className="h-4 w-4" />,
       action: () => onCreateFile(requestedPath),
     }]
@@ -1287,37 +1300,47 @@ function ProjectCommandPalette({
           {items.length === 0 ? (
             <p className="px-3 py-4 text-sm text-ink-subtle">No matches</p>
           ) : (
-            items.map((item, index) => (
-              <button
-                key={item.id}
-                id={`${listboxId}-option-${index}`}
-                type="button"
-                role="option"
-                disabled={item.disabled}
-                tabIndex={-1}
-                aria-selected={index === activeIndex}
-                aria-disabled={item.disabled || undefined}
-                onClick={item.action}
-                onMouseEnter={() => {
-                  if (!item.disabled) setActiveIndex(index);
-                }}
-                className={cn(
-                  "flex h-11 w-full items-center gap-3 rounded px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
-                  item.disabled && "cursor-not-allowed opacity-45",
-                  !item.disabled && (index === activeIndex ? "bg-midnight-soft text-ink" : "hover:bg-studio-sunken"),
-                )}
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-studio-line bg-studio-sunken text-ink-subtle">
-                  {item.icon}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-ink">{item.label}</span>
-                  {item.detail && (
-                    <span className="block truncate text-[11px] text-ink-subtle">{item.detail}</span>
+            items.map((item, index) => {
+              const showGroupLabel = index === 0 || items[index - 1]?.group !== item.group;
+              return (
+                <div key={item.id}>
+                  {showGroupLabel && (
+                    <p className="px-2.5 pb-1 pt-2 text-[10px] font-medium uppercase text-ink-subtle">
+                      {paletteGroupLabel(item.group)}
+                    </p>
                   )}
-                </span>
-              </button>
-            ))
+                  <button
+                    id={`${listboxId}-option-${index}`}
+                    type="button"
+                    role="option"
+                    disabled={item.disabled}
+                    tabIndex={-1}
+                    aria-selected={index === activeIndex}
+                    aria-disabled={item.disabled || undefined}
+                    onClick={item.action}
+                    onMouseEnter={() => {
+                      if (!item.disabled) setActiveIndex(index);
+                    }}
+                    className={cn(
+                      "flex h-11 w-full items-center gap-3 rounded px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+                      item.disabled && "cursor-not-allowed opacity-45",
+                      !item.disabled && (index === activeIndex ? "bg-midnight-soft text-ink" : "hover:bg-studio-sunken"),
+                    )}
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-studio-line bg-studio-sunken text-ink-subtle">
+                      {item.icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-ink">{item.label}</span>
+                      {item.detail && (
+                        <span className="block truncate text-[11px] text-ink-subtle">{item.detail}</span>
+                      )}
+                    </span>
+                    {item.meta ? <span className="shrink-0">{item.meta}</span> : null}
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -1327,6 +1350,12 @@ function ProjectCommandPalette({
 
 function filePathDetail(file: Pick<ProjectFile, "name" | "path">) {
   return file.path === file.name ? "" : file.path;
+}
+
+function paletteGroupLabel(group: PaletteItem["group"]) {
+  if (group === "create") return "Create";
+  if (group === "files") return "Files";
+  return "Actions";
 }
 
 function ReviewStatusControl({
