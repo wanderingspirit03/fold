@@ -673,7 +673,7 @@ function ProjectFilesBody({
   return (
     <div className="flex h-[calc(100dvh-48px)] flex-col">
       <div className="border-b border-studio-line p-3">
-        <label className="flex h-8 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-2 text-xs text-ink-subtle focus-within:border-midnight/30 focus-within:bg-porcelain">
+        <label className="flex h-11 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-2 text-xs text-ink-subtle focus-within:border-midnight/30 focus-within:bg-porcelain md:h-8">
           <Search className="h-3.5 w-3.5" />
           <input
             ref={searchInputRef}
@@ -687,7 +687,7 @@ function ProjectFilesBody({
             <button
               type="button"
               aria-label="Clear file search"
-              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-5 md:w-5"
               onClick={() => setQuery("")}
             >
               <X className="h-3.5 w-3.5" />
@@ -708,13 +708,13 @@ function ProjectFilesBody({
           title="Project"
           className={cn(!normalizedQuery && recentFiles.length > 1 && "mt-4")}
           action={
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1 md:gap-0.5">
               <button
                 type="button"
                 aria-label="Import Markdown file"
                 title="Import Markdown file"
                 onClick={onImportFile}
-                className="inline-flex h-6 w-6 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-6 md:w-6"
               >
                 <Upload className="h-3.5 w-3.5" />
               </button>
@@ -723,7 +723,7 @@ function ProjectFilesBody({
                 aria-label="Create Markdown file"
                 title="Create Markdown file"
                 onClick={() => setIsCreatingFile((open) => !open)}
-                className="inline-flex h-6 w-6 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-6 md:w-6"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -746,7 +746,7 @@ function ProjectFilesBody({
               <button
                 type="submit"
                 aria-label="Create file"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded bg-midnight text-white hover:bg-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded bg-midnight text-white hover:bg-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-6 md:w-6"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
