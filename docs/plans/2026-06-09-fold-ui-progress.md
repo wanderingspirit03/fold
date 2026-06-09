@@ -37,6 +37,7 @@ Primary reference: `DESIGN.md`.
 - Simplified comments to one comment type.
 - Made file-level comment controls flow above properties so they do not overlap metadata.
 - Added compact file-level review counts in the toolbar for comments and pending suggestions.
+- Increased mobile document comment/review control tap targets while preserving compact desktop document chrome.
 - Added a quiet document-surface pending suggestion control so review work is discoverable from the Markdown page itself.
 - Made pending inline suggestion anchors persistently visible with a soft midnight-blue document mark.
 - Added a compact dot and stronger underline cue to pending inline suggestion anchors.
