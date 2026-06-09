@@ -957,6 +957,9 @@ interface ProjectFileTree {
 function buildProjectFileTree(files: ProjectFile[], query: string): ProjectFileTree {
   const roots = new Map<string, MutableProjectTreeFolder>();
   const rootFiles: ProjectFile[] = [];
+  const visibleFiles = query
+    ? files.filter((file) => projectFileMatchScore(file, query) > 0)
+    : files;
   const ensureFolder = (name: string, path: string, parent?: MutableProjectTreeFolder) => {
     const map = parent ? parent.folderMap : roots;
     let folder = map.get(path);
@@ -968,8 +971,7 @@ function buildProjectFileTree(files: ProjectFile[], query: string): ProjectFileT
     return folder;
   };
 
-  for (const file of files) {
-    if (query && !`${file.name} ${file.path}`.toLowerCase().includes(query)) continue;
+  for (const file of visibleFiles) {
     const parts = file.path.split("/").filter(Boolean);
     if (parts.length <= 1) {
       rootFiles.push(file);
@@ -1014,6 +1016,23 @@ function compareTreeFolders(a: Pick<ProjectTreeFolder, "name">, b: Pick<ProjectT
 
 function compareProjectFiles(a: ProjectFile, b: ProjectFile) {
   return a.name.localeCompare(b.name);
+}
+
+function projectFileMatchScore(file: ProjectFile, query: string) {
+  const name = file.name.toLowerCase();
+  const path = file.path.toLowerCase();
+  const compactQuery = query.replace(/[\s/_-]+/g, "");
+  const compactPath = path.replace(/[\s/_-]+/g, "");
+  const pathSegments = path.split("/").filter(Boolean);
+
+  if (name === query || path === query) return 100;
+  if (name.startsWith(query)) return 90;
+  if (path.startsWith(query)) return 86;
+  if (pathSegments.some((segment) => segment.startsWith(query))) return 78;
+  if (name.includes(query) || path.includes(query)) return 64;
+  if (compactQuery.length >= 2 && compactPath.includes(compactQuery)) return 56;
+  if (compactQuery.length >= 3 && isSubsequence(compactQuery, compactPath)) return 42;
+  return 0;
 }
 
 function treeHasFiles(folder: ProjectTreeFolder): boolean {
