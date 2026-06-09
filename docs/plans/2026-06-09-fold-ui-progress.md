@@ -35,6 +35,7 @@ Primary reference: `DESIGN.md`.
 - Added a dedicated `midnight-mark` token for soft annotation fills instead of stacking opacity modifiers on alpha tokens.
 - Moved review/proposals into a lightweight drawer instead of a permanent heavy rail.
 - Added command palette / quick switcher and made the header filename open it.
+- Removed duplicate root-file path text from the top file header and command palette while preserving full-path search.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.

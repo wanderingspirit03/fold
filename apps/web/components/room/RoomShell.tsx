@@ -111,6 +111,7 @@ export function RoomShell({
     () => files.find((file) => file.path === selectedFilePath) ?? files[0],
     [files, selectedFilePath],
   );
+  const selectedFileDetail = selectedFile ? filePathDetail(selectedFile) : "";
   const recentStorageKey = `fold:recent-files:${roomId}`;
   const recentFiles = useMemo(
     () => recentFilePaths
@@ -232,7 +233,9 @@ export function RoomShell({
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
-                      <span className="block truncate text-[11px] text-ink-subtle">{selectedFile.path}</span>
+                      {selectedFileDetail && (
+                        <span className="block truncate text-[11px] text-ink-subtle">{selectedFileDetail}</span>
+                      )}
                     </span>
                   </button>
                 </div>
@@ -1028,7 +1031,8 @@ function folderReviewCounts(folder: ProjectTreeFolder) {
 type PaletteItem = {
   id: string;
   label: string;
-  detail: string;
+  detail?: string;
+  searchText?: string;
   icon: ReactNode;
   action: () => void;
   disabled?: boolean;
@@ -1150,7 +1154,8 @@ function ProjectCommandPalette({
   const fileItems: PaletteItem[] = files.map((file) => ({
     id: `file:${file.path}`,
     label: file.name,
-    detail: file.path,
+    detail: filePathDetail(file),
+    searchText: file.path,
     icon: <File className="h-4 w-4" />,
     action: () => onFileSelect(file.path),
   }));
@@ -1166,7 +1171,7 @@ function ProjectCommandPalette({
   const items = [...createItem, ...fileItems, ...staticItems]
     .filter((item) => {
       if (!normalizedQuery) return true;
-      return `${item.label} ${item.detail}`.toLowerCase().includes(normalizedQuery);
+      return `${item.label} ${item.detail || ""} ${item.searchText || ""}`.toLowerCase().includes(normalizedQuery);
     })
     .slice(0, 10);
   const firstEnabledIndex = Math.max(0, items.findIndex((item) => !item.disabled));
@@ -1307,7 +1312,9 @@ function ProjectCommandPalette({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-ink">{item.label}</span>
-                  <span className="block truncate text-[11px] text-ink-subtle">{item.detail}</span>
+                  {item.detail && (
+                    <span className="block truncate text-[11px] text-ink-subtle">{item.detail}</span>
+                  )}
                 </span>
               </button>
             ))
@@ -1316,6 +1323,10 @@ function ProjectCommandPalette({
       </div>
     </>
   );
+}
+
+function filePathDetail(file: Pick<ProjectFile, "name" | "path">) {
+  return file.path === file.name ? "" : file.path;
 }
 
 function ReviewStatusControl({
