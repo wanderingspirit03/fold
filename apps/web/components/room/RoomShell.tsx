@@ -220,13 +220,21 @@ export function RoomShell({
                   <Button variant="ghost" size="icon" onClick={() => setProjectFilesOpen(true)} aria-label="Open project files" className="shrink-0 md:hidden">
                     <FolderClosed className="h-4 w-4" />
                   </Button>
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-studio-line bg-studio-sunken text-ink-muted">
-                    <FileText className="h-3.5 w-3.5" />
-                  </span>
-                  <div className="min-w-0">
-                    <h1 className="truncate text-sm font-medium text-ink">{selectedFile.name}</h1>
-                    <p className="truncate text-[11px] text-ink-subtle">{selectedFile.path}</p>
-                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Open quick switcher for ${selectedFile.path}`}
+                    title="Open quick switcher"
+                    onClick={() => setCommandOpen(true)}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-studio-line bg-studio-sunken text-ink-muted">
+                      <FileText className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
+                      <span className="block truncate text-[11px] text-ink-subtle">{selectedFile.path}</span>
+                    </span>
+                  </button>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5">
