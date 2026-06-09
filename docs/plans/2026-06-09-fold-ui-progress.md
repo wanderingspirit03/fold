@@ -27,6 +27,7 @@ Primary reference: `DESIGN.md`.
 - Embedded frontmatter/properties as metadata inside the document/editor surface instead of rendering them as body text.
 - Kept edit mode as Markdown source only; removed extra rich/source controls.
 - Added inline selected-text comment composer and clickable inline comment markers.
+- Made inline comment markers persistently visible as soft document annotations.
 - Simplified comments to one comment type.
 - Made file-level comment controls flow above properties so they do not overlap metadata.
 - Added compact file-level review counts in the toolbar for comments and pending suggestions.

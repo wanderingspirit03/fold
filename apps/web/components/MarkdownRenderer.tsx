@@ -285,7 +285,7 @@ function inlineMarkerClassName(
   if (kind === "suggestion") {
     const resolved = status === "accepted" || status === "rejected";
     const resolvedClass = resolved ? "border-dashed bg-transparent opacity-70 hover:bg-midnight-soft" : "bg-midnight-mark hover:bg-midnight-soft";
-    return `${base} ${activeClass} ${resolvedClass} border-b-2 border-midnight/50`;
+    return `${base} ${resolvedClass} border-b-2 border-midnight/50 ${activeClass}`;
   }
-  return `${base} ${activeClass} border-b-2 border-midnight/45 ${active ? "" : "bg-transparent hover:bg-midnight-soft"}`;
+  return `${base} bg-midnight-mark hover:bg-midnight-soft border-b-2 border-midnight/45 ${activeClass}`;
 }
