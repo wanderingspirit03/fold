@@ -449,6 +449,10 @@ export function RoomShell({
               onFocusCommentComposer?.();
               setCommandOpen(false);
             }}
+            onOpenAgentInvite={() => {
+              setAgentInviteOpen(true);
+              setCommandOpen(false);
+            }}
           />
         )}
         <AgentInviteDialog
@@ -1124,6 +1128,7 @@ function ProjectCommandPalette({
   onCopyProjectLink,
   onOpenReview,
   onFocusCommentComposer,
+  onOpenAgentInvite,
 }: {
   files: ProjectFile[];
   selectedFilePath: string;
@@ -1140,6 +1145,7 @@ function ProjectCommandPalette({
   onCopyProjectLink: () => void;
   onOpenReview: () => void;
   onFocusCommentComposer: () => void;
+  onOpenAgentInvite: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1203,6 +1209,14 @@ function ProjectCommandPalette({
       group: "actions",
       icon: <Link2 className="h-4 w-4" />,
       action: onCopyProjectLink,
+    },
+    {
+      id: "connect-agent",
+      label: "Connect agent",
+      detail: "Copy secure CLI handoff",
+      group: "actions",
+      icon: <Bot className="h-4 w-4" />,
+      action: onOpenAgentInvite,
     },
     {
       id: "export",
