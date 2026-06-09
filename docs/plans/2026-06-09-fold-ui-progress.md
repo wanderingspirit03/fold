@@ -10,6 +10,7 @@ Fold should feel like a calm encrypted Markdown project workspace:
 - Markdown read/edit surface at the center
 - inline comments and file-level review affordances
 - lightweight review/proposal overlays
+- live encrypted room records for comments, suggestions, project files, and future presence
 - midnight-blue accents on dark layered chrome
 - no heavy permanent review rail, dashboard framing, badge soup, or AI-styled decoration
 
@@ -29,6 +30,7 @@ Primary reference: `DESIGN.md`.
 - Simplified comments to one comment type.
 - Made file-level comment controls flow above properties so they do not overlap metadata.
 - Added compact file-level review counts in the toolbar for comments and pending suggestions.
+- Added a quiet document-surface pending suggestion control so review work is discoverable from the Markdown page itself.
 - Moved review/proposals into a lightweight drawer instead of a permanent heavy rail.
 - Added command palette / quick switcher and made the header filename open it.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
@@ -41,6 +43,7 @@ Primary reference: `DESIGN.md`.
 - Make review/proposal rows feel more like compact document annotations than PR cards.
 - Keep reducing visible text and secondary chrome while preserving accessible labels/tooltips.
 - Continue checking mobile widths for overlap and horizontal scroll.
+- Keep collaboration objects streaming through the encrypted room pipeline; avoid designs that depend on manual refresh or static server-readable fetches.
 
 ## Next
 
@@ -48,6 +51,7 @@ Primary reference: `DESIGN.md`.
 - Make suggestion anchors more visible inside the document when a proposal targets selected text.
 - Add a stronger file-search/quick-switch polish pass if the command palette still feels generic.
 - Add resolved comment state and a simple way to reopen or hide resolved notes.
+- Make future multi-user presence and typing/editing states stream from encrypted room/awareness data without revealing document content to the server.
 - Add named versions/checkpoints for accepted changes and manual saves.
 - Improve empty states for project/file creation without adding marketing-style copy.
 - Continue measuring long-document readability against the Obsidian reference screenshots.

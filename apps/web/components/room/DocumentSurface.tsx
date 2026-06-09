@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, MessageSquare, MessageSquarePlus, Send, X } from "lucide-react";
+import { FileText, ListChecks, MessageSquare, MessageSquarePlus, Send, X } from "lucide-react";
 import MarkdownRenderer from "../MarkdownRenderer";
 import MarkdownSourceEditor from "../MarkdownSourceEditor";
 import { extractMarkdownProperties } from "../../lib/markdown-properties";
@@ -58,6 +58,10 @@ export function DocumentSurface({
   const fileComments = useMemo(
     () => comments.filter((comment) => comment.anchorType !== "text-range" || !comment.selectedQuote),
     [comments],
+  );
+  const pendingProposals = useMemo(
+    () => proposals.filter((proposal) => proposal.status === "pending"),
+    [proposals],
   );
   const activeComment = useMemo(
     () => comments.find((comment) => comment.id === activeCommentCard?.commentId) || null,
@@ -172,6 +176,29 @@ export function DocumentSurface({
         )}
       >
         <div data-file-comment-control className="mb-4 flex items-center justify-end gap-1.5">
+          {pendingProposals.length > 0 && (
+            <button
+              type="button"
+              aria-label={
+                pendingProposals.length === 1
+                  ? "Open pending suggestion"
+                  : `Open first of ${pendingProposals.length} pending suggestions`
+              }
+              title="Pending suggestions"
+              className="inline-flex h-9 items-center gap-1 rounded-md border border-document-edge bg-document/90 px-2.5 text-[11px] font-medium text-document-subtle transition-colors hover:border-midnight/35 hover:bg-document hover:text-document-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              onClick={() => {
+                setFileCommentsOpen(false);
+                setFileComposerOpen(false);
+                setActiveCommentCard(null);
+                setAnchorPoint(null);
+                onSelectedQuoteChange("");
+                onOpenProposal(pendingProposals[0]);
+              }}
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              <span>{pendingProposals.length}</span>
+            </button>
+          )}
           {fileComments.length > 0 && (
             <button
               type="button"
