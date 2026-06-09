@@ -159,6 +159,23 @@ export function RoomShell({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || commandOpen || agentInviteOpen) return;
+      if (projectFilesOpen) {
+        event.preventDefault();
+        setProjectFilesOpen(false);
+        return;
+      }
+      if (reviewOpen) {
+        event.preventDefault();
+        setReviewOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [agentInviteOpen, commandOpen, projectFilesOpen, reviewOpen]);
+
   const copyProjectLink = async () => {
     const link = window.location.href;
     try {

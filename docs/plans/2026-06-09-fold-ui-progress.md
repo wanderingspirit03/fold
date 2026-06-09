@@ -42,6 +42,7 @@ Primary reference: `DESIGN.md`.
 - Tuned bright-theme annotation fills so comments and suggestions stay discoverable without louder chrome.
 - Added a dedicated `midnight-mark` token for soft annotation fills instead of stacking opacity modifiers on alpha tokens.
 - Moved review/proposals into a lightweight drawer instead of a permanent heavy rail.
+- Added Escape dismissal for lightweight project and review overlays.
 - Flattened the review drawer scope header so it reads as editor chrome instead of a nested summary card.
 - Flattened suggestion rows so review items read more like compact document annotations than PR cards.
 - Tightened suggestion rows further and sorted pending suggestions first in the review drawer.
