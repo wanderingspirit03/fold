@@ -60,8 +60,8 @@ html[data-theme="light"] {
   --document-subtle: 224 7% 46%;
   --rail: 220 24% 97%;
   --midnight: 222 64% 33%;
-  --midnight-soft: 222 64% 33% / 0.14;
-  --midnight-mark: 222 64% 33% / 0.1;
+  --midnight-soft: 222 64% 33% / 0.16;
+  --midnight-mark: 222 64% 33% / 0.12;
   --midnight-strong: 220 52% 42%;
   --logo-current: url("/brand/fold-logo-dark.svg");
 }
