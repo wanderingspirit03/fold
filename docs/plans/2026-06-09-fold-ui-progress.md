@@ -41,6 +41,7 @@ Primary reference: `DESIGN.md`.
 - Flattened suggestion rows so review items read more like compact document annotations than PR cards.
 - Added command palette / quick switcher and made the header filename open it.
 - Grouped command palette results into create/files/actions with active-file and review-count metadata.
+- Added quiet saved/checkpoint timestamps to file chrome, sidebar rows, and quick-switch metadata.
 - Removed duplicate root-file path text from the top file header and command palette while preserving full-path search.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
@@ -59,7 +60,7 @@ Primary reference: `DESIGN.md`.
 - Improve proposal/review drawer density and action clarity.
 - Make suggestion anchors more visible inside the document when a proposal targets selected text.
 - Make future multi-user presence and typing/editing states stream from encrypted room/awareness data without revealing document content to the server.
-- Add named versions/checkpoints for accepted changes and manual saves.
+- Expand saved/checkpoint affordances into named versions when the product needs explicit restore points.
 - Improve empty states for project/file creation without adding marketing-style copy.
 - Continue measuring long-document readability against the Obsidian reference screenshots.
 - Eventually replace the textarea editor candidate with the planned Milkdown prototype after Markdown round-trip verification.

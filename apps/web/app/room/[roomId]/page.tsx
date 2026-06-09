@@ -623,8 +623,8 @@ export default function RoomPage() {
   };
 
   const projectFiles = useMemo(
-    () => createProjectFiles(selectedFilePath, virtualFiles, comments, proposals, !hasRemoteProjectState, projectPrimaryPath || LIVE_FILE_PATH),
-    [selectedFilePath, virtualFiles, comments, proposals, hasRemoteProjectState, projectPrimaryPath],
+    () => createProjectFiles(selectedFilePath, virtualFiles, comments, proposals, projectFileUpdatedAt, !hasRemoteProjectState, projectPrimaryPath || LIVE_FILE_PATH),
+    [selectedFilePath, virtualFiles, comments, proposals, projectFileUpdatedAt, hasRemoteProjectState, projectPrimaryPath],
   );
   useEffect(() => {
     if (!pendingPreferredFilePath) return;
@@ -899,6 +899,7 @@ function createProjectFiles(
   virtualFiles: Record<string, string>,
   comments: ChatComment[],
   proposals: Proposal[],
+  updatedAtByPath: Record<string, string> = {},
   includeLegacyLiveFile = true,
   defaultRecordFilePath = LIVE_FILE_PATH,
 ) {
@@ -938,6 +939,7 @@ function createProjectFiles(
     ...file,
     active: file.path === selectedFilePath,
     status: file.status,
+    updatedAt: updatedAtByPath[file.path],
     commentCount: commentCounts.get(file.path) || 0,
     pendingCount: pendingProposalCounts.get(file.path) || 0,
   }));

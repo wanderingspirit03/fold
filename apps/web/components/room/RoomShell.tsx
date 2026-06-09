@@ -112,6 +112,7 @@ export function RoomShell({
     [files, selectedFilePath],
   );
   const selectedFileDetail = selectedFile ? filePathDetail(selectedFile) : "";
+  const selectedFileSavedLabel = selectedFile?.updatedAt ? `Saved ${formatRelativeTime(selectedFile.updatedAt)}` : "";
   const recentStorageKey = `fold:recent-files:${roomId}`;
   const recentFiles = useMemo(
     () => recentFilePaths
@@ -233,9 +234,9 @@ export function RoomShell({
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
-                      {selectedFileDetail && (
-                        <span className="block truncate text-[11px] text-ink-subtle">{selectedFileDetail}</span>
-                      )}
+                      <span className="hidden truncate text-[11px] text-ink-subtle sm:block">
+                        {[selectedFileDetail, selectedFileSavedLabel].filter(Boolean).join(" · ")}
+                      </span>
                     </span>
                   </button>
                 </div>
@@ -473,6 +474,7 @@ interface ProjectFile {
   folder: string;
   active?: boolean;
   status?: string;
+  updatedAt?: string;
   commentCount?: number;
   pendingCount?: number;
 }
@@ -828,6 +830,11 @@ function SidebarFile({
       <File className="h-3.5 w-3.5 shrink-0 text-ink-subtle group-hover:text-ink-muted" />
       <span className="min-w-0 flex-1 truncate">{file.name}</span>
       <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} />
+      {file.updatedAt && (
+        <span className="hidden shrink-0 font-mono text-[10px] text-ink-subtle group-hover:text-ink-muted lg:inline">
+          {formatRelativeTime(file.updatedAt)}
+        </span>
+      )}
       {file.status && <span className="rounded bg-studio-sunken px-1 text-[10px] text-ink-subtle">{file.status}</span>}
     </button>
   );
@@ -1164,7 +1171,7 @@ function ProjectCommandPalette({
   const fileItems: PaletteItem[] = files.map((file) => ({
     id: `file:${file.path}`,
     label: file.name,
-    detail: filePathDetail(file),
+    detail: [filePathDetail(file), file.updatedAt ? `saved ${formatRelativeTime(file.updatedAt)}` : ""].filter(Boolean).join(" · "),
     group: "files",
     searchText: file.path,
     icon: file.path === selectedFilePath ? <Check className="h-4 w-4" /> : <File className="h-4 w-4" />,
@@ -1350,6 +1357,17 @@ function ProjectCommandPalette({
 
 function filePathDetail(file: Pick<ProjectFile, "name" | "path">) {
   return file.path === file.name ? "" : file.path;
+}
+
+function formatRelativeTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 60_000) return "now";
+  if (diffMs < 60 * 60_000) return `${Math.max(1, Math.floor(diffMs / 60_000))}m`;
+  if (diffMs < 24 * 60 * 60_000) return `${Math.max(1, Math.floor(diffMs / (60 * 60_000)))}h`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function paletteGroupLabel(group: PaletteItem["group"]) {
