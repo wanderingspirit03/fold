@@ -64,6 +64,7 @@ export interface CollaborationPresence {
   filePath: string;
   mode: RoomMode;
   status: "viewing" | "editing";
+  activity?: "idle" | "typing" | "commenting";
   updatedAt: string;
   expiresAt: string;
 }

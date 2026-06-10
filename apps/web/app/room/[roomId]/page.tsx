@@ -27,6 +27,8 @@ const PRESENCE_SENDER_ID = "web-client:presence";
 const LIVE_FILE_PATH = "reports/launch-review.md";
 const DEFAULT_PROJECT_FILE_PATH = "docs/PLAN.md";
 const PRESENCE_TTL_MS = 75_000;
+const PRESENCE_ACTIVITY_IDLE_DELAY_MS = 4_000;
+type PresenceActivity = NonNullable<CollaborationPresence["activity"]>;
 
 interface ProjectFileSnapshot {
   type: "project_file_snapshot";
@@ -75,6 +77,7 @@ export default function RoomPage() {
   const [comments, setComments] = useState<ChatComment[]>([]);
   const [presenceByClientId, setPresenceByClientId] = useState<Record<string, CollaborationPresence>>({});
   const [presenceClock, setPresenceClock] = useState(() => Date.now());
+  const [presenceActivity, setPresenceActivity] = useState<PresenceActivity>("idle");
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
 
   const [newCommentText, setNewCommentText] = useState("");
@@ -87,6 +90,7 @@ export default function RoomPage() {
   const expectedSeqRef = useRef(1);
   const keyRef = useRef<CryptoKey | null>(null);
   const fileSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const presenceActivityTimerRef = useRef<number | null>(null);
   const virtualFilesRef = useRef(virtualFiles);
   const hasRemoteProjectStateRef = useRef(false);
   const projectPrimaryPathRef = useRef("");
@@ -502,6 +506,7 @@ export default function RoomPage() {
       setComments((prev) => upsertComment(prev, record));
       setNewCommentText("");
       setSelectedQuote("");
+      clearPresenceActivity();
     } catch (err) {
       setSyncError(`Could not post comment: ${String(err)}`);
     }
@@ -588,6 +593,29 @@ export default function RoomPage() {
     });
   };
 
+  const markPresenceActivity = (activity: Exclude<PresenceActivity, "idle">) => {
+    if (presenceActivityTimerRef.current) window.clearTimeout(presenceActivityTimerRef.current);
+    setPresenceActivity(activity);
+    presenceActivityTimerRef.current = window.setTimeout(() => {
+      presenceActivityTimerRef.current = null;
+      setPresenceActivity("idle");
+    }, PRESENCE_ACTIVITY_IDLE_DELAY_MS);
+  };
+
+  const clearPresenceActivity = () => {
+    if (presenceActivityTimerRef.current) {
+      window.clearTimeout(presenceActivityTimerRef.current);
+      presenceActivityTimerRef.current = null;
+    }
+    setPresenceActivity("idle");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (presenceActivityTimerRef.current) window.clearTimeout(presenceActivityTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!roomId || !isKeyConfigured || !isConnected || !localMyPersona || !keyRef.current) return;
 
@@ -606,6 +634,7 @@ export default function RoomPage() {
           filePath: selectedFilePath,
           mode: editMode,
           status: editMode === "edit" ? "editing" : "viewing",
+          activity: presenceActivity,
           updatedAt: new Date(now).toISOString(),
           expiresAt: new Date(now + PRESENCE_TTL_MS).toISOString(),
         };
@@ -641,7 +670,7 @@ export default function RoomPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [clientId, editMode, isConnected, isKeyConfigured, localMyPersona, roomId, selectedFilePath, serverUrl]);
+  }, [clientId, editMode, isConnected, isKeyConfigured, localMyPersona, presenceActivity, roomId, selectedFilePath, serverUrl]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setPresenceClock(Date.now()), 15_000);
@@ -672,6 +701,7 @@ export default function RoomPage() {
     setSelectedFilePath(path);
     setSelectedQuote("");
     setNewCommentText("");
+    clearPresenceActivity();
     setEditMode("edit");
     void persistProjectFileSnapshot(path, nextMarkdown);
   };
@@ -689,6 +719,7 @@ export default function RoomPage() {
       setSelectedFilePath(importedPath);
       setSelectedQuote("");
       setNewCommentText("");
+      clearPresenceActivity();
       setEditMode("read");
       void persistProjectFileSnapshot(importedPath, text);
     } catch (err) {
@@ -790,6 +821,7 @@ export default function RoomPage() {
           setSelectedFilePath(path);
           setSelectedQuote("");
           setNewCommentText("");
+          clearPresenceActivity();
         }}
         document={
           <DocumentSurface
@@ -805,10 +837,15 @@ export default function RoomPage() {
             onStartEditing={() => setEditMode("edit")}
             newCommentText={newCommentText}
             composerFocusToken={composerFocusToken}
-            onNewCommentTextChange={setNewCommentText}
+            onNewCommentTextChange={(value) => {
+              setNewCommentText(value);
+              if (value.trim()) markPresenceActivity("commenting");
+              else clearPresenceActivity();
+            }}
             onPostComment={handlePostComment}
             onMarkdownCommit={(value) => flushProjectFileSnapshot(selectedFilePath, value)}
             onMarkdownChange={(value) => {
+              markPresenceActivity("typing");
               if (selectedFilePath !== LIVE_FILE_PATH) {
                 setVirtualFiles((current) => ({ ...current, [selectedFilePath]: value }));
                 scheduleProjectFileSnapshot(selectedFilePath, value);
@@ -928,6 +965,7 @@ function isCollaborationPresence(value: unknown): value is CollaborationPresence
     && presence.persona?.schema === "fold.persona.v1"
     && (presence.mode === "read" || presence.mode === "edit")
     && (presence.status === "viewing" || presence.status === "editing")
+    && (!presence.activity || presence.activity === "idle" || presence.activity === "typing" || presence.activity === "commenting")
     && typeof presence.updatedAt === "string"
     && typeof presence.expiresAt === "string";
 }
@@ -1334,8 +1372,8 @@ function createInitialVirtualFiles(): Record<string, string> {
       "",
       "- [x] Keep the file tree visible on desktop.",
       "- [x] Make mobile project navigation a drawer.",
+      "- [x] Add quiet typing/commenting presence without exposing content to the server.",
       "- [ ] Add named versions once accepted proposals become common.",
-      "- [ ] Expand presence from viewing/editing into richer typing signals.",
       "- [ ] Decide whether production avatars should be vendored rather than remote.",
       "",
       "> Agent notes should be useful without becoming noisy. The best version of this surface feels like a calm project editor that happens to understand encrypted collaboration.",

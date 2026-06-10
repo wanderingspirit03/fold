@@ -871,8 +871,9 @@ function FilePresenceIndicators({ presences }: { presences: CollaborationPresenc
 
   const visible = presences.slice(0, 2);
   const hiddenCount = Math.max(0, presences.length - visible.length);
-  const label = presences.map((presence) => `${presence.persona.name} ${presence.status}`).join(", ");
+  const label = presences.map(presenceLabel).join(", ");
   const hasEditor = presences.some((presence) => presence.status === "editing");
+  const hasLiveActivity = presences.some((presence) => presence.activity && presence.activity !== "idle");
 
   return (
     <span
@@ -895,7 +896,9 @@ function FilePresenceIndicators({ presences }: { presences: CollaborationPresenc
           </span>
         )}
       </span>
-      {hasEditor && <span className="h-1.5 w-1.5 rounded-full bg-midnight-strong" aria-hidden="true" />}
+      {(hasEditor || hasLiveActivity) && (
+        <span className={cn("h-1.5 w-1.5 rounded-full", hasLiveActivity ? "bg-midnight-strong" : "bg-ink-subtle")} aria-hidden="true" />
+      )}
     </span>
   );
 }
@@ -1616,8 +1619,9 @@ function PresenceStack({
   const visible = personas.slice(0, 3);
   const hiddenCount = Math.max(0, personas.length - visible.length);
   const label = presences.length
-    ? presences.map((presence) => `${presence.persona.name} ${presence.status} ${presence.filePath}`).join(", ")
+    ? presences.map((presence) => `${presenceLabel(presence)} ${presence.filePath}`).join(", ")
     : personas.map((persona) => persona.name).join(", ");
+  const hasLiveActivity = presences.some((presence) => presence.activity && presence.activity !== "idle");
 
   return (
     <Tooltip>
@@ -1646,14 +1650,20 @@ function PresenceStack({
               </span>
             )}
           </div>
-          {presences.some((presence) => presence.status === "editing") && (
-            <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-midnight-strong" aria-hidden="true" />
+          {(presences.some((presence) => presence.status === "editing") || hasLiveActivity) && (
+            <span className={cn("ml-1.5 h-1.5 w-1.5 rounded-full", hasLiveActivity ? "bg-midnight-strong" : "bg-ink-subtle")} aria-hidden="true" />
           )}
         </div>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   );
+}
+
+function presenceLabel(presence: CollaborationPresence) {
+  if (presence.activity === "typing") return `${presence.persona.name} typing`;
+  if (presence.activity === "commenting") return `${presence.persona.name} commenting`;
+  return `${presence.persona.name} ${presence.status}`;
 }
 
 function AgentInviteDialog({

@@ -67,6 +67,7 @@ Primary reference: `DESIGN.md`.
 - Wired collaborator avatars to deterministic shadcn avatar images with initials fallbacks and calmer Fold persona names.
 - Added encrypted live presence snapshots with a compact collaborator stack for the selected Markdown file.
 - Added quiet per-file presence indicators in the project sidebar so collaboration is visible across the file tree.
+- Added encrypted typing/commenting activity hints to presence records with quiet toolbar and sidebar indicators.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
 - Added a seeded long agent handoff report for desktop/mobile readability and annotation QA, including readable horizontal table scrolling on mobile.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
@@ -85,7 +86,7 @@ Primary reference: `DESIGN.md`.
 
 - Keep proposal/review drawer controls compact while testing action clarity on mobile.
 - Keep tuning inline annotation contrast across dark and bright themes without making the document feel marked up.
-- Expand multi-user presence toward richer typing/editing signals without revealing document content to the server.
+- Keep richer presence hints useful without revealing document content to the server.
 - Expand saved/checkpoint affordances into named versions when the product needs explicit restore points.
 - Keep empty states sparse and document-native as more project creation/import states are added.
 - Continue measuring long-document readability against the Obsidian reference screenshots.
