@@ -19,12 +19,12 @@ export interface AssignPersonaOptions {
 }
 
 const AGENT_NAMES = [
-  'Captain Diffbeard',
-  'Markdown Goblin',
-  'Professor Patchwell',
-  'Syntax Ferret',
-  'Lady Changelog',
-  'Dr. Footnote',
+  'Patch Pilot',
+  'Diff Lantern',
+  'Merge Signal',
+  'Token Loom',
+  'Branch Echo',
+  'Commit Atlas',
 ] as const;
 
 const HUMAN_NAMES = [
@@ -37,14 +37,14 @@ const HUMAN_NAMES = [
 ] as const;
 
 const COLORS = [
-  '#2563eb',
-  '#16a34a',
-  '#dc2626',
-  '#9333ea',
-  '#0891b2',
-  '#ca8a04',
-  '#db2777',
-  '#475569',
+  '#1e3a8a',
+  '#0f766e',
+  '#15803d',
+  '#b45309',
+  '#be123c',
+  '#0369a1',
+  '#334155',
+  '#4338ca',
 ] as const;
 
 export function assignPersona(options: AssignPersonaOptions): RoomPersona {

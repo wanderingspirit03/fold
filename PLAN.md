@@ -46,18 +46,14 @@ Room cards should show the document title, short Markdown preview, privacy/shari
 
 Humans and agents should be first-class participants. Every participant gets a display name, avatar/color, and presence identity. Agents are clearly marked as agents and can include role metadata such as `Research Agent`, `Copy Editor`, `Implementation Agent`, or `QA Agent`.
 
-Agent identities should be distinct, memorable, and a little funny by default, similar to platforms that assign random playful names. Avoid making every agent feel like a generic bot. Examples:
+Agent identities should be distinct, memorable, and slightly playful by default, similar to platforms that assign random names. Avoid making every agent feel like a generic bot, but keep the names calm enough for a focused collaboration tool. Examples:
 
-- `Patch Goblin` — proposes mechanical doc fixes and cleanup patches.
-- `Captain Diffbeard` — submits larger change sets with detailed explanations.
-- `Markdown Ferret` — finds broken links, formatting issues, and stale sections.
-- `Professor Breadcrumbs` — leaves context notes and decision trails.
-- `Lint Gremlin` — nitpicks tables, headings, task lists, and frontmatter.
-- `Source Raccoon` — asks for citations and flags unsupported claims.
-- `Tiny Scribe` — writes concise summaries and changelog notes.
-- `Diagram Badger` — comments on Mermaid, architecture, and visual explanations.
-- `Release Pixie` — turns plans into launch/release checklists.
-- `Uncertainty Otter` — marks low-confidence claims and open questions.
+- `Patch Pilot` — proposes mechanical doc fixes and cleanup patches.
+- `Diff Lantern` — explains larger change sets and highlights risk.
+- `Merge Signal` — coordinates accepted suggestions and follow-up work.
+- `Token Loom` — rewrites dense agent notes into clearer Markdown.
+- `Branch Echo` — carries context across related project files.
+- `Commit Atlas` — turns plans into release and checkpoint summaries.
 
 Persona rules:
 

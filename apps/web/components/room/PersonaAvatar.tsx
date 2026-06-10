@@ -12,32 +12,53 @@ interface PersonaAvatarProps {
 export function PersonaAvatar({ persona, compact = false, className }: PersonaAvatarProps) {
   const seed = persona ? hashString(`${persona.id}:${persona.kind}:${persona.name}`) : 0;
   const isAgent = persona?.kind === "agent";
-  const background = persona?.color || "#7e8486";
+  const accent = persona?.color || "#64748b";
   const sizeClass = compact ? "h-4 w-4" : "h-6 w-6";
-  const fold = foldGlyph(seed, isAgent);
+  const glyph = abstractGlyph(seed, isAgent);
+  const gradientId = `persona-gradient-${seed.toString(36)}`;
 
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-studio-sunken shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]",
         sizeClass,
         className,
       )}
-      style={{ backgroundColor: background }}
       aria-hidden="true"
     >
       <svg viewBox="0 0 32 32" className="h-full w-full" focusable="false">
-        <path d={fold.paper} fill="rgba(255,255,255,0.88)" />
-        <path d={fold.shade} fill="rgba(255,255,255,0.38)" />
-        <path d={fold.cut} fill="rgba(0,0,0,0.18)" />
-        <circle cx={fold.dot.x} cy={fold.dot.y} r={fold.dot.r} fill="rgba(0,0,0,0.24)" />
+        <defs>
+          <linearGradient id={gradientId} x1="6" x2="26" y1="5" y2="28" gradientUnits="userSpaceOnUse">
+            <stop stopColor={accent} />
+            <stop offset="1" stopColor="hsl(var(--midnight-strong))" />
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="16" fill={`url(#${gradientId})`} opacity="0.94" />
+        <path d={glyph.base} fill="rgba(0,0,0,0.18)" />
+        <path
+          d={glyph.loop}
+          fill="none"
+          stroke="rgba(255,255,255,0.9)"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={isAgent ? "2.4" : "2.1"}
+        />
+        <path
+          d={glyph.echo}
+          fill="none"
+          stroke="rgba(255,255,255,0.34)"
+          strokeLinecap="round"
+          strokeWidth="1.6"
+        />
+        <circle cx={glyph.node.x} cy={glyph.node.y} r={glyph.node.r} fill="rgba(255,255,255,0.86)" />
         {isAgent ? (
-          <path
-            d={fold.line}
-            fill="none"
-            stroke="rgba(0,0,0,0.24)"
-            strokeLinecap="round"
-            strokeWidth="1.8"
+          <rect
+            x={glyph.signal.x}
+            y={glyph.signal.y}
+            width={glyph.signal.size}
+            height={glyph.signal.size}
+            rx="1.2"
+            fill="rgba(255,255,255,0.72)"
           />
         ) : null}
       </svg>
@@ -45,49 +66,67 @@ export function PersonaAvatar({ persona, compact = false, className }: PersonaAv
   );
 }
 
-function foldGlyph(seed: number, isAgent: boolean) {
-  const variant = seed % 4;
-  const lean = ((seed >>> 3) % 5) - 2;
-  const notch = 7 + ((seed >>> 5) % 5);
-  const dot = {
-    x: 9 + ((seed >>> 7) % 14),
-    y: 9 + ((seed >>> 11) % 14),
-    r: 1.4 + ((seed >>> 13) % 3) * 0.25,
+function abstractGlyph(seed: number, isAgent: boolean) {
+  const variant = seed % 5;
+  const drift = ((seed >>> 3) % 5) - 2;
+  const node = {
+    x: 10 + ((seed >>> 7) % 13),
+    y: 9 + ((seed >>> 11) % 13),
+    r: 1.45 + ((seed >>> 13) % 3) * 0.2,
+  };
+  const signal = {
+    x: 18 + ((seed >>> 17) % 4),
+    y: 8 + ((seed >>> 19) % 5),
+    size: 3.2 + ((seed >>> 23) % 2),
   };
 
   if (isAgent) {
-    const paper = [
-      `M9 ${5 + lean}h13l5 5v17H9z`,
-      `M8 ${6 + lean}h15l4 7-3 15H8z`,
-      `M10 ${4 + lean}h12l6 6-2 18H7l3-7z`,
-      `M7 ${8 + lean}l13-3 6 6-3 17H8z`,
+    const base = [
+      `M6 ${17 + drift}c3-9 13-13 20-7 2 7-2 14-10 16-8-2-12-7-10-9z`,
+      `M8 ${10 + drift}c8-5 17-1 18 8-4 7-13 9-20 4-2-5 0-10 2-12z`,
+      `M7 ${22 + drift}c1-9 8-17 17-14 5 4 6 12 0 17-7 2-13 0-17-3z`,
+      `M5 ${15 + drift}c6-9 18-9 22 1-2 8-10 13-19 10-5-3-6-7-3-11z`,
+      `M9 ${8 + drift}c9-2 18 4 16 14-6 6-15 5-20-2-1-6 1-10 4-12z`,
     ][variant];
-    const shade = [
-      "M22 5v7h7z",
-      "M23 6v7h4z",
-      "M22 4v8h8z",
-      "M20 5v8l6-2z",
+    const loop = [
+      `M9 ${18 + drift}c4-6 10-7 15-2`,
+      `M10 ${12 + drift}c5 2 8 7 5 13`,
+      `M12 ${22 + drift}c-1-7 3-12 10-13`,
+      `M8 ${16 + drift}c5-3 11-2 16 3`,
+      `M11 ${11 + drift}c5 0 10 4 10 10`,
     ][variant];
-    const cut = `M12 ${notch}h8v2h-8z`;
-    const line = `M12 ${22 - (seed % 4)}h10`;
-    return { paper, shade, cut, line, dot };
+    const echo = [
+      `M11 ${23 + drift}c4 2 9 1 12-2`,
+      `M8 ${21 + drift}c4 3 10 4 15 1`,
+      `M8 ${15 + drift}c4-3 8-4 13-3`,
+      `M12 ${24 + drift}c5 0 9-2 12-6`,
+      `M8 ${19 + drift}c3 4 9 6 15 4`,
+    ][variant];
+    return { base, loop, echo, node, signal };
   }
 
-  const paper = [
-    `M9 ${6 + lean}h13l4 5-3 16H8z`,
-    `M10 ${5 + lean}h12l5 8-5 15H8l2-6z`,
-    `M8 ${8 + lean}l13-3 5 6-2 17H9z`,
-    `M9 ${5 + lean}h14l3 14-8 8H7z`,
+  const base = [
+    `M7 ${16 + drift}c2-8 10-13 18-9 4 7 0 15-8 18-8-1-13-6-10-9z`,
+    `M8 ${10 + drift}c7-4 15-1 18 6-1 8-9 14-17 11-5-4-4-13-1-17z`,
+    `M6 ${21 + drift}c1-10 10-17 18-12 4 6 2 14-6 17-7 0-13-2-12-5z`,
+    `M6 ${15 + drift}c5-8 16-10 21-2-1 8-9 15-18 13-6-2-8-7-3-11z`,
+    `M9 ${8 + drift}c8-3 17 4 16 13-5 7-15 8-20 1-2-5-1-10 4-14z`,
   ][variant];
-  const shade = [
-    "M22 6v6h6z",
-    "M22 5v8h5z",
-    "M21 5v8l5-2z",
-    "M23 5l3 14-6-4z",
+  const loop = [
+    `M10 ${17 + drift}c4-4 10-5 14-1`,
+    `M10 ${12 + drift}c4 2 7 6 6 11`,
+    `M11 ${22 + drift}c0-6 4-11 10-12`,
+    `M8 ${16 + drift}c5-3 11-1 15 3`,
+    `M11 ${11 + drift}c5 0 9 4 9 9`,
   ][variant];
-  const cut = `M11 ${notch}l7 1-1.5 2-6.5-1z`;
-  const line = "";
-  return { paper, shade, cut, line, dot };
+  const echo = [
+    `M11 ${23 + drift}c4 2 8 1 12-2`,
+    `M8 ${21 + drift}c4 3 10 3 14 1`,
+    `M8 ${15 + drift}c4-3 8-4 13-2`,
+    `M12 ${24 + drift}c4 0 8-2 11-5`,
+    `M8 ${19 + drift}c3 4 9 5 14 3`,
+  ][variant];
+  return { base, loop, echo, node, signal };
 }
 
 function hashString(value: string) {

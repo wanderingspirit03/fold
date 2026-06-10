@@ -1,8 +1,7 @@
 @import "katex/dist/katex.min.css";
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --background: 240 7% 5%;

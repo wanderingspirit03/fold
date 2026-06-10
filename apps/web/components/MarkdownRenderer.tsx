@@ -74,19 +74,27 @@ export default function MarkdownRenderer({
                 />
               );
             }
-            return <input type={type} checked={checked} {...props} />;
+            const { node: _node, ref: _ref, ...inputProps } = props as React.InputHTMLAttributes<HTMLInputElement> & {
+              node?: unknown;
+              ref?: unknown;
+            };
+            return <input type={type} checked={checked} {...inputProps} />;
           },
           blockquote: ({ children }) => (
             <blockquote className="my-5 border-l-2 border-midnight-strong bg-midnight-soft py-1 pl-4 text-document-muted">{children}</blockquote>
           ),
           code: ({ className, children, ...props }) => {
+            const { node: _node, ref: _ref, ...codeProps } = props as React.HTMLAttributes<HTMLElement> & {
+              node?: unknown;
+              ref?: unknown;
+            };
             const match = /language-(\w+)/.exec(className || "");
             const language = match?.[1] ?? "";
             const isInline = !match;
 
             if (isInline) {
               return (
-                <code className="rounded-md bg-black/[0.06] px-1.5 py-0.5 font-mono text-sm text-document-ink" {...props}>
+                <code className="rounded-md bg-black/[0.06] px-1.5 py-0.5 font-mono text-sm text-document-ink" {...codeProps}>
                   {children}
                 </code>
               );
@@ -112,7 +120,7 @@ export default function MarkdownRenderer({
                   {language || "text"}
                 </div>
                 <pre className="overflow-x-auto p-4 font-mono text-sm leading-6 text-ink">
-                  <code className={className} {...props}>
+                  <code className={className} {...codeProps}>
                     {children}
                   </code>
                 </pre>

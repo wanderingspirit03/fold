@@ -17,7 +17,7 @@ describe('room personas', () => {
     expect(second).toEqual(first);
     expect(first.kind).toBe('agent');
     expect(first.label).toBe('Agent');
-    expect(first.name).toMatch(/Captain Diffbeard|Markdown Goblin|Professor Patchwell|Syntax Ferret|Lady Changelog|Dr\. Footnote/);
+    expect(first.name).toMatch(/Patch Pilot|Diff Lantern|Merge Signal|Token Loom|Branch Echo|Commit Atlas/);
   });
 
   it('separates human and agent persona namespaces', () => {

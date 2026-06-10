@@ -65,6 +65,7 @@ Primary reference: `DESIGN.md`.
 - Removed duplicate root-file path text from the top file header and command palette while preserving full-path search.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
 - Added deterministic abstract Fold Glyph avatars for more memorable human/agent identity without literal profile pictures.
+- Reworked collaborator avatars toward more abstract deterministic glyphs and calmer Fold persona names.
 - Added encrypted live presence snapshots with a compact collaborator stack for the selected Markdown file.
 - Added quiet per-file presence indicators in the project sidebar so collaboration is visible across the file tree.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
