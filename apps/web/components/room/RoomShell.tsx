@@ -253,8 +253,17 @@ export function RoomShell({
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
-                      <span className="hidden truncate text-[11px] text-ink-subtle sm:block">
-                        {[selectedFileDetail, selectedFileSavedLabel].filter(Boolean).join(" · ")}
+                      <span className="hidden min-w-0 items-center gap-1.5 truncate text-[11px] text-ink-subtle sm:flex">
+                        <span className="truncate">{[selectedFileDetail, selectedFileSavedLabel].filter(Boolean).join(" · ")}</span>
+                        <span
+                          role="status"
+                          aria-label={securityLabel}
+                          title={securityLabel}
+                          className={cn("inline-flex shrink-0 items-center gap-1", connected && ready && "text-ink-muted")}
+                        >
+                          <LockKeyhole className="h-3 w-3" />
+                          E2EE
+                        </span>
                       </span>
                     </span>
                   </button>
@@ -276,23 +285,6 @@ export function RoomShell({
                     <TooltipContent>Command palette</TooltipContent>
                   </Tooltip>
                   <ThemeToggle />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        role="status"
-                        aria-label={securityLabel}
-                        title={securityLabel}
-                        className={cn(
-                          "hidden h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-studio-line bg-studio-sunken px-2 text-[11px] font-medium text-ink-muted sm:inline-flex sm:w-auto",
-                          connected && ready && "text-ink",
-                        )}
-                      >
-                        <LockKeyhole className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">E2EE</span>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>{securityLabel}</TooltipContent>
-                  </Tooltip>
                   <div className="hidden rounded-md border border-studio-line bg-studio-sunken p-0.5 sm:flex">
                     <ModeButton active={mode === "read"} onClick={() => onModeChange("read")}>
                       <FileText className="h-3.5 w-3.5" />
@@ -894,11 +886,11 @@ function FilePresenceIndicators({ presences }: { presences: CollaborationPresenc
             key={presence.clientId}
             persona={presence.persona}
             compact
-            className={cn("h-4 w-4 border border-studio-sunken", index > 0 && "-ml-1")}
+            className={cn("h-[18px] w-[18px] ring-1 ring-studio-paper", index > 0 && "-ml-1")}
           />
         ))}
         {hiddenCount > 0 && (
-          <span className="-ml-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-studio-sunken bg-rail px-1 text-[9px] font-medium text-ink-subtle">
+          <span className="-ml-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rail px-1 text-[9px] font-medium text-ink-subtle ring-1 ring-studio-paper">
             +{hiddenCount}
           </span>
         )}
@@ -1631,7 +1623,7 @@ function PresenceStack({
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className="hidden h-9 shrink-0 items-center rounded-md border border-studio-line bg-studio-sunken px-2 md:flex"
+          className="hidden h-9 shrink-0 items-center px-1 md:flex"
           role="group"
           aria-label={`Active collaborators: ${label}`}
           title={label}
@@ -1642,12 +1634,12 @@ function PresenceStack({
                 key={persona.id}
                 persona={persona}
                 compact
-                className={cn("h-5 w-5 border border-studio-sunken", index > 0 && "-ml-1.5")}
+                className={cn("h-7 w-7 ring-2 ring-studio-paper", index > 0 && "-ml-2")}
               />
             ))}
             {hiddenCount > 0 && (
               <span
-                className="-ml-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border border-studio-sunken bg-rail px-1 text-[10px] font-medium text-ink-subtle"
+                className="-ml-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-rail px-1 text-[10px] font-medium text-ink-subtle ring-2 ring-studio-paper"
                 aria-hidden="true"
               >
                 +{hiddenCount}

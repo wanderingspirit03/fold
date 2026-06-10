@@ -178,14 +178,14 @@ function ParticipantDots({ participants }: { participants: RoomPersona[] }) {
           persona={persona}
           compact
           className={cn(
-            "h-5 w-5 border border-rail",
+            "h-6 w-6 ring-2 ring-rail",
             index > 0 && "-ml-1.5",
           )}
         />
       ))}
       {hiddenCount > 0 && (
         <span
-          className="-ml-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border border-rail bg-studio-sunken px-1 text-[10px] font-medium text-ink-subtle"
+          className="-ml-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-studio-sunken px-1 text-[10px] font-medium text-ink-subtle ring-2 ring-rail"
           aria-hidden="true"
         >
           +{hiddenCount}

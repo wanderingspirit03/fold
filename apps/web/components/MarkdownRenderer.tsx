@@ -129,7 +129,7 @@ export default function MarkdownRenderer({
           },
           table: ({ children }) => (
             <div className="my-6 w-full overflow-x-auto rounded-lg border border-document-edge">
-              <table className="w-full border-collapse text-left text-sm text-document-muted">{children}</table>
+              <table className="min-w-[620px] border-collapse text-left text-sm text-document-muted md:w-full">{children}</table>
             </div>
           ),
           thead: ({ children }) => <thead className="border-b border-document-edge bg-black/[0.04] text-document-ink">{children}</thead>,

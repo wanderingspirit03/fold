@@ -67,6 +67,8 @@ Primary reference: `DESIGN.md`.
 - Wired collaborator avatars to deterministic shadcn avatar images with initials fallbacks and calmer Fold persona names.
 - Added encrypted live presence snapshots with a compact collaborator stack for the selected Markdown file.
 - Added quiet per-file presence indicators in the project sidebar so collaboration is visible across the file tree.
+- Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
+- Added a seeded long agent handoff report for desktop/mobile readability and annotation QA, including readable horizontal table scrolling on mobile.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
