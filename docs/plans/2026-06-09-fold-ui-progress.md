@@ -53,6 +53,7 @@ Primary reference: `DESIGN.md`.
 - Flattened suggestion rows so review items read more like compact document annotations than PR cards.
 - Enlarged/cropped collaborator avatars and kept E2EE as quiet inline file metadata instead of boxed toolbar chrome.
 - Reduced top-toolbar chrome by changing Connect agent to an icon+tooltip action and removing the filled theme-toggle hover box.
+- Split the mobile workspace header into file/context and document-action rows with 44px touch targets through tablet widths.
 - Tightened suggestion rows further and sorted pending suggestions first in the review drawer.
 - Clarified pending suggestion actions with compact labeled pills and larger touch targets for mobile review.
 - Added command palette / quick switcher and made the header filename open it.

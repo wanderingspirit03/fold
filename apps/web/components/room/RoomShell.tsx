@@ -236,41 +236,18 @@ export function RoomShell({
 
           <div className="min-w-0 border-l border-studio-line bg-studio-sunken">
             <header className="sticky top-0 z-30 border-b border-studio-line bg-studio-paper/95 backdrop-blur">
-              <div className="flex h-12 items-center justify-between gap-3 px-3 sm:px-4">
+              <div className="hidden h-12 items-center justify-between gap-3 px-4 md:flex">
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setProjectFilesOpen(true)} aria-label="Open project files" className="shrink-0 md:hidden">
-                    <FolderClosed className="h-4 w-4" />
-                  </Button>
-                  <button
-                    type="button"
-                    aria-label={`Open quick switcher for ${selectedFile.path}`}
-                    title="Open quick switcher"
-                    onClick={() => setCommandOpen(true)}
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-studio-line bg-studio-sunken text-ink-muted">
-                      <FileText className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
-                      <span className="hidden min-w-0 items-center gap-1.5 truncate text-[11px] text-ink-subtle sm:flex">
-                        <span className="truncate">{[selectedFileDetail, selectedFileSavedLabel].filter(Boolean).join(" · ")}</span>
-                        <span
-                          role="status"
-                          aria-label={securityLabel}
-                          title={securityLabel}
-                          className={cn(
-                            "inline-flex shrink-0 items-center gap-1 text-ink-subtle",
-                            connected && ready && "text-ink-muted",
-                            (!connected || !ready) && "text-amber-500",
-                          )}
-                        >
-                          <LockKeyhole className="h-3 w-3" />
-                          E2EE
-                        </span>
-                      </span>
-                    </span>
-                  </button>
+                  <FileSwitcherButton
+                    selectedFile={selectedFile}
+                    detail={selectedFileDetail}
+                    savedLabel={selectedFileSavedLabel}
+                    securityLabel={securityLabel}
+                    connected={connected}
+                    ready={ready}
+                    onOpen={() => setCommandOpen(true)}
+                    showMetadata
+                  />
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -281,7 +258,7 @@ export function RoomShell({
                         size="icon"
                         onClick={() => setCommandOpen(true)}
                         aria-label="Open command palette"
-                        className="hidden sm:inline-flex"
+                        className="hidden md:inline-flex"
                       >
                         <Command className="h-4 w-4" />
                       </Button>
@@ -289,7 +266,7 @@ export function RoomShell({
                     <TooltipContent>Command palette</TooltipContent>
                   </Tooltip>
                   <ThemeToggle />
-                  <div className="hidden rounded-md border border-studio-line bg-studio-sunken p-0.5 sm:flex">
+                  <div className="hidden rounded-md border border-studio-line bg-studio-sunken p-0.5 md:flex">
                     <ModeButton active={mode === "read"} onClick={() => onModeChange("read")}>
                       <FileText className="h-3.5 w-3.5" />
                       Read
@@ -298,14 +275,6 @@ export function RoomShell({
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
                     </ModeButton>
-                  </div>
-                  <div className="flex rounded-md border border-studio-line bg-studio-sunken p-0.5 sm:hidden">
-                    <ModeIconButton active={mode === "read"} label="Read mode" onClick={() => onModeChange("read")}>
-                      <FileText className="h-3.5 w-3.5" />
-                    </ModeIconButton>
-                    <ModeIconButton active={mode === "edit"} label="Edit mode" onClick={() => onModeChange("edit")}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </ModeIconButton>
                   </div>
                   <PresenceStack presences={activePresences} fallbackPersona={persona} />
                   <ReviewStatusControl
@@ -330,12 +299,78 @@ export function RoomShell({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={onExport} aria-label="Export Markdown" className="hidden sm:inline-flex">
+                      <Button variant="ghost" size="icon" onClick={onExport} aria-label="Export Markdown" className="hidden md:inline-flex">
                         <Download className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Export Markdown</TooltipContent>
                   </Tooltip>
+                </div>
+              </div>
+              <div className="md:hidden">
+                <div className="flex h-12 items-center gap-1.5 px-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setProjectFilesOpen(true)}
+                    aria-label="Open project files"
+                    className="h-11 w-11 shrink-0"
+                  >
+                    <FolderClosed className="h-4 w-4" />
+                  </Button>
+                  <FileSwitcherButton
+                    selectedFile={selectedFile}
+                    detail={selectedFileDetail}
+                    savedLabel={selectedFileSavedLabel}
+                    securityLabel={securityLabel}
+                    connected={connected}
+                    ready={ready}
+                    onOpen={() => setCommandOpen(true)}
+                    compact
+                  />
+                  <ReviewStatusControl
+                    commentCount={commentCount}
+                    pendingCount={pendingCount}
+                    reviewLabel={reviewLabel}
+                    onOpenReview={() => setReviewOpen(true)}
+                    mobile
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setAgentInviteOpen(true)}
+                        aria-label="Connect agent"
+                        disabled={!agentInvite}
+                        className="h-11 w-11 shrink-0"
+                      >
+                        <Bot className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Connect agent</TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex h-12 items-center justify-between gap-2 border-t border-studio-line px-2">
+                  <div className="flex rounded-md border border-studio-line bg-studio-sunken p-0.5">
+                    <ModeIconButton active={mode === "read"} label="Read mode" onClick={() => onModeChange("read")}>
+                      <FileText className="h-3.5 w-3.5" />
+                    </ModeIconButton>
+                    <ModeIconButton active={mode === "edit"} label="Edit mode" onClick={() => onModeChange("edit")}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </ModeIconButton>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThemeToggle className="h-11 w-11" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={onExport} aria-label="Export Markdown" className="h-11 w-11">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Export Markdown</TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
               <SecurityStrip
@@ -1521,16 +1556,85 @@ function paletteGroupLabel(group: PaletteItem["group"]) {
   return "Actions";
 }
 
+function FileSwitcherButton({
+  selectedFile,
+  detail,
+  savedLabel,
+  securityLabel,
+  connected,
+  ready,
+  onOpen,
+  compact = false,
+  showMetadata = false,
+}: {
+  selectedFile: ProjectFile;
+  detail: string;
+  savedLabel: string;
+  securityLabel: string;
+  connected: boolean;
+  ready: boolean;
+  onOpen: () => void;
+  compact?: boolean;
+  showMetadata?: boolean;
+}) {
+  const metadata = [detail, savedLabel].filter(Boolean).join(" · ");
+
+  return (
+    <button
+      type="button"
+      aria-label={`Open quick switcher for ${selectedFile.path}`}
+      title="Open quick switcher"
+      onClick={onOpen}
+      className={cn(
+        "flex min-w-0 flex-1 items-center gap-2 rounded-md text-left transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+        compact ? "h-11 px-1" : "px-1.5 py-1",
+      )}
+    >
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-md border border-studio-line bg-studio-sunken text-ink-muted",
+          compact ? "h-8 w-8" : "h-7 w-7",
+        )}
+      >
+        <FileText className="h-3.5 w-3.5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
+        {showMetadata && (
+          <span className="hidden min-w-0 items-center gap-1.5 truncate text-[11px] text-ink-subtle md:flex">
+            <span className="truncate">{metadata}</span>
+            <span
+              role="status"
+              aria-label={securityLabel}
+              title={securityLabel}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 text-ink-subtle",
+                connected && ready && "text-ink-muted",
+                (!connected || !ready) && "text-amber-500",
+              )}
+            >
+              <LockKeyhole className="h-3 w-3" />
+              E2EE
+            </span>
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
+
 function ReviewStatusControl({
   commentCount,
   pendingCount,
   reviewLabel,
   onOpenReview,
+  mobile = false,
 }: {
   commentCount: number;
   pendingCount: number;
   reviewLabel: string;
   onOpenReview: () => void;
+  mobile?: boolean;
 }) {
   const hasItems = commentCount + pendingCount > 0;
   const commentLabel = `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`;
@@ -1546,6 +1650,7 @@ function ReviewStatusControl({
             onClick={onOpenReview}
             aria-label={reviewLabel}
             title={reviewLabel}
+            className={cn(mobile && "h-11 w-11 shrink-0")}
           >
             <MessageSquare className="h-4 w-4" />
           </Button>
@@ -1556,7 +1661,12 @@ function ReviewStatusControl({
   }
 
   return (
-    <div className="flex h-9 items-center rounded-md border border-studio-line bg-studio-sunken p-0.5">
+    <div
+      className={cn(
+        "flex items-center border border-studio-line bg-studio-sunken",
+        mobile ? "h-11 shrink-0 rounded-lg p-0" : "h-9 rounded-md p-0.5",
+      )}
+    >
       {commentCount > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1565,7 +1675,10 @@ function ReviewStatusControl({
               aria-label={`Open review, ${commentLabel}`}
               title={commentLabel}
               onClick={onOpenReview}
-              className="inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded px-2 text-xs font-medium text-ink-muted transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              className={cn(
+                "inline-flex items-center justify-center gap-1 rounded text-xs font-medium text-ink-muted transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+                mobile ? "h-11 min-w-11 px-2" : "h-8 min-w-8 px-2",
+              )}
             >
               <MessageSquare className="h-3.5 w-3.5" />
               <span>{commentCount}</span>
@@ -1582,7 +1695,10 @@ function ReviewStatusControl({
               aria-label={`Open review, ${suggestionLabel}`}
               title={suggestionLabel}
               onClick={onOpenReview}
-              className="inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded px-2 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              className={cn(
+                "inline-flex items-center justify-center gap-1 rounded text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+                mobile ? "h-11 min-w-11 px-2" : "h-8 min-w-8 px-2",
+              )}
             >
               <ListChecks className="h-3.5 w-3.5" />
               <span>{pendingCount}</span>
@@ -1809,7 +1925,7 @@ function ModeIconButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-9 md:w-9",
         active ? "bg-midnight text-white shadow-sm" : "text-ink-muted hover:bg-porcelain hover:text-ink",
       )}
     >

@@ -6,7 +6,11 @@ import { cn } from "../lib/utils";
 
 type ThemeMode = "dark" | "light";
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  className?: string;
+}
+
+export function ThemeToggle({ className }: ThemeToggleProps) {
   const [theme, setTheme] = useState<ThemeMode>("dark");
 
   useEffect(() => {
@@ -34,6 +38,7 @@ export function ThemeToggle() {
         "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
         "text-ink-muted hover:text-ink",
+        className,
       )}
     >
       <Icon className="h-4 w-4" />
