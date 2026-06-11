@@ -86,6 +86,7 @@ Primary reference: `DESIGN.md`.
 - Fixed random/repeated frontmatter key log noise by using stable React keys.
 - Tightened the command palette quick-switcher: tested Arrow/Home/End navigation, ranked files and commands together during search, and removed repeated group headers from filtered results.
 - Calmed review-drawer suggestion rows by using desktop icon actions, keeping labeled mobile actions, and hiding the empty comments section when there is no comment work.
+- Added an inline confirmation step for named-version restores so checkpoints stay lightweight but are harder to roll back accidentally.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 

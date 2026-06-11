@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, Check, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import type { RoomPersona } from "../../lib/personas";
 import { cn } from "../../lib/utils";
@@ -44,6 +44,7 @@ export function AgentBench({
 }: AgentBenchProps) {
   const [resolvedOpen, setResolvedOpen] = useState(false);
   const [versionTitle, setVersionTitle] = useState("");
+  const [restoreCandidateId, setRestoreCandidateId] = useState<string | null>(null);
   const activeComments = comments.filter((comment) => !comment.resolvedAt);
   const resolvedComments = comments.filter((comment) => comment.resolvedAt);
   const pendingProposals = proposals.filter((proposal) => proposal.status === "pending");
@@ -169,6 +170,7 @@ export function AgentBench({
               const title = versionTitle.trim();
               if (!title) return;
               onCreateVersion(title);
+              setRestoreCandidateId(null);
               setVersionTitle("");
             }}
           >
@@ -192,26 +194,63 @@ export function AgentBench({
             <SoftRailState text="No versions." />
           ) : (
             <div className="space-y-0.5">
-              {recentVersions.map((version) => (
-                <div key={version.id} className="flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-studio-sunken">
-                  <Clock3 className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs leading-5 text-ink-muted">{version.title}</p>
-                    <p className="truncate font-mono text-[11px] text-ink-subtle">
-                      {formatTime(version.createdAt)} · {version.persona.name}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Restore ${version.title}`}
-                    title={`Restore ${version.title}`}
-                    onClick={() => onRestoreVersion(version)}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+              {recentVersions.map((version) => {
+                const confirmingRestore = restoreCandidateId === version.id;
+
+                return (
+                  <div
+                    key={version.id}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-studio-sunken",
+                      confirmingRestore && "bg-midnight-mark",
+                    )}
                   >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+                    <Clock3 className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs leading-5 text-ink-muted">{version.title}</p>
+                      <p className="truncate font-mono text-[11px] text-ink-subtle">
+                        {formatTime(version.createdAt)} · {version.persona.name}
+                      </p>
+                    </div>
+                    {confirmingRestore ? (
+                      <div className="flex shrink-0 items-center gap-1" role="group" aria-label={`Confirm restore ${version.title}`}>
+                        <span className="text-[11px] text-midnight-strong">Restore?</span>
+                        <button
+                          type="button"
+                          aria-label={`Confirm restore ${version.title}`}
+                          title={`Confirm restore ${version.title}`}
+                          onClick={() => {
+                            onRestoreVersion(version);
+                            setRestoreCandidateId(null);
+                          }}
+                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Cancel restore ${version.title}`}
+                          title="Cancel restore"
+                          onClick={() => setRestoreCandidateId(null)}
+                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Restore ${version.title}`}
+                        title={`Restore ${version.title}`}
+                        onClick={() => setRestoreCandidateId(version.id)}
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                      >
+                        <Undo2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
