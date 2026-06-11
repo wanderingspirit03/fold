@@ -64,6 +64,7 @@ export function AgentBench({
   const showCommentsSection = Boolean(selectedQuote || activeComments.length > 0 || resolvedComments.length > 0);
   const showReviewCounts = activeComments.length > 0 || pendingProposals.length > 0 || detachedCount > 0;
   const showSuggestionsSection = recentProposals.length > 0;
+  const showVersionsSection = markdown.trim().length > 0 || versions.length > 0;
 
   return (
     <aside className="h-[calc(100dvh-145px)] overflow-y-auto bg-rail text-ink md:h-[calc(100dvh-48px)]">
@@ -168,97 +169,99 @@ export function AgentBench({
           </section>
         )}
 
-        <section className="space-y-2 border-t border-studio-line pt-3">
-          <RailHeading title="Versions" count={versions.length} />
-          <form
-            className="flex gap-1 px-1.5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const title = versionTitle.trim();
-              if (!title) return;
-              onCreateVersion(title);
-              setRestoreCandidateId(null);
-              setVersionTitle("");
-            }}
-          >
-            <input
-              aria-label="Version name"
-              value={versionTitle}
-              onChange={(event) => setVersionTitle(event.target.value)}
-              placeholder="Name checkpoint"
-              className="min-w-0 flex-1 rounded border border-studio-line bg-studio-sunken px-2 py-1.5 text-xs text-ink outline-none placeholder:text-ink-subtle focus-visible:ring-2 focus-visible:ring-midnight-strong"
-            />
-            <button
-              type="submit"
-              aria-label="Save version"
-              disabled={!versionTitle.trim()}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded border border-studio-line bg-rail text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong disabled:cursor-not-allowed disabled:opacity-40 md:h-8 md:w-8"
+        {showVersionsSection && (
+          <section className="space-y-2 border-t border-studio-line pt-3">
+            <RailHeading title="Versions" count={versions.length} />
+            <form
+              className="flex gap-1 px-1.5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const title = versionTitle.trim();
+                if (!title) return;
+                onCreateVersion(title);
+                setRestoreCandidateId(null);
+                setVersionTitle("");
+              }}
             >
-              <Save className="h-3.5 w-3.5" />
-            </button>
-          </form>
-          {recentVersions.length > 0 && (
-            <div className="space-y-0.5">
-              {recentVersions.map((version) => {
-                const confirmingRestore = restoreCandidateId === version.id;
+              <input
+                aria-label="Version name"
+                value={versionTitle}
+                onChange={(event) => setVersionTitle(event.target.value)}
+                placeholder="Name checkpoint"
+                className="min-w-0 flex-1 rounded border border-studio-line bg-studio-sunken px-2 py-1.5 text-xs text-ink outline-none placeholder:text-ink-subtle focus-visible:ring-2 focus-visible:ring-midnight-strong"
+              />
+              <button
+                type="submit"
+                aria-label="Save version"
+                disabled={!versionTitle.trim()}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded border border-studio-line bg-rail text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong disabled:cursor-not-allowed disabled:opacity-40 md:h-8 md:w-8"
+              >
+                <Save className="h-3.5 w-3.5" />
+              </button>
+            </form>
+            {recentVersions.length > 0 && (
+              <div className="space-y-0.5">
+                {recentVersions.map((version) => {
+                  const confirmingRestore = restoreCandidateId === version.id;
 
-                return (
-                  <div
-                    key={version.id}
-                    className={cn(
-                      "flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-studio-sunken",
-                      confirmingRestore && "bg-midnight-mark",
-                    )}
-                  >
-                    <Clock3 className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs leading-5 text-ink-muted">{version.title}</p>
-                      <p className="truncate font-mono text-[11px] text-ink-subtle">
-                        {formatTime(version.createdAt)} · {version.persona.name}
-                      </p>
-                    </div>
-                    {confirmingRestore ? (
-                      <div className="flex shrink-0 items-center gap-1" role="group" aria-label={`Confirm restore ${version.title}`}>
-                        <span className="text-[11px] text-midnight-strong">Restore?</span>
-                        <button
-                          type="button"
-                          aria-label={`Confirm restore ${version.title}`}
-                          title={`Confirm restore ${version.title}`}
-                          onClick={() => {
-                            onRestoreVersion(version);
-                            setRestoreCandidateId(null);
-                          }}
-                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Cancel restore ${version.title}`}
-                          title="Cancel restore"
-                          onClick={() => setRestoreCandidateId(null)}
-                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                  return (
+                    <div
+                      key={version.id}
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-studio-sunken",
+                        confirmingRestore && "bg-midnight-mark",
+                      )}
+                    >
+                      <Clock3 className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs leading-5 text-ink-muted">{version.title}</p>
+                        <p className="truncate font-mono text-[11px] text-ink-subtle">
+                          {formatTime(version.createdAt)} · {version.persona.name}
+                        </p>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-label={`Restore ${version.title}`}
-                        title={`Restore ${version.title}`}
-                        onClick={() => setRestoreCandidateId(version.id)}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
-                      >
-                        <Undo2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                      {confirmingRestore ? (
+                        <div className="flex shrink-0 items-center gap-1" role="group" aria-label={`Confirm restore ${version.title}`}>
+                          <span className="text-[11px] text-midnight-strong">Restore?</span>
+                          <button
+                            type="button"
+                            aria-label={`Confirm restore ${version.title}`}
+                            title={`Confirm restore ${version.title}`}
+                            onClick={() => {
+                              onRestoreVersion(version);
+                              setRestoreCandidateId(null);
+                            }}
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Cancel restore ${version.title}`}
+                            title="Cancel restore"
+                            onClick={() => setRestoreCandidateId(null)}
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label={`Restore ${version.title}`}
+                          title={`Restore ${version.title}`}
+                          onClick={() => setRestoreCandidateId(version.id)}
+                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                        >
+                          <Undo2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         {recentTimeline.length > 0 && (
           <section className="space-y-1 border-t border-studio-line pb-6 pt-3">
