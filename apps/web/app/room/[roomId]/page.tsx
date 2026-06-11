@@ -113,7 +113,7 @@ export default function RoomPage() {
     setLocalMyPersona(assignWebPersona({
       roomId,
       participantKind: "human",
-      participantFingerprint: clientId,
+      participantFingerprint: getOrCreateParticipantFingerprint(clientId),
     }));
   }, [roomId, clientId]);
 
@@ -1043,6 +1043,20 @@ function uniquePersonas(
     byId.set(persona.id, persona);
   }
   return Array.from(byId.values());
+}
+
+function getOrCreateParticipantFingerprint(fallback: string) {
+  const storageKey = "fold:participant-fingerprint:v1";
+  try {
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) return existing;
+
+    const created = window.crypto?.randomUUID?.() || fallback;
+    window.localStorage.setItem(storageKey, created);
+    return created;
+  } catch {
+    return fallback;
+  }
 }
 
 function upsertPresence(

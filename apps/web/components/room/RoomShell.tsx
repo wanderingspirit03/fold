@@ -937,11 +937,12 @@ function SidebarFile({
 function FilePresenceIndicators({ presences }: { presences: CollaborationPresence[] }) {
   if (presences.length === 0) return null;
 
-  const visible = presences.slice(0, 2);
-  const hiddenCount = Math.max(0, presences.length - visible.length);
-  const label = presences.map(presenceLabel).join(", ");
-  const hasEditor = presences.some((presence) => presence.status === "editing");
-  const hasLiveActivity = presences.some((presence) => presence.activity && presence.activity !== "idle");
+  const displayPresences = uniquePresencesByPersona(presences);
+  const visible = displayPresences.slice(0, 2);
+  const hiddenCount = Math.max(0, displayPresences.length - visible.length);
+  const label = displayPresences.map(presenceLabel).join(", ");
+  const hasEditor = displayPresences.some((presence) => presence.status === "editing");
+  const hasLiveActivity = displayPresences.some((presence) => presence.activity && presence.activity !== "idle");
 
   return (
     <span
@@ -1728,8 +1729,9 @@ function PresenceStack({
   presences: CollaborationPresence[];
   fallbackPersona?: RoomPersona | null;
 }) {
-  const personas = presences.length
-    ? presences.map((presence) => presence.persona)
+  const displayPresences = uniquePresencesByPersona(presences);
+  const personas = displayPresences.length
+    ? displayPresences.map((presence) => presence.persona)
     : fallbackPersona
       ? [fallbackPersona]
       : [];
@@ -1737,10 +1739,10 @@ function PresenceStack({
 
   const visible = personas.slice(0, 3);
   const hiddenCount = Math.max(0, personas.length - visible.length);
-  const label = presences.length
-    ? presences.map((presence) => `${presenceLabel(presence)} ${presence.filePath}`).join(", ")
+  const label = displayPresences.length
+    ? displayPresences.map((presence) => `${presenceLabel(presence)} ${presence.filePath}`).join(", ")
     : personas.map((persona) => persona.name).join(", ");
-  const hasLiveActivity = presences.some((presence) => presence.activity && presence.activity !== "idle");
+  const hasLiveActivity = displayPresences.some((presence) => presence.activity && presence.activity !== "idle");
 
   return (
     <Tooltip>
@@ -1769,7 +1771,7 @@ function PresenceStack({
               </span>
             )}
           </div>
-          {(presences.some((presence) => presence.status === "editing") || hasLiveActivity) && (
+          {(displayPresences.some((presence) => presence.status === "editing") || hasLiveActivity) && (
             <span className={cn("ml-1.5 h-1.5 w-1.5 rounded-full", hasLiveActivity ? "bg-midnight-strong" : "bg-ink-subtle")} aria-hidden="true" />
           )}
         </div>
@@ -1783,6 +1785,25 @@ function presenceLabel(presence: CollaborationPresence) {
   if (presence.activity === "typing") return `${presence.persona.name} typing`;
   if (presence.activity === "commenting") return `${presence.persona.name} commenting`;
   return `${presence.persona.name} ${presence.status}`;
+}
+
+function uniquePresencesByPersona(presences: CollaborationPresence[]) {
+  const byPersonaId = new Map<string, CollaborationPresence>();
+  for (const presence of presences) {
+    const existing = byPersonaId.get(presence.persona.id);
+    if (!existing || presencePriority(presence) > presencePriority(existing) || (
+      presencePriority(presence) === presencePriority(existing) && presence.updatedAt > existing.updatedAt
+    )) {
+      byPersonaId.set(presence.persona.id, presence);
+    }
+  }
+  return Array.from(byPersonaId.values()).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+}
+
+function presencePriority(presence: CollaborationPresence) {
+  if (presence.activity && presence.activity !== "idle") return 2;
+  if (presence.status === "editing") return 1;
+  return 0;
 }
 
 function AgentInviteDialog({
