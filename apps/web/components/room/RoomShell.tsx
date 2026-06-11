@@ -48,6 +48,13 @@ import {
 import { PersonaAvatar } from "./PersonaAvatar";
 import { SecurityStrip } from "./SecurityStrip";
 import type { CollaborationPresence, RoomMode } from "./types";
+import {
+  getFirstEnabledIndex,
+  getLastEnabledIndex,
+  getNextEnabledIndex,
+  isSubsequence,
+  rankCommandPaletteItems,
+} from "../../lib/command-palette";
 
 interface RoomShellProps {
   roomId: string;
@@ -1364,11 +1371,10 @@ function ProjectCommandPalette({
   const items = normalizedQuery
     ? [
       ...createItem,
-      ...rankPaletteItems(fileItems, normalizedQuery),
-      ...rankPaletteItems(staticItems, normalizedQuery),
+      ...rankCommandPaletteItems([...fileItems, ...staticItems], normalizedQuery),
     ].slice(0, 12)
     : [...recentItems, ...staticItems, ...remainingFileItems].slice(0, 12);
-  const firstEnabledIndex = Math.max(0, items.findIndex((item) => !item.disabled));
+  const firstEnabledIndex = getFirstEnabledIndex(items);
   const listboxId = "project-command-palette-results";
   const activeOptionId = items[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined;
   const activeItem = items[activeIndex] && !items[activeIndex].disabled
@@ -1376,7 +1382,7 @@ function ProjectCommandPalette({
     : items.find((item) => !item.disabled);
 
   useEffect(() => {
-    setActiveIndex(firstEnabledIndex);
+    setActiveIndex(firstEnabledIndex === -1 ? 0 : firstEnabledIndex);
   }, [firstEnabledIndex, query]);
 
   useEffect(() => {
@@ -1385,7 +1391,7 @@ function ProjectCommandPalette({
       return;
     }
     if (activeIndex < items.length && !items[activeIndex]?.disabled) return;
-    setActiveIndex(firstEnabledIndex);
+    setActiveIndex(firstEnabledIndex === -1 ? 0 : firstEnabledIndex);
   }, [activeIndex, firstEnabledIndex, items]);
 
   const runFirstItem = (event: React.FormEvent) => {
@@ -1396,16 +1402,16 @@ function ProjectCommandPalette({
   const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      if (items.length === 0) return;
       const direction = event.key === "ArrowDown" ? 1 : -1;
-      let nextIndex = activeIndex;
-      for (let step = 0; step < items.length; step += 1) {
-        nextIndex = (nextIndex + direction + items.length) % items.length;
-        if (!items[nextIndex].disabled) {
-          setActiveIndex(nextIndex);
-          return;
-        }
-      }
+      const nextIndex = getNextEnabledIndex(items, activeIndex, direction);
+      if (nextIndex !== -1) setActiveIndex(nextIndex);
+      return;
+    }
+
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      const nextIndex = event.key === "Home" ? firstEnabledIndex : getLastEnabledIndex(items);
+      if (nextIndex !== -1) setActiveIndex(nextIndex);
       return;
     }
 
@@ -1482,7 +1488,7 @@ function ProjectCommandPalette({
             <p className="px-3 py-4 text-sm text-ink-subtle">No matches</p>
           ) : (
             items.map((item, index) => {
-              const showGroupLabel = index === 0 || items[index - 1]?.group !== item.group;
+              const showGroupLabel = !normalizedQuery && (index === 0 || items[index - 1]?.group !== item.group);
               return (
                 <div key={item.id}>
                   {showGroupLabel && (
@@ -1531,45 +1537,6 @@ function ProjectCommandPalette({
 
 function filePathDetail(file: Pick<ProjectFile, "name" | "path">) {
   return file.path === file.name ? "" : file.path;
-}
-
-function rankPaletteItems(items: PaletteItem[], query: string) {
-  return items
-    .map((item) => ({ item, score: paletteMatchScore(item, query) }))
-    .filter(({ score }) => score > 0)
-    .sort((left, right) => right.score - left.score || left.item.label.localeCompare(right.item.label))
-    .map(({ item }) => item);
-}
-
-function paletteMatchScore(item: PaletteItem, query: string) {
-  const label = item.label.toLowerCase();
-  const detail = (item.detail || "").toLowerCase();
-  const searchText = (item.searchText || "").toLowerCase();
-  const haystack = `${label} ${detail} ${searchText}`.trim();
-  const pathSegments = searchText.split("/").filter(Boolean);
-
-  if (label === query || searchText === query) return 100;
-  if (label.startsWith(query)) return 90;
-  if (searchText.startsWith(query)) return 86;
-  if (pathSegments.some((segment) => segment.startsWith(query))) return 78;
-  if (label.includes(query)) return 70;
-  if (searchText.includes(query) || detail.includes(query)) return 64;
-
-  const compactQuery = query.replace(/[\s/_-]+/g, "");
-  const compactHaystack = haystack.replace(/[\s/_-]+/g, "");
-  if (compactQuery.length >= 2 && compactHaystack.includes(compactQuery)) return 56;
-  if (compactQuery.length >= 3 && isSubsequence(compactQuery, compactHaystack)) return 42;
-  return 0;
-}
-
-function isSubsequence(needle: string, haystack: string) {
-  let cursor = 0;
-  for (const char of haystack) {
-    if (char !== needle[cursor]) continue;
-    cursor += 1;
-    if (cursor === needle.length) return true;
-  }
-  return false;
 }
 
 function formatRelativeTime(value: string) {
