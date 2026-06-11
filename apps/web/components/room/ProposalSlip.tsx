@@ -66,10 +66,10 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
             onClick={() => onOpen(proposal)}
             aria-label={`Preview ${proposal.title}`}
             title="Preview"
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-h-8 md:w-8 md:gap-0 md:px-0"
           >
             <Eye className="h-3.5 w-3.5" />
-            <span>Preview</span>
+            <span className="md:sr-only">Preview</span>
           </button>
           {proposal.status === "pending" && (
             <>
@@ -77,21 +77,21 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
                 type="button"
                 aria-label={`Accept ${proposal.title}`}
                 title="Accept"
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-h-8 md:w-8 md:gap-0 md:px-0"
                 onClick={() => onAccept?.(proposal)}
               >
                 <Check className="h-3.5 w-3.5" />
-                <span>Accept</span>
+                <span className="md:sr-only">Accept</span>
               </button>
               <button
                 type="button"
                 aria-label={`Reject ${proposal.title}`}
                 title="Reject"
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-h-8 md:w-8 md:gap-0 md:px-0"
                 onClick={() => onReject?.(proposal)}
               >
                 <X className="h-3.5 w-3.5" />
-                <span>Reject</span>
+                <span className="md:sr-only">Reject</span>
               </button>
             </>
           )}

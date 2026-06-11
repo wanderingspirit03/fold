@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Circle, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { RoomPersona } from "../../lib/personas";
 import { cn } from "../../lib/utils";
@@ -59,6 +59,7 @@ export function AgentBench({
     })
     .slice(0, 5);
   const recentTimeline = timeline.slice(0, 4);
+  const showCommentsSection = Boolean(selectedQuote || activeComments.length > 0 || resolvedComments.length > 0);
 
   return (
     <aside className="h-[calc(100dvh-145px)] overflow-y-auto bg-rail text-ink md:h-[calc(100dvh-48px)]">
@@ -98,50 +99,48 @@ export function AgentBench({
           </div>
         </div>
 
-        <section className="space-y-1">
-          <RailHeading title="Comments" count={activeComments.length} />
-          {selectedQuote && <MarginThread selectedQuote={selectedQuote} />}
-          {activeComments.length === 0 && !selectedQuote ? (
-            <PrimaryEmptyRailState />
-          ) : (
-            activeComments.map((comment) => (
+        {showCommentsSection && (
+          <section className="space-y-1">
+            <RailHeading title="Comments" count={activeComments.length} />
+            {selectedQuote && <MarginThread selectedQuote={selectedQuote} />}
+            {activeComments.map((comment) => (
               <MarginThread
                 key={comment.id}
                 comment={comment}
                 anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
                 onResolveComment={onResolveComment}
               />
-            ))
-          )}
-          {resolvedComments.length > 0 && (
-            <div className="pt-1">
-              <button
-                type="button"
-                aria-expanded={resolvedOpen}
-                className="flex h-8 w-full items-center justify-between rounded px-1.5 text-xs text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
-                onClick={() => setResolvedOpen((open) => !open)}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Resolved
-                </span>
-                <span className="font-mono text-[11px]">{resolvedComments.length}</span>
-              </button>
-              {resolvedOpen && (
-                <div className="mt-1 space-y-1 opacity-80">
-                  {resolvedComments.map((comment) => (
-                    <MarginThread
-                      key={comment.id}
-                      comment={comment}
-                      anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
-                      onResolveComment={onResolveComment}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+            ))}
+            {resolvedComments.length > 0 && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  aria-expanded={resolvedOpen}
+                  className="flex h-8 w-full items-center justify-between rounded px-1.5 text-xs text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                  onClick={() => setResolvedOpen((open) => !open)}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Resolved
+                  </span>
+                  <span className="font-mono text-[11px]">{resolvedComments.length}</span>
+                </button>
+                {resolvedOpen && (
+                  <div className="mt-1 space-y-1 opacity-80">
+                    {resolvedComments.map((comment) => (
+                      <MarginThread
+                        key={comment.id}
+                        comment={comment}
+                        anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
+                        onResolveComment={onResolveComment}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="space-y-1 border-t border-studio-line pt-3">
           <RailHeading title="Suggestions" count={proposals.length} />
@@ -310,15 +309,6 @@ function RailHeading({ title, count }: { title: string; count: number }) {
     <div className="flex items-center justify-between px-1.5">
       <h3 className="text-xs font-medium uppercase text-ink-subtle">{title}</h3>
       <span className="font-mono text-[11px] text-ink-subtle">{count}</span>
-    </div>
-  );
-}
-
-function PrimaryEmptyRailState() {
-  return (
-    <div className="flex items-center gap-2 px-1.5 py-2 text-xs text-ink-subtle">
-      <Circle className="h-3 w-3" />
-      <span>No comments.</span>
     </div>
   );
 }
