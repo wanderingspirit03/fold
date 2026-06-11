@@ -309,6 +309,7 @@ export function DocumentSurface({
                 }
                 onPostComment(event);
                 setFileComposerOpen(false);
+                setFileCommentsOpen(true);
                 onNewCommentTextChange("");
               }}
               className="rounded-md border border-midnight/25 bg-studio-paper p-2 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
