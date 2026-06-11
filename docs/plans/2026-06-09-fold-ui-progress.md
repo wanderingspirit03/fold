@@ -52,6 +52,7 @@ Primary reference: `DESIGN.md`.
 - Flattened the review drawer scope header so it reads as editor chrome instead of a nested summary card.
 - Flattened suggestion rows so review items read more like compact document annotations than PR cards.
 - Enlarged/cropped collaborator avatars and kept E2EE as quiet inline file metadata instead of boxed toolbar chrome.
+- Reduced top-toolbar chrome by changing Connect agent to an icon+tooltip action and removing the filled theme-toggle hover box.
 - Tightened suggestion rows further and sorted pending suggestions first in the review drawer.
 - Clarified pending suggestion actions with compact labeled pills and larger touch targets for mobile review.
 - Added command palette / quick switcher and made the header filename open it.

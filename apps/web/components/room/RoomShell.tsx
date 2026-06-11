@@ -314,16 +314,6 @@ export function RoomShell({
                     reviewLabel={reviewLabel}
                     onOpenReview={() => setReviewOpen(true)}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAgentInviteOpen(true)}
-                    disabled={!agentInvite}
-                    className="hidden h-8 gap-1.5 px-2.5 text-xs sm:inline-flex"
-                  >
-                    <Bot className="h-3.5 w-3.5" />
-                    Connect agent
-                  </Button>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -332,7 +322,6 @@ export function RoomShell({
                         onClick={() => setAgentInviteOpen(true)}
                         aria-label="Connect agent"
                         disabled={!agentInvite}
-                        className="sm:hidden"
                       >
                         <Bot className="h-4 w-4" />
                       </Button>
