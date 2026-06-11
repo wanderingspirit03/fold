@@ -96,6 +96,7 @@ Primary reference: `DESIGN.md`.
 - Polished sidebar file creation into a compact project-tree row with normalized Markdown paths, confirm/cancel controls, and duplicate-path feedback.
 - Hid the routine empty-room creation event from the review drawer so first-open rooms stay focused on document work.
 - Hid the empty-file checkpoint form from the review drawer until a file has content or saved versions.
+- Routed the empty toolbar comment action directly to the document file-comment composer instead of opening a blank review drawer.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 

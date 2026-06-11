@@ -288,6 +288,7 @@ export function RoomShell({
                     commentCount={commentCount}
                     pendingCount={pendingCount}
                     reviewLabel={reviewLabel}
+                    onAddComment={onFocusCommentComposer}
                     onOpenReview={() => setReviewOpen(true)}
                   />
                   <Tooltip>
@@ -355,6 +356,7 @@ export function RoomShell({
                     commentCount={commentCount}
                     pendingCount={pendingCount}
                     reviewLabel={reviewLabel}
+                    onAddComment={onFocusCommentComposer}
                     onOpenReview={() => setReviewOpen(true)}
                     mobile
                   />
@@ -1666,12 +1668,14 @@ function ReviewStatusControl({
   commentCount,
   pendingCount,
   reviewLabel,
+  onAddComment,
   onOpenReview,
   mobile = false,
 }: {
   commentCount: number;
   pendingCount: number;
   reviewLabel: string;
+  onAddComment?: () => void;
   onOpenReview: () => void;
   mobile?: boolean;
 }) {
@@ -1686,15 +1690,15 @@ function ReviewStatusControl({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onOpenReview}
-            aria-label={reviewLabel}
-            title={reviewLabel}
+            onClick={onAddComment || onOpenReview}
+            aria-label={onAddComment ? "Add file comment" : reviewLabel}
+            title={onAddComment ? "Add file comment" : reviewLabel}
             className={cn(mobile && "h-11 w-11 shrink-0")}
           >
-            <MessageSquare className="h-4 w-4" />
+            <MessageSquarePlus className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{reviewLabel}</TooltipContent>
+        <TooltipContent>{onAddComment ? "Add file comment" : reviewLabel}</TooltipContent>
       </Tooltip>
     );
   }
