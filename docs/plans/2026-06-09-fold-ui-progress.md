@@ -74,6 +74,7 @@ Primary reference: `DESIGN.md`.
 - Added agent connection handoff in the top chrome and removed the large onboarding block.
 - Added a room-first CLI path so agents can create encrypted rooms without an existing Markdown file, then invite humans or agents.
 - Made web-created starter projects persist as encrypted project snapshots so fresh agents export the same files humans see.
+- Renamed the encrypted room-link action to `Invite human` and surfaced it near `Connect agent` while keeping the command palette path.
 - Wired collaborator avatars to deterministic shadcn avatar images with initials fallbacks and calmer Fold persona names.
 - Expanded deterministic persona name combinations so room-sized human/agent groups are less likely to show duplicate collaborator names.
 - Added encrypted live presence snapshots with a compact collaborator stack for the selected Markdown file.

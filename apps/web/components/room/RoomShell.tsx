@@ -15,7 +15,6 @@ import {
   FolderClosed,
   FolderOpen,
   ListChecks,
-  Link2,
   LockKeyhole,
   MessageSquare,
   MessageSquarePlus,
@@ -24,6 +23,7 @@ import {
   Plus,
   Search,
   Upload,
+  UsersRound,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -288,6 +288,22 @@ export function RoomShell({
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={copyProjectLink}
+                        aria-label={projectLinkCopied ? "Human invite copied" : "Invite human"}
+                      >
+                        {projectLinkCopied ? <Check className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
+                        <span className="sr-only" aria-live="polite">
+                          {projectLinkCopied ? "Human invite copied" : ""}
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{projectLinkCopied ? "Copied" : "Invite human"}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setAgentInviteOpen(true)}
                         aria-label="Connect agent"
                         disabled={!agentInvite}
@@ -361,6 +377,23 @@ export function RoomShell({
                     </ModeIconButton>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={copyProjectLink}
+                          aria-label={projectLinkCopied ? "Human invite copied" : "Invite human"}
+                          className="h-11 w-11"
+                        >
+                          {projectLinkCopied ? <Check className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
+                          <span className="sr-only" aria-live="polite">
+                            {projectLinkCopied ? "Human invite copied" : ""}
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{projectLinkCopied ? "Copied" : "Invite human"}</TooltipContent>
+                    </Tooltip>
                     <ThemeToggle className="h-11 w-11" />
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -596,7 +629,7 @@ function ProjectFilesHeader({
             variant="ghost"
             size="icon"
             onClick={onCopyProjectLink}
-            aria-label={projectLinkCopied ? "Project link copied" : "Copy project link"}
+            aria-label={projectLinkCopied ? "Human invite copied" : "Invite human"}
             className={cn(
               "copy-project-link-button relative h-11 w-11 overflow-hidden transition-all duration-200 active:scale-[0.96]",
               projectLinkCopied &&
@@ -610,14 +643,14 @@ function ProjectFilesHeader({
                 projectLinkCopied && "copy-project-link-icon--copied",
               )}
             >
-              {projectLinkCopied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+              {projectLinkCopied ? <Check className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
             </span>
             <span className="sr-only" aria-live="polite">
-              {projectLinkCopied ? "Project link copied" : ""}
+              {projectLinkCopied ? "Human invite copied" : ""}
             </span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{projectLinkCopied ? "Copied" : "Copy project link"}</TooltipContent>
+        <TooltipContent>{projectLinkCopied ? "Copied" : "Invite human"}</TooltipContent>
       </Tooltip>
       {onClose && (
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close project files" className="h-11 w-11">
@@ -1256,10 +1289,11 @@ function ProjectCommandPalette({
     },
     {
       id: "copy-link",
-      label: "Copy project link",
-      detail: "Encrypted share link",
+      label: "Invite human",
+      detail: "Copy encrypted project link",
       group: "actions",
-      icon: <Link2 className="h-4 w-4" />,
+      searchText: "copy project link share invite human encrypted room url",
+      icon: <UsersRound className="h-4 w-4" />,
       action: onCopyProjectLink,
     },
     {
