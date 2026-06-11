@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, Circle, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { RoomPersona } from "../../lib/personas";
 import { cn } from "../../lib/utils";
@@ -47,6 +47,9 @@ export function AgentBench({
   const activeComments = comments.filter((comment) => !comment.resolvedAt);
   const resolvedComments = comments.filter((comment) => comment.resolvedAt);
   const pendingProposals = proposals.filter((proposal) => proposal.status === "pending");
+  const detachedComments = activeComments.filter((comment) => isMissingTextAnchor(comment, markdown));
+  const detachedProposals = proposals.filter((proposal) => isMissingTextAnchor(proposal, markdown));
+  const detachedCount = detachedComments.length + detachedProposals.length;
   const recentVersions = versions.slice(0, 5);
   const recentProposals = [...proposals]
     .sort((left, right) => {
@@ -82,6 +85,16 @@ export function AgentBench({
               singularLabel="pending suggestion"
               pluralLabel="pending suggestions"
             />
+            {detachedCount > 0 && (
+              <ReviewCount
+                icon={<AlertTriangle className="h-3.5 w-3.5" />}
+                count={detachedCount}
+                label="detached"
+                singularLabel="detached anchor"
+                pluralLabel="detached anchors"
+                tone="warning"
+              />
+            )}
           </div>
         </div>
 
@@ -265,12 +278,14 @@ function ReviewCount({
   label,
   singularLabel,
   pluralLabel,
+  tone = "default",
 }: {
   icon: React.ReactNode;
   count: number;
   label: string;
   singularLabel: string;
   pluralLabel?: string;
+  tone?: "default" | "warning";
 }) {
   const accessibleLabel = `${count} ${count === 1 ? singularLabel : pluralLabel || label}`;
 
@@ -278,10 +293,13 @@ function ReviewCount({
     <span
       aria-label={accessibleLabel}
       title={accessibleLabel}
-      className="inline-flex h-6 min-w-0 items-center gap-1.5 rounded border border-studio-line bg-rail px-2 text-[11px] text-ink-subtle"
+      className={cn(
+        "inline-flex h-6 min-w-0 items-center gap-1.5 rounded border bg-rail px-2 text-[11px]",
+        tone === "warning" ? "border-midnight/30 text-midnight-strong" : "border-studio-line text-ink-subtle",
+      )}
     >
-      <span className="text-ink-subtle">{icon}</span>
-      <span className="font-mono text-ink-muted">{count}</span>
+      <span className={cn(tone === "warning" ? "text-midnight-strong" : "text-ink-subtle")}>{icon}</span>
+      <span className={cn("font-mono", tone === "warning" ? "text-midnight-strong" : "text-ink-muted")}>{count}</span>
       <span className="truncate">{label}</span>
     </span>
   );

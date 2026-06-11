@@ -62,9 +62,9 @@ export function MarginThread({
         />
       )}
       {!selectedQuote && quote && anchorState === "missing" && (
-        <p className="mb-2 inline-flex items-center gap-1.5 rounded border border-studio-line bg-studio-sunken px-2 py-1 text-[11px] text-ink-subtle">
+        <p className="mb-2 inline-flex items-center gap-1.5 rounded border border-midnight/25 bg-midnight-mark px-2 py-1 text-[11px] text-midnight-strong">
           <AlertTriangle className="h-3.5 w-3.5 text-midnight-strong" />
-          Anchor not found
+          Anchor needs review
         </p>
       )}
       {!selectedQuote && !quote && anchorLabel && (

@@ -52,9 +52,9 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
           {proposal.comment ? <span className="text-ink-muted"> · {proposal.comment}</span> : null}
         </p>
         {anchorMissing && (
-          <p className="mt-1 inline-flex items-center gap-1.5 rounded border border-studio-line bg-studio-sunken px-1.5 py-0.5 text-[11px] text-ink-subtle">
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded border border-midnight/25 bg-midnight-mark px-1.5 py-0.5 text-[11px] text-midnight-strong">
             <AlertTriangle className="h-3 w-3 text-midnight-strong" />
-            Anchor not found
+            Anchor needs review
           </p>
         )}
       </button>
