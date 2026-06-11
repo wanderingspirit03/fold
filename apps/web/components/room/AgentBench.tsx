@@ -59,7 +59,8 @@ export function AgentBench({
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     })
     .slice(0, 5);
-  const recentTimeline = timeline.slice(0, 4);
+  const visibleTimeline = timeline.filter((event) => !isRoutineEmptyProjectEvent(event));
+  const recentTimeline = visibleTimeline.slice(0, 4);
   const showCommentsSection = Boolean(selectedQuote || activeComments.length > 0 || resolvedComments.length > 0);
   const showReviewCounts = activeComments.length > 0 || pendingProposals.length > 0 || detachedCount > 0;
   const showSuggestionsSection = recentProposals.length > 0;
@@ -259,11 +260,9 @@ export function AgentBench({
           )}
         </section>
 
-        <section className="space-y-1 border-t border-studio-line pb-6 pt-3">
-          <RailHeading title="Activity" count={timeline.length} />
-          {recentTimeline.length === 0 ? (
-            <SoftRailState text="No activity." />
-          ) : (
+        {recentTimeline.length > 0 && (
+          <section className="space-y-1 border-t border-studio-line pb-6 pt-3">
+            <RailHeading title="Activity" count={visibleTimeline.length} />
             <div className="space-y-0.5">
               {recentTimeline.map((event) => (
                 <div key={event.id} className="flex gap-2 rounded-md px-1.5 py-1.5 hover:bg-studio-sunken">
@@ -275,8 +274,8 @@ export function AgentBench({
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </aside>
   );
@@ -356,8 +355,8 @@ function RailHeading({ title, count }: { title: string; count: number }) {
   );
 }
 
-function SoftRailState({ text }: { text: string }) {
-  return <p className="px-1.5 py-2 text-xs leading-5 text-ink-subtle">{text}</p>;
+function isRoutineEmptyProjectEvent(event: TimelineEvent) {
+  return event.type === "publish" && event.message === "Created empty Markdown project room";
 }
 
 function isMissingTextAnchor(record: Pick<ChatComment | Proposal, "anchorType" | "selectedQuote">, markdown: string) {

@@ -94,6 +94,7 @@ Primary reference: `DESIGN.md`.
 - Removed zero-count review drawer chrome from empty project states while keeping versions and activity available.
 - Made web human personas stable per browser profile and deduped same-persona presence avatars across tabs.
 - Polished sidebar file creation into a compact project-tree row with normalized Markdown paths, confirm/cancel controls, and duplicate-path feedback.
+- Hid the routine empty-room creation event from the review drawer so first-open rooms stay focused on document work.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
