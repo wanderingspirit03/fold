@@ -96,6 +96,8 @@ export default function RoomPage() {
   const virtualFilesRef = useRef(virtualFiles);
   const hasRemoteProjectStateRef = useRef(false);
   const projectPrimaryPathRef = useRef("");
+  const bootstrappedInitialProjectRef = useRef(false);
+  const replayedRecordCountRef = useRef(0);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -178,6 +180,8 @@ export default function RoomPage() {
         setProjectPrimaryPath("");
         hasRemoteProjectStateRef.current = false;
         projectPrimaryPathRef.current = "";
+        bootstrappedInitialProjectRef.current = false;
+        replayedRecordCountRef.current = 0;
 
         const cryptoKey = await deriveRoomKey(roomId, roomSecret);
         keyRef.current = cryptoKey;
@@ -277,6 +281,7 @@ export default function RoomPage() {
     }
 
     setLogRecords((prev) => [...prev, rec]);
+    replayedRecordCountRef.current += 1;
 
     const payload: EncryptedPayload = {
       nonce: rec.nonce,
@@ -463,6 +468,37 @@ export default function RoomPage() {
       setSelectedFilePath(normalized.primaryPath);
     }
   };
+
+  const persistProjectSnapshot = async (snapshot: ProjectSnapshot) => {
+    if (!keyRef.current) return;
+    const normalized = normalizeProjectSnapshot(snapshot);
+    const senderId = `${PROJECT_SENDER_ID}:web-${Date.now()}`;
+    const encrypted = await encryptUpdate(encoder.encode(JSON.stringify(normalized)), keyRef.current, {
+      roomId,
+      senderId,
+    });
+    const response = await postEncryptedRecord(senderId, encrypted);
+    if (!response.ok) throw new Error(`Server returned ${response.status}`);
+    applyProjectSnapshot(normalized);
+  };
+
+  useEffect(() => {
+    if (!syncProgress || !isKeyConfigured || !keyRef.current || hasRemoteProjectStateRef.current || bootstrappedInitialProjectRef.current) return;
+    if (replayedRecordCountRef.current > 0 || (yTextRef.current?.toString() ?? "")) return;
+    bootstrappedInitialProjectRef.current = true;
+
+    const snapshot = normalizeProjectSnapshot({
+      schema: PROJECT_SCHEMA,
+      primaryPath: DEFAULT_PROJECT_FILE_PATH,
+      files: Object.entries(virtualFilesRef.current).map(([path, markdown]) => ({ path, markdown })),
+      updatedAt: new Date().toISOString(),
+    });
+
+    void persistProjectSnapshot(snapshot).catch((err) => {
+      bootstrappedInitialProjectRef.current = false;
+      setSyncError(`Could not save encrypted project seed: ${String(err)}`);
+    });
+  }, [isKeyConfigured, syncProgress, roomId]);
 
   const handleRejectProposal = async (proposal: Proposal) => {
     if (!keyRef.current || !localMyPersona) return;

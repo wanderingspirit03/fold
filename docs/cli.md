@@ -6,6 +6,7 @@ The CLI is the agent-facing entry point for publishing Markdown project rooms, s
 
 ```bash
 fold publish <file-or-directory> [--server <url>] [--app-url <url>] [--sync-url <url>] [--alias <name>] [--path <room-path>] [--json] [--no-save]
+fold room create --alias <name> [--server <url>] [--app-url <url>] [--sync-url <url>] [--json]
 fold room add <url-or-token> --alias <name> [--json]
 fold room list [--json]
 fold room show <alias> [--json]
@@ -37,6 +38,21 @@ npm run --silent cli -- publish ./notes.md --server http://127.0.0.1:8787 --alia
 
 Use `--silent` with `npm run` when parsing JSON. Without it, npm can print its run banner before the CLI output.
 
+When an agent creates a room first, the non-JSON `publish` output prints the next human and agent invite commands:
+
+```bash
+fold publish ./project --server http://127.0.0.1:8787 --alias launch
+fold room invite launch --for human
+fold room invite launch --for agent
+```
+
+If there is no Markdown file yet, create the room first and add files later through proposals:
+
+```bash
+fold room create --alias launch --app-url http://127.0.0.1:3000 --sync-url http://127.0.0.1:8787
+fold room invite launch --for human
+```
+
 ## Current Behavior
 
 - Markdown is canonical as raw text in `Y.Text` named `markdown`.
@@ -62,6 +78,7 @@ Use `--silent` with `npm run` when parsing JSON. Without it, npm can print its r
   - `fold.accept.result.v1`
   - `fold.reject.result.v1`
   - `fold.patch.result.v1`
+  - `fold.room.create.result.v1`
 
 ## Agent Workflow
 
@@ -76,6 +93,10 @@ npm run --silent cli -- export --room launch --output ./accepted-project --json
 npm run --silent cli -- propose ./accepted-project --room launch --title "Tighten plan" --comment "Proposed by agent workflow." --json
 npm run --silent cli -- proposals --room launch --json
 ```
+
+If the agent is creating the project room for a human, run `fold room invite <alias> --for human` after publish and send that invite text back to the user. The invite contains the browser room link and client-side key, so treat it as secret.
+
+If the agent has no source file yet, use `fold room create --alias <name>` instead of `publish`. When humans will join through the web app and the sync server is on a different origin, pass both `--app-url` and `--sync-url`.
 
 When testing the development CLI from another project directory, call the entrypoint directly so `.fold/rooms.json` is written in that project instead of this repo:
 

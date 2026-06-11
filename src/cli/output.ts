@@ -6,6 +6,7 @@ import type {
   ProposalsResult,
   ProposeResult,
   PublishResult,
+  RoomCreateResult,
   RoomForgetResult,
   RoomInviteResult,
   RoomListResult,
@@ -19,6 +20,16 @@ export function writeJson(context: CommandContext, value: unknown): void {
 }
 
 export function writePublishHuman(context: CommandContext, result: PublishResult): void {
+  const inviteLines = result.metadata.saved && result.room.alias
+    ? [
+      `→ Invite a human: fold room invite ${JSON.stringify(result.room.alias)} --for human`,
+      `→ Invite an agent: fold room invite ${JSON.stringify(result.room.alias)} --for agent`,
+      `→ Export for local work: fold export --room ${JSON.stringify(result.room.alias)} --output ./fold-project`,
+    ]
+    : [
+      '→ Save this token with `fold room add ... --alias <name>` before generating invites.',
+    ];
+
   context.process.stdout.write([
     '✓ Published encrypted Markdown room',
     `→ Room URL: ${result.room.url}`,
@@ -27,6 +38,21 @@ export function writePublishHuman(context: CommandContext, result: PublishResult
     result.metadata.saved
       ? `→ Saved metadata: ${result.metadata.path}`
       : '→ Metadata not saved (--no-save)',
+    ...inviteLines,
+    '',
+  ].join('\n'));
+}
+
+export function writeRoomCreateHuman(context: CommandContext, result: RoomCreateResult): void {
+  context.process.stdout.write([
+    '✓ Created encrypted Fold room',
+    `→ Room URL: ${result.room.url}`,
+    `→ Token: ${result.room.token}`,
+    `→ Saved alias: ${result.metadata.alias}`,
+    `→ Server records: ${result.server.recordCount}`,
+    `→ Invite a human: fold room invite ${JSON.stringify(result.metadata.alias)} --for human`,
+    `→ Invite an agent: fold room invite ${JSON.stringify(result.metadata.alias)} --for agent`,
+    `→ Add files later: fold propose ./project --room ${JSON.stringify(result.metadata.alias)}`,
     '',
   ].join('\n'));
 }

@@ -66,6 +66,7 @@ import type {
   ProposeResult,
   PublicRoomResult,
   PublishResult,
+  RoomCreateResult,
   RoomForgetResult,
   RoomInviteResult,
   RoomListResult,
@@ -132,6 +133,14 @@ export interface RoomAddOptions {
   alias: string;
 }
 
+export interface RoomCreateOptions {
+  cwd: string;
+  alias: string;
+  serverUrl?: string;
+  appUrl?: string;
+  syncUrl?: string;
+}
+
 export interface RoomAliasOptions {
   cwd: string;
   alias: string;
@@ -151,6 +160,7 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
   const project = await readMarkdownProject(options.cwd, options.filePath, options.path);
   const primary = projectFileOrThrow(project, project.primaryPath);
   const markdown = primary.markdown;
+  const savedAlias = options.alias ?? defaultAliasForSource(options.filePath);
   const access = createRoomAccess(
     options.serverUrl ?? options.syncUrl ?? options.appUrl ?? DEFAULT_SERVER_URL,
     options.appUrl ?? options.serverUrl ?? options.syncUrl ?? DEFAULT_SERVER_URL,
@@ -182,7 +192,7 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
 
   if (options.save) {
     const entry: RoomMetadataEntry = {
-      alias: options.alias ?? defaultAliasForSource(options.filePath),
+      alias: savedAlias,
       roomId: access.roomId,
       appUrl: access.appUrl,
       syncUrl: access.syncUrl,
@@ -203,10 +213,75 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
     schema: 'fold.publish.result.v1',
     ok: true,
     mode: 'server-backed',
-    room: publicRoomResult(access, token),
+    room: publicRoomResult(options.save ? aliasAccess(access, savedAlias) : access, token),
     metadata: {
       path: metadataPath,
       saved: options.save,
+    },
+    document,
+    project: projectSummary,
+    server: {
+      recordCount: eventRecord.seq,
+      latestSeq: eventRecord.seq,
+    },
+  };
+}
+
+export async function createRoomProfile(options: RoomCreateOptions): Promise<RoomCreateResult> {
+  const markdown = '';
+  const project = singleFileProject('document.md', markdown);
+  const access = createRoomAccess(
+    options.serverUrl ?? options.syncUrl ?? options.appUrl ?? DEFAULT_SERVER_URL,
+    options.appUrl ?? options.serverUrl ?? options.syncUrl ?? DEFAULT_SERVER_URL,
+    options.syncUrl ?? options.serverUrl ?? DEFAULT_SERVER_URL,
+  );
+  const document = summarizeMarkdown(markdown);
+  const projectSummary = summarizeProject(project);
+  await appendEncryptedUpdate(access, await createEncryptedMarkdownUpdate(markdown, access, CLI_SENDER_ID));
+  await appendEncryptedUpdate(access, await createEncryptedProjectSnapshot(access, project));
+  const publishPersona = assignPersona({
+    roomId: access.roomId,
+    participantKind: 'human',
+    participantFingerprint: CLI_SENDER_ID,
+  });
+  const publishEvent = createTimelineEvent({
+    idSeed: `room-create:${access.roomId}`,
+    type: 'publish',
+    actorPersonaId: publishPersona.id,
+    proposalId: null,
+    documentSha256: projectSummary.sha256,
+    message: 'Created empty Markdown project room',
+  });
+  const eventRecord = await appendEncryptedUpdate(access, await createEncryptedTimelineEvent(access, publishEvent));
+  const encryptedSnapshot = await createEncryptedMarkdownSnapshot(markdown, access, CLI_SENDER_ID);
+  const token = createRoomToken(access);
+  const metadataPath = defaultMetadataPath(options.cwd);
+  const now = new Date().toISOString();
+  const entry: RoomMetadataEntry = {
+    alias: options.alias,
+    roomId: access.roomId,
+    appUrl: access.appUrl,
+    syncUrl: access.syncUrl,
+    serverUrl: access.serverUrl,
+    roomUrl: roomUrlForAccess(access),
+    token,
+    createdAt: now,
+    updatedAt: now,
+    lastUsedAt: now,
+    document,
+    encryptedSnapshot,
+  };
+  await upsertRoomMetadata(metadataPath, entry);
+
+  return {
+    schema: 'fold.room.create.result.v1',
+    ok: true,
+    mode: 'server-backed',
+    room: publicRoomResult(aliasAccess(access, options.alias), token),
+    metadata: {
+      path: metadataPath,
+      alias: options.alias,
+      saved: true,
     },
     document,
     project: projectSummary,

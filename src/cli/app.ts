@@ -10,6 +10,7 @@ import type { FoldCommandContext } from './context.js';
 import {
   acceptProposal,
   addRoomProfile,
+  createRoomProfile,
   createRoomInvite,
   exportMarkdown,
   forgetRoomProfile,
@@ -33,6 +34,7 @@ import {
   writeProposeHuman,
   writePublishHuman,
   writeRoomForgetHuman,
+  writeRoomCreateHuman,
   writeRoomInviteHuman,
   writeRoomListHuman,
   writeRoomProfileHuman,
@@ -84,6 +86,14 @@ type ProposalRoomFlags = {
 
 type RoomAddFlags = {
   alias: string;
+  json: boolean;
+};
+
+type RoomCreateFlags = {
+  alias: string;
+  server?: string;
+  appUrl?: string;
+  syncUrl?: string;
   json: boolean;
 };
 
@@ -457,6 +467,55 @@ export const app: Application<FoldCommandContext> = buildApplication(
       }),
       room: buildRouteMap({
         routes: {
+          create: buildCommand<RoomCreateFlags, [], FoldCommandContext>({
+            parameters: {
+              flags: {
+                alias: {
+                  kind: 'parsed',
+                  parse: parseString,
+                  brief: 'Local alias for this new room',
+                  placeholder: 'name',
+                },
+                server: {
+                  kind: 'parsed',
+                  parse: parseString,
+                  optional: true,
+                  brief: 'Compatibility shorthand for app and sync URL',
+                  placeholder: 'url',
+                },
+                appUrl: {
+                  kind: 'parsed',
+                  parse: parseString,
+                  optional: true,
+                  brief: 'Human web app origin for generated room links',
+                  placeholder: 'url',
+                },
+                syncUrl: {
+                  kind: 'parsed',
+                  parse: parseString,
+                  optional: true,
+                  brief: 'Append-log API/WebSocket origin',
+                  placeholder: 'url',
+                },
+                json: jsonFlag(),
+              },
+            },
+            docs: {
+              brief: 'Create an empty encrypted project room',
+              customUsage: ['--alias <name> [--server <url>] [--app-url <url>] [--sync-url <url>] [--json]'],
+            },
+            async func(this: FoldCommandContext, flags) {
+              const result = await createRoomProfile({
+                cwd: this.cwd,
+                alias: flags.alias,
+                serverUrl: flags.server,
+                appUrl: flags.appUrl,
+                syncUrl: flags.syncUrl,
+              });
+              if (flags.json) writeJson(this, result);
+              else writeRoomCreateHuman(this, result);
+            },
+          }),
           add: buildCommand<RoomAddFlags, [string], FoldCommandContext>({
             parameters: {
               flags: {

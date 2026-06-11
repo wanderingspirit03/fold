@@ -33,6 +33,59 @@ describe('fold CLI app', () => {
     }
   });
 
+  it('prints invite next steps after publishing for a fresh agent-created room', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    const output = buildOutputCapture();
+
+    try {
+      await writeFile(join(cwd, 'plan.md'), '# Agent Created Room', 'utf8');
+      await runFoldCli(['publish', 'plan.md', '--server', serverUrl, '--alias', 'launch'], {
+        process: {
+          stdout: { write: output.stdout.write },
+          stderr: { write: output.stderr.write },
+        },
+        cwd,
+      });
+
+      expect(output.stderr.value).toBe('');
+      expect(output.stdout.value).toContain('✓ Published encrypted Markdown room');
+      expect(output.stdout.value).toContain('→ Invite a human: fold room invite "launch" --for human');
+      expect(output.stdout.value).toContain('→ Invite an agent: fold room invite "launch" --for agent');
+      expect(output.stdout.value).toContain('→ Export for local work: fold export --room "launch" --output ./fold-project');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('creates an empty room through the room create route', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    const output = buildOutputCapture();
+
+    try {
+      await runFoldCli(['room', 'create', '--alias', 'empty', '--server', serverUrl], {
+        process: {
+          stdout: { write: output.stdout.write },
+          stderr: { write: output.stderr.write },
+        },
+        cwd,
+      });
+
+      expect(output.stderr.value).toBe('');
+      expect(output.stdout.value).toContain('✓ Created encrypted Fold room');
+      expect(output.stdout.value).toContain('→ Saved alias: empty');
+      expect(output.stdout.value).toContain('→ Invite a human: fold room invite "empty" --for human');
+      expect(output.stdout.value).toContain('→ Invite an agent: fold room invite "empty" --for agent');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('prints patch JSON through the Stricli route', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-'));
     const server = new EncryptedAppendLogServer();

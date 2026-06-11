@@ -205,6 +205,24 @@ export interface RoomProfileResult {
   };
 }
 
+export interface RoomCreateResult {
+  schema: 'fold.room.create.result.v1';
+  ok: true;
+  mode: 'server-backed';
+  room: PublicRoomResult;
+  metadata: {
+    path: string;
+    alias: string;
+    saved: true;
+  };
+  document: MarkdownDocumentSummary;
+  project: ProjectSummary;
+  server: {
+    recordCount: number;
+    latestSeq: number;
+  };
+}
+
 export interface RoomListResult {
   schema: 'fold.room.list.result.v1';
   ok: true;

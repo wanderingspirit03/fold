@@ -19,7 +19,13 @@ Fold is an encrypted Markdown project room for humans and coding agents. Use the
 
 ## Install
 
-From this repository during development:
+First, check whether the CLI is already available:
+
+```bash
+fold --help
+```
+
+From this repository during development, install dependencies and run the local CLI through `npm run`:
 
 ```bash
 npm install
@@ -30,6 +36,12 @@ When packaged, use:
 
 ```bash
 npm install -g fold
+```
+
+If the global `fold` command is unavailable, use the repository-local form shown in the invite:
+
+```bash
+npm run --silent cli -- <command>
 ```
 
 ## Join A Room
@@ -82,6 +94,24 @@ fold reject PROPOSAL_ID --room launch --json
 ```
 
 Accept/reject only when a human or higher-level workflow explicitly asks you to make the review decision.
+
+## Create A Room For A Human
+
+When you create the room first, publish the Markdown project and send the human invite back to the user:
+
+```bash
+fold publish ./project --server http://127.0.0.1:8787 --alias launch
+fold room invite launch --for human
+```
+
+If there is no Markdown file or project directory yet, create an empty room first:
+
+```bash
+fold room create --alias launch --app-url http://127.0.0.1:3000 --sync-url http://127.0.0.1:8787
+fold room invite launch --for human
+```
+
+The human invite contains the browser room link and client-side key. Treat it as a secret. If the web app and sync server are on different origins, use both `--app-url` and `--sync-url` when creating or publishing the room. If the output warns about local-only URLs, tell the user the room is only reachable from the same machine or network until they provide public `appUrl` and `syncUrl` values.
 
 ## Invite Others
 

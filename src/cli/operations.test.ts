@@ -10,6 +10,7 @@ import {
   acceptProposal,
   addRoomProfile,
   createRoomInvite,
+  createRoomProfile,
   exportMarkdown,
   listRoomProfiles,
   listProposals,
@@ -40,6 +41,7 @@ describe('CLI operations', () => {
       expect(result.mode).toBe('server-backed');
       expect(result.room.url).toContain('#key=');
       expect(result.room.serverRoomUrl).not.toContain('#key=');
+      expect(result.room.alias).toBe('report');
       expect(result.metadata.saved).toBe(true);
       expect(result.document.canonical).toBe('y.text:markdown');
       expect(result.server.recordCount).toBe(3);
@@ -72,8 +74,52 @@ describe('CLI operations', () => {
       });
 
       expect(result.metadata.saved).toBe(false);
+      expect(result.room.alias).toBeNull();
       expect(result.server.recordCount).toBe(3);
       await expect(readFile(defaultMetadataPath(cwd), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('creates an empty encrypted room without requiring a source file', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-room-create-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      const created = await createRoomProfile({
+        cwd,
+        alias: 'empty',
+        serverUrl,
+      });
+      const exported = await exportMarkdown({
+        cwd,
+        room: 'empty',
+        outputPath: 'empty.md',
+      });
+      const humanInvite = await createRoomInvite({
+        cwd,
+        alias: 'empty',
+        audience: 'human',
+      });
+      const agentInvite = await createRoomInvite({
+        cwd,
+        alias: 'empty',
+        audience: 'agent',
+      });
+
+      expect(created.schema).toBe('fold.room.create.result.v1');
+      expect(created.room.alias).toBe('empty');
+      expect(created.room.url).toContain('#key=');
+      expect(created.project.primaryPath).toBe('document.md');
+      expect(created.project.fileCount).toBe(1);
+      expect(created.server.recordCount).toBe(3);
+      expect(exported.document.markdown).toBe('');
+      expect(await readFile(join(cwd, 'empty.md'), 'utf8')).toBe('');
+      expect(humanInvite.invite.text).toContain(created.room.url);
+      expect(agentInvite.invite.text).toContain('fold room add');
+      expect(agentInvite.invite.text).toContain('fold export --room "empty" --output ./fold-project --json');
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });
@@ -340,6 +386,11 @@ describe('CLI operations', () => {
         alias: 'launch',
         audience: 'agent',
       });
+      const humanInvite = await createRoomInvite({
+        cwd,
+        alias: 'launch',
+        audience: 'human',
+      });
 
       expect(status.room.alias).toBe('launch');
       expect(invite.invite.text).toContain('fold room add');
@@ -353,6 +404,9 @@ describe('CLI operations', () => {
       expect(invite.room.url).toBe(published.room.serverRoomUrl);
       expect(invite.room.token).toBe('[redacted]');
       expect(invite.room.hasClientKey).toBe(false);
+      expect(humanInvite.invite.text).toContain('Open this Fold project:');
+      expect(humanInvite.invite.text).toContain('#key=');
+      expect(humanInvite.room.hasClientKey).toBe(true);
       expect(list.rooms[0]?.token).toBe('[redacted]');
       expect(list.rooms[0]?.url).not.toContain('#key=');
       expect(list.rooms[0]?.hasClientKey).toBe(false);
