@@ -61,6 +61,8 @@ export function AgentBench({
     .slice(0, 5);
   const recentTimeline = timeline.slice(0, 4);
   const showCommentsSection = Boolean(selectedQuote || activeComments.length > 0 || resolvedComments.length > 0);
+  const showReviewCounts = activeComments.length > 0 || pendingProposals.length > 0 || detachedCount > 0;
+  const showSuggestionsSection = recentProposals.length > 0;
 
   return (
     <aside className="h-[calc(100dvh-145px)] overflow-y-auto bg-rail text-ink md:h-[calc(100dvh-48px)]">
@@ -73,31 +75,37 @@ export function AgentBench({
             </div>
             <ParticipantDots participants={participants} />
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <ReviewCount
-              icon={<MessageSquare className="h-3.5 w-3.5" />}
-              count={activeComments.length}
-              label="comments"
-              singularLabel="comment"
-            />
-            <ReviewCount
-              icon={<ListChecks className="h-3.5 w-3.5" />}
-              count={pendingProposals.length}
-              label="pending"
-              singularLabel="pending suggestion"
-              pluralLabel="pending suggestions"
-            />
-            {detachedCount > 0 && (
-              <ReviewCount
-                icon={<AlertTriangle className="h-3.5 w-3.5" />}
-                count={detachedCount}
-                label="detached"
-                singularLabel="detached anchor"
-                pluralLabel="detached anchors"
-                tone="warning"
-              />
-            )}
-          </div>
+          {showReviewCounts && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {activeComments.length > 0 && (
+                <ReviewCount
+                  icon={<MessageSquare className="h-3.5 w-3.5" />}
+                  count={activeComments.length}
+                  label="comments"
+                  singularLabel="comment"
+                />
+              )}
+              {pendingProposals.length > 0 && (
+                <ReviewCount
+                  icon={<ListChecks className="h-3.5 w-3.5" />}
+                  count={pendingProposals.length}
+                  label="pending"
+                  singularLabel="pending suggestion"
+                  pluralLabel="pending suggestions"
+                />
+              )}
+              {detachedCount > 0 && (
+                <ReviewCount
+                  icon={<AlertTriangle className="h-3.5 w-3.5" />}
+                  count={detachedCount}
+                  label="detached"
+                  singularLabel="detached anchor"
+                  pluralLabel="detached anchors"
+                  tone="warning"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {showCommentsSection && (
@@ -143,12 +151,10 @@ export function AgentBench({
           </section>
         )}
 
-        <section className="space-y-1 border-t border-studio-line pt-3">
-          <RailHeading title="Suggestions" count={proposals.length} />
-          {recentProposals.length === 0 ? (
-            <SoftRailState text="No suggestions." />
-          ) : (
-            recentProposals.map((proposal) => (
+        {showSuggestionsSection && (
+          <section className="space-y-1 border-t border-studio-line pt-3">
+            <RailHeading title="Suggestions" count={proposals.length} />
+            {recentProposals.map((proposal) => (
               <ProposalSlip
                 key={proposal.id}
                 proposal={proposal}
@@ -157,9 +163,9 @@ export function AgentBench({
                 onAccept={onAcceptProposal}
                 onReject={onRejectProposal}
               />
-            ))
-          )}
-        </section>
+            ))}
+          </section>
+        )}
 
         <section className="space-y-2 border-t border-studio-line pt-3">
           <RailHeading title="Versions" count={versions.length} />
@@ -190,9 +196,7 @@ export function AgentBench({
               <Save className="h-3.5 w-3.5" />
             </button>
           </form>
-          {recentVersions.length === 0 ? (
-            <SoftRailState text="No versions." />
-          ) : (
+          {recentVersions.length > 0 && (
             <div className="space-y-0.5">
               {recentVersions.map((version) => {
                 const confirmingRestore = restoreCandidateId === version.id;
@@ -347,7 +351,7 @@ function RailHeading({ title, count }: { title: string; count: number }) {
   return (
     <div className="flex items-center justify-between px-1.5">
       <h3 className="text-xs font-medium uppercase text-ink-subtle">{title}</h3>
-      <span className="font-mono text-[11px] text-ink-subtle">{count}</span>
+      {count > 0 && <span className="font-mono text-[11px] text-ink-subtle">{count}</span>}
     </div>
   );
 }

@@ -91,6 +91,7 @@ Primary reference: `DESIGN.md`.
 - Reworked blank Markdown files into a quiet document-native writing prompt instead of a centered empty-state island.
 - Hid zero-count review commands from the default quick switcher while keeping them searchable on demand.
 - Hid the already-active read/edit mode from the default quick switcher while preserving mode search.
+- Removed zero-count review drawer chrome from empty project states while keeping versions and activity available.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
