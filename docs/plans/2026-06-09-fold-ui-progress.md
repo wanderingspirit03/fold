@@ -126,6 +126,7 @@ Primary reference: `DESIGN.md`.
 - Added a compact encrypted proposal diff panel to the suggestion preview dialog so whole-document and file replacement proposals can be reviewed before accepting.
 - Added a compact two-step accept confirmation in the suggestion preview dialog so agent proposals are harder to apply accidentally.
 - Added the same compact two-step accept confirmation to review-drawer proposal rows so quick actions cannot apply agent changes in one click.
+- Cleaned up the file-header quick switcher semantics so its accessible label names the file, location, saved state, and E2EE status without reading decorative metadata twice.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 

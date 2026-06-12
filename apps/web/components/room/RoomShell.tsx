@@ -1721,11 +1721,12 @@ function FileSwitcherButton({
   showMetadata?: boolean;
 }) {
   const metadata = [detail, savedLabel].filter(Boolean).join(" · ");
+  const accessibleDetail = [detail ? `in ${detail}` : "", savedLabel, securityLabel].filter(Boolean).join(", ");
 
   return (
     <button
       type="button"
-      aria-label={`Open quick switcher for ${selectedFile.path}`}
+      aria-label={accessibleDetail ? `Open quick switcher for ${selectedFile.name}, ${accessibleDetail}` : `Open quick switcher for ${selectedFile.name}`}
       title="Open quick switcher"
       onClick={onOpen}
       className={cn(
@@ -1744,11 +1745,9 @@ function FileSwitcherButton({
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium text-ink">{selectedFile.name}</span>
         {showMetadata && (
-          <span className="hidden min-w-0 items-center gap-1.5 truncate text-[11px] text-ink-subtle md:flex">
+          <span aria-hidden="true" className="hidden min-w-0 items-center gap-1.5 truncate text-[11px] text-ink-subtle md:flex">
             <span className="truncate">{metadata}</span>
             <span
-              role="status"
-              aria-label={securityLabel}
               title={securityLabel}
               className={cn(
                 "inline-flex shrink-0 items-center gap-1 text-ink-subtle",
