@@ -107,6 +107,7 @@ Primary reference: `DESIGN.md`.
 - Routed the empty toolbar comment action directly to the document file-comment composer instead of opening a blank review drawer.
 - Made the file-comment composer cancel action touch-sized and cleared stale draft text after cancel/post.
 - Opened the file-comment list immediately after posting so comment feedback stays in the document surface.
+- Floated desktop document comment controls into quiet page chrome with reserved title space while keeping mobile controls touch-sized and in-flow.
 - Expanded the document-model fidelity spike with a long agent handoff sample before swapping in a polished editor surface.
 - Added a Milkdown readiness gate so a richer editor must prove Markdown fidelity, quiet UX, and collaboration mapping before replacing the source editor.
 - Audited current Milkdown package metadata and narrowed the next editor prototype to core/preset fidelity checks before Crepe or collab packages.
