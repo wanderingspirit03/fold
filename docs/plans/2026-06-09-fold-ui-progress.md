@@ -123,6 +123,7 @@ Primary reference: `DESIGN.md`.
 - Strengthened the Milkdown harness with structural task-list and table semantics checks.
 - Classified Milkdown source rewrites so the remaining editor gate can separate acceptable formatting normalization from unexplained Markdown churn.
 - Added compact named-version size metadata and a restore confirmation delta so long-document checkpoint restores show their line/word impact without adding review-drawer prose.
+- Added a compact encrypted proposal diff panel to the suggestion preview dialog so whole-document and file replacement proposals can be reviewed before accepting.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
@@ -137,7 +138,7 @@ Primary reference: `DESIGN.md`.
 
 ## Next
 
-- Keep proposal/review drawer controls compact while testing action clarity on mobile.
+- Keep proposal/review drawer controls compact while continuing to test action clarity on mobile.
 - Keep tuning inline annotation contrast across dark and bright themes without making the document feel marked up.
 - Keep richer presence hints useful without revealing document content to the server or relying on server-readable awareness state.
 - Continue hardening multi-user project-file conflicts beyond stale snapshot rejection and incoming-edit pause; richer Markdown merge/rebase semantics are still open.

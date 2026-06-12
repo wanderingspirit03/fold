@@ -337,6 +337,7 @@ export default function RoomPage() {
         anchorType: parsed.anchorType || parsed.anchor?.anchorType,
         selectedQuote: parsed.selectedQuote || parsed.anchor?.selectedQuote,
         createdFromMarkdown: parsed.createdFromMarkdown || parsed.anchor?.createdFromMarkdown,
+        diff: typeof parsed.diff === "string" ? parsed.diff : undefined,
         beforeContext: parsed.beforeContext || parsed.anchor?.beforeContext,
         afterContext: parsed.afterContext || parsed.anchor?.afterContext,
         proposedProject,

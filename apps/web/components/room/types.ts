@@ -18,6 +18,7 @@ export interface Proposal {
   anchorType?: ThreadAnchorType;
   selectedQuote?: string;
   createdFromMarkdown?: string;
+  diff?: string;
   beforeContext?: string;
   afterContext?: string;
   proposedProject?: {
