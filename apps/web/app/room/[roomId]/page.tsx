@@ -500,6 +500,9 @@ export default function RoomPage() {
         if (isStaleProjectFileSnapshot(projectFileUpdatedAtRef.current[file.path], normalized.updatedAt)) {
           files[file.path] = virtualFilesRef.current[file.path] ?? "";
           updatedAt[file.path] = projectFileUpdatedAtRef.current[file.path] ?? normalized.updatedAt;
+          if (fileConflictsRef.current[file.path]) {
+            nextConflicts[file.path] = fileConflictsRef.current[file.path];
+          }
           continue;
         }
 
@@ -514,6 +517,30 @@ export default function RoomPage() {
         clearPendingProjectFileTimer(file.path);
         files[file.path] = virtualFilesRef.current[file.path] ?? "";
         updatedAt[file.path] = projectFileUpdatedAtRef.current[file.path] ?? normalized.updatedAt;
+      }
+
+      const incomingPaths = new Set(normalized.files.map((file) => file.path));
+      for (const path of Object.keys(virtualFilesRef.current)) {
+        if (incomingPaths.has(path) || path === LIVE_FILE_PATH) continue;
+        if (isStaleProjectFileSnapshot(projectFileUpdatedAtRef.current[path], normalized.updatedAt)) {
+          files[path] = virtualFilesRef.current[path] ?? "";
+          updatedAt[path] = projectFileUpdatedAtRef.current[path] ?? normalized.updatedAt;
+          if (fileConflictsRef.current[path]) {
+            nextConflicts[path] = fileConflictsRef.current[path];
+          }
+          continue;
+        }
+        if (!fileSaveTimersRef.current[path] && !fileConflictsRef.current[path]) continue;
+
+        const existingConflict = fileConflictsRef.current[path];
+        if (!existingConflict || !isStaleProjectFileSnapshot(existingConflict.remoteUpdatedAt, normalized.updatedAt)) {
+          nextConflicts[path] = createFileConflict(path, "", normalized.updatedAt, undefined, { remoteDeleted: true });
+        } else {
+          nextConflicts[path] = existingConflict;
+        }
+        clearPendingProjectFileTimer(path);
+        files[path] = virtualFilesRef.current[path] ?? "";
+        updatedAt[path] = projectFileUpdatedAtRef.current[path] ?? normalized.updatedAt;
       }
     }
     hasRemoteProjectStateRef.current = true;
@@ -760,11 +787,13 @@ export default function RoomPage() {
     remoteMarkdown: string,
     remoteUpdatedAt: string,
     persona?: RoomPersona,
+    options: { remoteDeleted?: boolean } = {},
   ): FileConflict => ({
     path,
     localMarkdown: virtualFilesRef.current[path] ?? "",
     localUpdatedAt: projectFileUpdatedAtRef.current[path],
     remoteMarkdown,
+    remoteDeleted: options.remoteDeleted,
     remoteUpdatedAt,
     persona,
     createdAt: new Date().toISOString(),
@@ -785,6 +814,20 @@ export default function RoomPage() {
 
   const handleUseIncomingFileConflict = (conflict: FileConflict) => {
     clearPendingProjectFileTimer(conflict.path);
+    if (conflict.remoteDeleted) {
+      const { [conflict.path]: _deleted, ...rest } = virtualFilesRef.current;
+      const nextSelectedPath = selectedFilePathRef.current === conflict.path
+        ? Object.keys(rest).sort()[0] || projectPrimaryPathRef.current || DEFAULT_PROJECT_FILE_PATH
+        : selectedFilePathRef.current;
+      setVirtualFiles(rest);
+      setSelectedFilePath(nextSelectedPath);
+      markProjectFileUpdatedAt(conflict.path, conflict.remoteUpdatedAt);
+      clearFileConflict(conflict.path);
+      setSelectedQuote("");
+      setNewCommentText("");
+      clearPresenceActivity();
+      return;
+    }
     setVirtualFiles((current) => ({ ...current, [conflict.path]: conflict.remoteMarkdown }));
     markProjectFileUpdatedAt(conflict.path, conflict.remoteUpdatedAt);
     clearFileConflict(conflict.path);

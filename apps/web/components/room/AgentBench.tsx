@@ -134,7 +134,7 @@ export function AgentBench({
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs leading-5 text-ink-muted">
-                    {conflict.persona?.name || "Someone"} changed this file while your edit was unsaved.
+                    {conflict.persona?.name || "Someone"} {conflict.remoteDeleted ? "removed this file" : "changed this file"} while your edit was unsaved.
                   </p>
                   <p className="font-mono text-[11px] text-ink-subtle">{formatTime(conflict.remoteUpdatedAt)}</p>
                 </div>

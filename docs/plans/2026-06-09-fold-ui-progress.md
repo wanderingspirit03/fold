@@ -109,6 +109,7 @@ Primary reference: `DESIGN.md`.
 - Added encrypted leave-presence records so collaborators disappear promptly on pagehide/room teardown while normal file/mode/activity updates do not flicker presence.
 - Added a local incoming-edit safeguard for encrypted web file snapshots: if a remote file update arrives while the browser has an unsaved debounced edit, Fold pauses the incoming snapshot, keeps the local draft visible, and surfaces compact `Incoming edit` review actions.
 - Extended the incoming-edit safeguard to encrypted full-project snapshots so untouched files update normally while files with local unsaved edits stay visible and reviewable file-by-file.
+- Added deletion-aware full-project snapshot handling so stale deletions do not remove newer local files, and fresh deletions during unsaved local edits become compact `Incoming edit` review actions.
 - Routed the empty toolbar comment action directly to the document file-comment composer instead of opening a blank review drawer.
 - Made the file-comment composer cancel action touch-sized and cleared stale draft text after cancel/post.
 - Opened the file-comment list immediately after posting so comment feedback stays in the document surface.
@@ -138,7 +139,7 @@ Primary reference: `DESIGN.md`.
 - Keep proposal/review drawer controls compact while testing action clarity on mobile.
 - Keep tuning inline annotation contrast across dark and bright themes without making the document feel marked up.
 - Keep richer presence hints useful without revealing document content to the server or relying on server-readable awareness state.
-- Continue hardening multi-user project-file conflicts beyond stale snapshot rejection and incoming-edit pause; file deletion conflicts and richer Markdown merge/rebase semantics are still open.
+- Continue hardening multi-user project-file conflicts beyond stale snapshot rejection and incoming-edit pause; richer Markdown merge/rebase semantics are still open.
 - Keep named versions lightweight and verify restore clarity against long documents.
 - Keep empty states sparse and document-native as more project creation/import states are added.
 - Continue measuring long-document readability against the Obsidian reference screenshots.

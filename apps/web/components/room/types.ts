@@ -72,6 +72,7 @@ export interface FileConflict {
   localMarkdown: string;
   localUpdatedAt?: string;
   remoteMarkdown: string;
+  remoteDeleted?: boolean;
   remoteUpdatedAt: string;
   persona?: RoomPersona;
   createdAt: string;
