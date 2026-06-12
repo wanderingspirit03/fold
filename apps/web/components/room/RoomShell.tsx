@@ -239,6 +239,7 @@ export function RoomShell({
             onFileSelect={onFileSelect}
             onCreateFile={onCreateFile}
             onImportFile={openImportPicker}
+            onOpenReview={() => setReviewOpen(true)}
           />
 
           <div className="min-w-0 border-l border-studio-line bg-studio-sunken">
@@ -446,6 +447,7 @@ export function RoomShell({
                 files={files}
                 recentFiles={recentFiles}
                 autoFocusSearch
+                onOpenReview={() => setReviewOpen(true)}
                 onFileSelect={(path) => {
                   onFileSelect(path);
                   setProjectFilesOpen(false);
@@ -577,6 +579,7 @@ function ProjectFileSidebar({
   onFileSelect,
   onCreateFile,
   onImportFile,
+  onOpenReview,
 }: {
   roomId: string;
   files: ProjectFile[];
@@ -587,6 +590,7 @@ function ProjectFileSidebar({
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onImportFile: () => void;
+  onOpenReview: () => void;
 }) {
   return (
     <aside className="hidden min-h-dvh flex-col bg-studio-paper text-ink md:flex">
@@ -602,6 +606,7 @@ function ProjectFileSidebar({
         onFileSelect={onFileSelect}
         onCreateFile={onCreateFile}
         onImportFile={onImportFile}
+        onOpenReview={onOpenReview}
       />
     </aside>
   );
@@ -677,6 +682,7 @@ function ProjectFilesBody({
   onFileSelect,
   onCreateFile,
   onImportFile,
+  onOpenReview,
 }: {
   files: ProjectFile[];
   recentFiles: ProjectFile[];
@@ -684,6 +690,7 @@ function ProjectFilesBody({
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onImportFile: () => void;
+  onOpenReview?: () => void;
 }) {
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     docs: true,
@@ -805,7 +812,17 @@ function ProjectFilesBody({
             className={cn((recentFiles.length > 1 || activeFiles.length > 0) && "mt-4")}
           >
             {reviewFiles.map((file) => (
-              <SidebarFile key={`review:${file.path}`} file={file} depth={0} showUpdatedAt onFileSelect={handleFileSelect} />
+              <SidebarFile
+                key={`review:${file.path}`}
+                file={file}
+                depth={0}
+                showUpdatedAt
+                ariaLabel={reviewFileLabel(file)}
+                onFileSelect={(path) => {
+                  handleFileSelect(path);
+                  onOpenReview?.();
+                }}
+              />
             ))}
           </SidebarSection>
         )}
@@ -969,15 +986,18 @@ function SidebarFile({
   onFileSelect,
   depth = 0,
   showUpdatedAt = false,
+  ariaLabel,
 }: {
   file: ProjectFile;
   onFileSelect: (path: string) => void;
   depth?: number;
   showUpdatedAt?: boolean;
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       onClick={() => onFileSelect(file.path)}
       style={{ paddingLeft: `${0.5 + depth * 0.85}rem` }}
       className={cn(
@@ -1068,6 +1088,11 @@ function reviewIndicatorLabel(commentCount: number, pendingCount: number) {
     commentCount ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}` : "",
     pendingCount ? `${pendingCount} pending ${pendingCount === 1 ? "suggestion" : "suggestions"}` : "",
   ].filter(Boolean).join(", ");
+}
+
+function reviewFileLabel(file: ProjectFile) {
+  const label = reviewIndicatorLabel(file.commentCount || 0, file.pendingCount || 0);
+  return label ? `Open review for ${file.path}, ${label}` : `Open review for ${file.path}`;
 }
 
 function SidebarCreateFile({
