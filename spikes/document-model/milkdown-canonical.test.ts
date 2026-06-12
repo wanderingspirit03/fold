@@ -29,6 +29,8 @@ describe("milkdown editor candidate", () => {
 
     expect(report.exactRoundTrip).toBe(false);
     expect(report.lostFeatureNames).toContain("frontmatter");
+    expect(report.normalization.categories).toContain("frontmatterLoss");
+    expect(report.normalization.categories).toContain("taskListMarkerStyle");
     expect(report.preservedFeatureNames).toContain("taskLists");
     expect(report.semantics.taskListItems).toEqual({
       checked: 1,
@@ -46,6 +48,10 @@ describe("milkdown editor candidate", () => {
     expect(report.exactRoundTrip).toBe(false);
     expect(report.preservedFeatureNames).toContain("frontmatter");
     expect(report.preservedFeatureNames).toContain("taskLists");
+    expect(report.normalization.categories).not.toContain("frontmatterLoss");
+    expect(report.normalization.categories).toContain("taskListMarkerStyle");
+    expect(report.normalization.categories).toContain("blankLineSpacing");
+    expect(report.normalization.categories).not.toContain("other");
     expect(report.semantics.taskListItems).toEqual({
       checked: 1,
       unchecked: 2,
@@ -63,6 +69,7 @@ describe("milkdown editor candidate", () => {
     expect(report.preservedFeatureNames).toContain("tables");
     expect(report.preservedFeatureNames).toContain("fencedCode");
     expect(report.preservedFeatureNames).toContain("inlineCode");
+    expect(report.normalization.categories).toContain("tableFormatting");
     expect(report.semantics.tables).toEqual([
       {
         headerRows: 1,
@@ -100,6 +107,9 @@ describe("milkdown editor candidate", () => {
 
     expect(report.exactRoundTrip).toBe(false);
     expect(report.lostFeatureNames).toContain("frontmatter");
+    expect(report.normalization.categories).toContain("frontmatterLoss");
+    expect(report.normalization.categories).toContain("taskListMarkerStyle");
+    expect(report.normalization.categories).toContain("tableFormatting");
     expect(report.preservedFeatureNames).toContain("taskLists");
     expect(report.preservedFeatureNames).toContain("tables");
     expect(report.preservedFeatureNames).toContain("fencedCode");
@@ -130,6 +140,10 @@ describe("milkdown editor candidate", () => {
     expect(report.preservedFeatureNames).toContain("taskLists");
     expect(report.preservedFeatureNames).toContain("tables");
     expect(report.preservedFeatureNames).toContain("fencedCode");
+    expect(report.normalization.categories).not.toContain("frontmatterLoss");
+    expect(report.normalization.categories).toContain("taskListMarkerStyle");
+    expect(report.normalization.categories).toContain("tableFormatting");
+    expect(report.normalization.categories).not.toContain("other");
     expect(report.semantics.taskListItems).toEqual({
       checked: 2,
       unchecked: 2,
@@ -180,5 +194,8 @@ describe("milkdown editor candidate", () => {
     expect(summary.tables).toEqual({ detected: 2, preserved: 2 });
     expect(summary.fencedCode).toEqual({ detected: 3, preserved: 3 });
     expect(reports.every((report) => !report.exactRoundTrip)).toBe(true);
+    expect(
+      reports.every((report) => !report.normalization.categories.includes("other")),
+    ).toBe(true);
   });
 });

@@ -43,6 +43,10 @@ for (const sample of samples) {
 
 Milkdown semantics: ${formatMilkdownSemantics(milkdownPropertiesReport)}
 
+Milkdown candidate normalization: ${formatMilkdownNormalization(milkdownReport)}
+
+Milkdown with Fold properties normalization: ${formatMilkdownNormalization(milkdownPropertiesReport)}
+
 ### Original Markdown
 
 \`\`\`\`md
@@ -111,6 +115,22 @@ function formatMilkdownSemantics(
   return `${taskSummary}; ${tableSummary}`;
 }
 
+function formatMilkdownNormalization(
+  report: Awaited<ReturnType<typeof analyzeMilkdownWithPropertiesRoundTrip>>,
+): string {
+  if (!report.normalization.changed) return "none";
+
+  const uncategorized = report.normalization.uncategorizedLineChanges > 0
+    ? `; ${formatLineCount(report.normalization.uncategorizedLineChanges)} uncategorized`
+    : "";
+
+  return `${formatList(report.normalization.categories)}; ${formatLineCount(report.normalization.changedLineCount)} changed${uncategorized}`;
+}
+
+function formatLineCount(count: number): string {
+  return `${count} ${count === 1 ? "line" : "lines"}`;
+}
+
 function renderHtmlReport(): string {
   const sampleCards: string[] = [];
 
@@ -135,6 +155,8 @@ function renderHtmlReport(): string {
         <div><strong>Milkdown candidate:</strong> exact round-trip: ${milkdownReport.exactRoundTrip ? "yes" : "no"}; lost: ${escapeHtml(formatList(milkdownReport.lostFeatureNames))}</div>
         <div><strong>Milkdown with Fold properties:</strong> exact round-trip: ${milkdownPropertiesReport.exactRoundTrip ? "yes" : "no"}; lost: ${escapeHtml(formatList(milkdownPropertiesReport.lostFeatureNames))}</div>
         <div><strong>Milkdown semantics:</strong> ${escapeHtml(formatMilkdownSemantics(milkdownPropertiesReport))}</div>
+        <div><strong>Milkdown candidate normalization:</strong> ${escapeHtml(formatMilkdownNormalization(milkdownReport))}</div>
+        <div><strong>Milkdown with Fold properties normalization:</strong> ${escapeHtml(formatMilkdownNormalization(milkdownPropertiesReport))}</div>
       </div>
       <div class="grid">
         ${renderPane("Original Markdown", sample.markdown)}

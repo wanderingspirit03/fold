@@ -11,11 +11,27 @@ export type MilkdownCanonicalReport = {
   exactRoundTrip: boolean;
   nodeCounts: Record<string, number>;
   semantics: MilkdownSemanticSummary;
+  normalization: MilkdownNormalizationSummary;
   features: FeatureResult[];
   detectedFeatureCount: number;
   preservedFeatureCount: number;
   preservedFeatureNames: EditorCanonicalFeature[];
   lostFeatureNames: EditorCanonicalFeature[];
+};
+
+export type MilkdownNormalizationCategory =
+  | "frontmatterLoss"
+  | "taskListMarkerStyle"
+  | "tableFormatting"
+  | "blankLineSpacing"
+  | "trailingFinalNewline"
+  | "other";
+
+export type MilkdownNormalizationSummary = {
+  changed: boolean;
+  categories: MilkdownNormalizationCategory[];
+  changedLineCount: number;
+  uncategorizedLineChanges: number;
 };
 
 export type MilkdownSemanticSummary = {
@@ -103,6 +119,7 @@ export async function analyzeMilkdownWithPropertiesRoundTrip(
     exactRoundTrip: output === markdown,
     nodeCounts: bodyReport.nodeCounts,
     semantics: bodyReport.semantics,
+    normalization: analyzeNormalization(markdown, output),
     features,
     detectedFeatureCount: detectedFeatures.length,
     preservedFeatureCount: preservedFeatures.length,
@@ -161,6 +178,7 @@ async function analyzeMilkdownMarkdown(
       exactRoundTrip: output === reportInput,
       nodeCounts: countNodes(doc),
       semantics: collectSemantics(doc),
+      normalization: analyzeNormalization(reportInput, output),
       features,
       detectedFeatureCount: detectedFeatures.length,
       preservedFeatureCount: preservedFeatures.length,
@@ -386,6 +404,247 @@ function collectSemantics(doc: ProseMirrorNode): MilkdownSemanticSummary {
   });
 
   return { taskListItems, tables };
+}
+
+function analyzeNormalization(
+  input: string,
+  output: string,
+): MilkdownNormalizationSummary {
+  if (input === output) {
+    return {
+      changed: false,
+      categories: [],
+      changedLineCount: 0,
+      uncategorizedLineChanges: 0,
+    };
+  }
+
+  const categories = new Set<MilkdownNormalizationCategory>();
+
+  if (hasFrontmatter(input) && !hasFrontmatter(output)) {
+    categories.add("frontmatterLoss");
+  }
+
+  if (hasTaskListMarkerStyleChange(input, output)) {
+    categories.add("taskListMarkerStyle");
+  }
+
+  if (hasTableFormattingChange(input, output)) {
+    categories.add("tableFormatting");
+  }
+
+  if (input.endsWith("\n") !== output.endsWith("\n")) {
+    categories.add("trailingFinalNewline");
+  }
+
+  const normalizedInput = normalizeKnownSourceFormatting(input, categories);
+  const normalizedOutput = normalizeKnownSourceFormatting(output, categories);
+
+  if (
+    normalizedInput !== normalizedOutput &&
+    removeBlankLines(normalizedInput) === removeBlankLines(normalizedOutput)
+  ) {
+    categories.add("blankLineSpacing");
+  }
+
+  const fullyNormalizedInput = normalizeKnownSourceFormatting(input, categories);
+  const fullyNormalizedOutput = normalizeKnownSourceFormatting(output, categories);
+  const changedLineCount = countChangedLines(input, output);
+  const uncategorizedLineChanges = countChangedLines(
+    fullyNormalizedInput,
+    fullyNormalizedOutput,
+  );
+  const hasOtherChanges = uncategorizedLineChanges > 0;
+
+  if (hasOtherChanges) {
+    categories.add("other");
+  }
+
+  return {
+    changed: true,
+    categories: [...categories],
+    changedLineCount,
+    uncategorizedLineChanges,
+  };
+}
+
+function normalizeKnownSourceFormatting(
+  markdown: string,
+  categories: ReadonlySet<MilkdownNormalizationCategory>,
+): string {
+  let normalized = markdown.replace(/\r\n/g, "\n");
+
+  if (categories.has("taskListMarkerStyle")) {
+    normalized = normalized.replace(/^(\s*)[-+*]\s+(\[[ xX]\]\s+)/gm, "$1* $2");
+  }
+
+  if (categories.has("tableFormatting")) {
+    normalized = normalizeTableLines(normalized);
+  }
+
+  if (categories.has("blankLineSpacing")) {
+    normalized = removeBlankLines(normalized);
+  }
+
+  if (categories.has("trailingFinalNewline")) {
+    normalized = normalized.trimEnd();
+  }
+
+  return normalized;
+}
+
+function hasTaskListMarkerStyleChange(input: string, output: string): boolean {
+  return /^\s*-\s+\[[ xX]\]\s+/m.test(input) && /^\s*\*\s+\[[ xX]\]\s+/m.test(output);
+}
+
+function hasTableFormattingChange(input: string, output: string): boolean {
+  if (!hasPipeTable(input) || !hasPipeTable(output)) return false;
+
+  const inputTables = collectPipeTables(input);
+  const outputTables = collectPipeTables(output);
+
+  if (inputTables.length !== outputTables.length) return false;
+
+  return inputTables.some((inputTable, index) => {
+    const outputTable = outputTables[index];
+    if (!outputTable) return false;
+
+    return (
+      JSON.stringify(inputTable.cells) === JSON.stringify(outputTable.cells) &&
+      inputTable.raw !== outputTable.raw
+    );
+  });
+}
+
+function normalizeTableLines(markdown: string): string {
+  return markdown
+    .split("\n")
+    .map((line) => {
+      if (!isPipeTableLine(line)) return line;
+
+      const cells = line
+        .trim()
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((cell) => cell.trim());
+
+      if (cells.every((cell) => /^:?-{1,}:?$/.test(cell))) {
+        return `| ${cells.map(() => "---").join(" | ")} |`;
+      }
+
+      return `| ${cells.join(" | ")} |`;
+    })
+    .join("\n");
+}
+
+function collectPipeTables(markdown: string): Array<{ raw: string; cells: string[][] }> {
+  const tables: Array<{ raw: string; cells: string[][] }> = [];
+  const lines = markdown.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!isPipeTableLine(lines[index] ?? "")) continue;
+
+    const block: string[] = [];
+    while (index < lines.length && isPipeTableLine(lines[index] ?? "")) {
+      block.push(lines[index] ?? "");
+      index += 1;
+    }
+
+    index -= 1;
+
+    if (block.some((line) => isPipeTableSeparatorLine(line))) {
+      tables.push({
+        raw: block.join("\n"),
+        cells: block
+          .filter((line) => !isPipeTableSeparatorLine(line))
+          .map((line) => parsePipeTableCells(line)),
+      });
+    }
+  }
+
+  return tables;
+}
+
+function isPipeTableLine(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.includes("|", 1);
+}
+
+function isPipeTableSeparatorLine(line: string): boolean {
+  return parsePipeTableCells(line).every((cell) => /^:?-{1,}:?$/.test(cell));
+}
+
+function parsePipeTableCells(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function removeBlankLines(markdown: string): string {
+  return markdown
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .join("\n")
+    .trimEnd();
+}
+
+function countChangedLines(input: string, output: string): number {
+  return diffLines(input, output).filter((op) => op.type !== "same").length;
+}
+
+type DiffOp = {
+  type: "same" | "removed" | "added";
+  line: string;
+};
+
+function diffLines(original: string, changed: string): DiffOp[] {
+  const a = original.split("\n");
+  const b = changed.split("\n");
+  const dp = Array.from({ length: a.length + 1 }, () =>
+    Array.from({ length: b.length + 1 }, () => 0),
+  );
+
+  for (let i = a.length - 1; i >= 0; i -= 1) {
+    for (let j = b.length - 1; j >= 0; j -= 1) {
+      dp[i][j] = a[i] === b[j]
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  const ops: DiffOp[] = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      ops.push({ type: "same", line: a[i] });
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: "removed", line: a[i] });
+      i += 1;
+    } else {
+      ops.push({ type: "added", line: b[j] });
+      j += 1;
+    }
+  }
+
+  while (i < a.length) {
+    ops.push({ type: "removed", line: a[i] });
+    i += 1;
+  }
+
+  while (j < b.length) {
+    ops.push({ type: "added", line: b[j] });
+    j += 1;
+  }
+
+  return ops;
 }
 
 function collectFences(markdown: string): Fence[] {

@@ -20,6 +20,10 @@ This report shows the same agent-authored Markdown samples through the durable M
 
 Milkdown semantics: 1 checked / 2 unchecked task items; no tables
 
+Milkdown candidate normalization: frontmatterLoss, taskListMarkerStyle, other; 14 lines changed; 8 lines uncategorized
+
+Milkdown with Fold properties normalization: taskListMarkerStyle, blankLineSpacing; 9 lines changed
+
 ### Original Markdown
 
 ````md
@@ -147,6 +151,10 @@ Agents should preserve Markdown as a portable artifact.
 | Milkdown with Fold properties | no | tables, fencedCode, inlineCode | none |
 
 Milkdown semantics: no task items; 3 cols x 4 rows (12 total cells)
+
+Milkdown candidate normalization: tableFormatting, blankLineSpacing; 11 lines changed
+
+Milkdown with Fold properties normalization: tableFormatting, blankLineSpacing; 11 lines changed
 
 ### Original Markdown
 
@@ -297,6 +305,10 @@ npm run typecheck
 | Milkdown with Fold properties | no | fencedCode, mermaidFence, mathFence, inlineMath, links, images | none |
 
 Milkdown semantics: no task items; no tables
+
+Milkdown candidate normalization: blankLineSpacing; 1 line changed
+
+Milkdown with Fold properties normalization: blankLineSpacing; 1 line changed
 
 ### Original Markdown
 
@@ -466,6 +478,10 @@ Block math:
 | Milkdown with Fold properties | no | frontmatter, taskLists, tables, fencedCode, mermaidFence, mathFence, inlineMath, links, images, inlineCode | none |
 
 Milkdown semantics: 2 checked / 2 unchecked task items; 4 cols x 5 rows (20 total cells)
+
+Milkdown candidate normalization: frontmatterLoss, taskListMarkerStyle, tableFormatting, other; 29 lines changed; 9 lines uncategorized
+
+Milkdown with Fold properties normalization: taskListMarkerStyle, tableFormatting, blankLineSpacing; 24 lines changed
 
 ### Original Markdown
 

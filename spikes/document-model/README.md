@@ -68,14 +68,21 @@ Current results:
 - The properties-wrapped path still does not round-trip byte-for-byte because
   Milkdown normalizes list markers, table spacing, and other Markdown source
   formatting.
+- The comparison report now classifies Milkdown source rewrites. In the current
+  fixture set, the Fold-properties path categorizes all byte changes as
+  task-list marker style, table formatting, or blank-line spacing. Those are
+  categorized, not accepted: blank-line changes in particular still need review
+  because Markdown can treat spacing as meaningful. The raw Milkdown path still
+  has frontmatter-loss churn that remains in the `other` bucket because
+  frontmatter is parsed as document content rather than preserved metadata.
 
 This means Milkdown remains a stronger editing-surface candidate than the plain
 ProseMirror proxy. Fold's existing properties strategy removes the frontmatter
 blocker for the current body-editing flow, but not for native editable
 frontmatter. The candidate still fails the current replacement gate for Fold's
 source editor because source formatting normalization remains unresolved. The
-next editor spike needs a deliberate answer for acceptable Markdown
-normalization before product integration.
+next editor spike needs a deliberate answer for whether those explained
+normalizations are acceptable in review diffs before product integration.
 
 ## Markdown Canonical Result
 

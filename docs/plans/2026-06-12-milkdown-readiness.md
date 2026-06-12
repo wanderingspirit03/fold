@@ -44,6 +44,14 @@ candidate also preserves task-list checked/unchecked attrs and table row/cell
 nodes in the current fixtures. It still fails exact byte-for-byte round-trip
 because Milkdown normalizes Markdown source formatting.
 
+The report now classifies those rewrites instead of treating them as one vague
+diff. With Fold properties wrapped around the editor body, current fixture
+changes are categorized as task-list marker style, pipe-table formatting, and
+blank-line spacing. Categorized does not mean accepted: blank-line changes can
+affect Markdown semantics, so they still need a product/editor decision before a
+swap. Raw Milkdown still produces frontmatter-loss churn, which is why editable
+frontmatter remains outside the first editor swap.
+
 ## Candidate Package Scope
 
 Evaluate Milkdown as the first polished Markdown editor candidate with the package set already listed in `PLAN.md`:
@@ -69,6 +77,9 @@ Minimum pass criteria before product UI integration:
 
 - No loss of frontmatter via the Fold properties wrapper, task-list markers, pipe tables, code fence info strings, Mermaid fences, math fences, links, images, inline code, or long handoff formatting.
 - Exported Markdown is byte-for-byte identical or every difference is deliberately accepted in this file and `PLAN.md`.
+- Any accepted difference has a named normalization category in the
+  document-model report and does not create noisy review diffs for agents or
+  humans.
 - Markdown remains the persisted encrypted room payload.
 - Any editor state is derived/helper state and can be rebuilt from the Markdown string.
 - Undo/redo, clipboard, selection, and indentation feel materially better than the current source textarea.

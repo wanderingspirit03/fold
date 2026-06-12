@@ -104,6 +104,7 @@ Primary reference: `DESIGN.md`.
 - Audited current Milkdown package metadata and narrowed the next editor prototype to core/preset fidelity checks before Crepe or collab packages.
 - Added a hidden Milkdown CommonMark/GFM fidelity harness; wrapping Fold properties preserves frontmatter, but exact Markdown bytes still fail.
 - Strengthened the Milkdown harness with structural task-list and table semantics checks.
+- Classified Milkdown source rewrites so the remaining editor gate can separate acceptable formatting normalization from unexplained Markdown churn.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
