@@ -817,7 +817,7 @@ export default function RoomPage() {
     if (conflict.remoteDeleted) {
       const { [conflict.path]: _deleted, ...rest } = virtualFilesRef.current;
       const nextSelectedPath = selectedFilePathRef.current === conflict.path
-        ? Object.keys(rest).sort()[0] || projectPrimaryPathRef.current || DEFAULT_PROJECT_FILE_PATH
+        ? nextSelectedPathAfterDeletion(rest, projectPrimaryPathRef.current)
         : selectedFilePathRef.current;
       setVirtualFiles(rest);
       setSelectedFilePath(nextSelectedPath);
@@ -1388,6 +1388,11 @@ function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function nextSelectedPathAfterDeletion(files: Record<string, string>, primaryPath: string) {
+  if (primaryPath && Object.prototype.hasOwnProperty.call(files, primaryPath)) return primaryPath;
+  return Object.keys(files).sort()[0] || DEFAULT_PROJECT_FILE_PATH;
 }
 
 function createMarkdownReplacementUpdate(currentMarkdown: string, replacementMarkdown: string): Uint8Array {
