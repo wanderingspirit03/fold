@@ -122,6 +122,7 @@ Primary reference: `DESIGN.md`.
 - Added a hidden Milkdown CommonMark/GFM fidelity harness; wrapping Fold properties preserves frontmatter, but exact Markdown bytes still fail.
 - Strengthened the Milkdown harness with structural task-list and table semantics checks.
 - Classified Milkdown source rewrites so the remaining editor gate can separate acceptable formatting normalization from unexplained Markdown churn.
+- Added compact named-version size metadata and a restore confirmation delta so long-document checkpoint restores show their line/word impact without adding review-drawer prose.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
@@ -140,7 +141,7 @@ Primary reference: `DESIGN.md`.
 - Keep tuning inline annotation contrast across dark and bright themes without making the document feel marked up.
 - Keep richer presence hints useful without revealing document content to the server or relying on server-readable awareness state.
 - Continue hardening multi-user project-file conflicts beyond stale snapshot rejection and incoming-edit pause; richer Markdown merge/rebase semantics are still open.
-- Keep named versions lightweight and verify restore clarity against long documents.
+- Keep named versions lightweight while continuing to verify restore clarity against long documents.
 - Keep empty states sparse and document-native as more project creation/import states are added.
 - Continue measuring long-document readability against the Obsidian reference screenshots.
 - Prototype Milkdown behind the readiness gate before replacing the source editor.

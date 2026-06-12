@@ -252,6 +252,8 @@ export function AgentBench({
               <div className="space-y-0.5">
                 {recentVersions.map((version) => {
                   const confirmingRestore = restoreCandidateId === version.id;
+                  const versionStats = markdownStats(version.markdown);
+                  const restoreImpact = restoreImpactLabel(markdown, version.markdown);
 
                   return (
                     <div
@@ -265,15 +267,20 @@ export function AgentBench({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs leading-5 text-ink-muted">{version.title}</p>
                         <p className="truncate font-mono text-[11px] text-ink-subtle">
-                          {formatTime(version.createdAt)} · {version.persona.name}
+                          {formatTime(version.createdAt)} · {version.persona.name} · {versionStats.lines}l/{versionStats.words}w
                         </p>
                       </div>
                       {confirmingRestore ? (
-                        <div className="flex shrink-0 items-center gap-1" role="group" aria-label={`Confirm restore ${version.title}`}>
+                        <div
+                          className="flex shrink-0 items-center gap-1"
+                          role="group"
+                          aria-label={`Confirm restore ${version.title}: ${restoreImpact}`}
+                        >
+                          <span className="hidden text-[11px] text-midnight-strong lg:inline">{restoreImpact}</span>
                           <span className="text-[11px] text-midnight-strong">Restore?</span>
                           <button
                             type="button"
-                            aria-label={`Confirm restore ${version.title}`}
+                            aria-label={`Confirm restore ${version.title}: ${restoreImpact}`}
                             title={`Confirm restore ${version.title}`}
                             onClick={() => {
                               onRestoreVersion(version);
@@ -425,4 +432,28 @@ function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function markdownStats(markdown: string) {
+  const trimmed = markdown.trim();
+  return {
+    lines: trimmed ? trimmed.split(/\r?\n/).length : 0,
+    words: trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0,
+  };
+}
+
+function restoreImpactLabel(currentMarkdown: string, versionMarkdown: string) {
+  const current = markdownStats(currentMarkdown);
+  const next = markdownStats(versionMarkdown);
+  const lineDelta = next.lines - current.lines;
+  const wordDelta = next.words - current.words;
+  const lineText = signedCount(lineDelta, "line");
+  const wordText = signedCount(wordDelta, "word");
+  return `${lineText}, ${wordText}`;
+}
+
+function signedCount(value: number, label: string) {
+  if (value === 0) return `0 ${label}s`;
+  const suffix = Math.abs(value) === 1 ? label : `${label}s`;
+  return `${value > 0 ? "+" : ""}${value} ${suffix}`;
 }
