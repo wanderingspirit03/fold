@@ -394,7 +394,7 @@ export default function RoomPage() {
     if (rec.senderId.startsWith(PROJECT_SENDER_ID)) {
       const parsed = await decryptJson<ProjectSnapshot>(payload, cryptKey, rec);
       if (!isProjectSnapshot(parsed)) return;
-      applyProjectSnapshot(parsed);
+      applyProjectSnapshot(parsed, { respectLocalDrafts: true });
       return;
     }
 
@@ -490,19 +490,41 @@ export default function RoomPage() {
     }
   };
 
-  const applyProjectSnapshot = (snapshot: ProjectSnapshot) => {
+  const applyProjectSnapshot = (snapshot: ProjectSnapshot, options: { respectLocalDrafts?: boolean } = {}) => {
     const normalized = normalizeProjectSnapshot(snapshot);
     const files = Object.fromEntries(normalized.files.map((file) => [file.path, file.markdown]));
     const updatedAt = Object.fromEntries(normalized.files.map((file) => [file.path, normalized.updatedAt]));
+    const nextConflicts: Record<string, FileConflict> = {};
+    if (options.respectLocalDrafts) {
+      for (const file of normalized.files) {
+        if (isStaleProjectFileSnapshot(projectFileUpdatedAtRef.current[file.path], normalized.updatedAt)) {
+          files[file.path] = virtualFilesRef.current[file.path] ?? "";
+          updatedAt[file.path] = projectFileUpdatedAtRef.current[file.path] ?? normalized.updatedAt;
+          continue;
+        }
+
+        if (!shouldDeferRemoteProjectFile(file.path, file.markdown, normalized.updatedAt)) continue;
+
+        const existingConflict = fileConflictsRef.current[file.path];
+        if (!existingConflict || !isStaleProjectFileSnapshot(existingConflict.remoteUpdatedAt, normalized.updatedAt)) {
+          nextConflicts[file.path] = createFileConflict(file.path, file.markdown, normalized.updatedAt);
+        } else {
+          nextConflicts[file.path] = existingConflict;
+        }
+        clearPendingProjectFileTimer(file.path);
+        files[file.path] = virtualFilesRef.current[file.path] ?? "";
+        updatedAt[file.path] = projectFileUpdatedAtRef.current[file.path] ?? normalized.updatedAt;
+      }
+    }
     hasRemoteProjectStateRef.current = true;
     projectPrimaryPathRef.current = normalized.primaryPath;
     projectFileUpdatedAtRef.current = updatedAt;
-    fileConflictsRef.current = {};
+    fileConflictsRef.current = nextConflicts;
     setHasRemoteProjectState(true);
     setProjectPrimaryPath(normalized.primaryPath);
     setVirtualFiles(files);
     setProjectFileUpdatedAt(updatedAt);
-    setFileConflicts({});
+    setFileConflicts(nextConflicts);
     if (!hasLoadedPreferredFile || !files[selectedFilePath]) {
       setSelectedFilePath(normalized.primaryPath);
     }
@@ -728,18 +750,25 @@ export default function RoomPage() {
     if (existingConflict && isStaleProjectFileSnapshot(existingConflict.remoteUpdatedAt, snapshot.updatedAt)) return;
 
     clearPendingProjectFileTimer(path);
-    const conflict: FileConflict = {
-      path,
-      localMarkdown: virtualFilesRef.current[path] ?? "",
-      localUpdatedAt: projectFileUpdatedAtRef.current[path],
-      remoteMarkdown: snapshot.markdown,
-      remoteUpdatedAt: snapshot.updatedAt,
-      persona: snapshot.persona,
-      createdAt: new Date().toISOString(),
-    };
+    const conflict = createFileConflict(path, snapshot.markdown, snapshot.updatedAt, snapshot.persona);
     fileConflictsRef.current = { ...fileConflictsRef.current, [path]: conflict };
     setFileConflicts((current) => ({ ...current, [path]: conflict }));
   };
+
+  const createFileConflict = (
+    path: string,
+    remoteMarkdown: string,
+    remoteUpdatedAt: string,
+    persona?: RoomPersona,
+  ): FileConflict => ({
+    path,
+    localMarkdown: virtualFilesRef.current[path] ?? "",
+    localUpdatedAt: projectFileUpdatedAtRef.current[path],
+    remoteMarkdown,
+    remoteUpdatedAt,
+    persona,
+    createdAt: new Date().toISOString(),
+  });
 
   const clearFileConflict = (path: string) => {
     if (!fileConflictsRef.current[path]) return;
