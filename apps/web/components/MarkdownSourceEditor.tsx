@@ -116,14 +116,14 @@ export default function MarkdownSourceEditor({
           spellCheck={false}
           className="min-h-[520px] flex-1 resize-none rounded-none border-0 bg-document px-6 pb-8 pt-8 font-mono text-[13px] leading-6 text-document-ink shadow-none outline-none placeholder:text-document-subtle selection:bg-midnight-soft focus-visible:ring-0 sm:min-h-[640px] sm:px-12 sm:pt-10 lg:px-16"
         />
+        <span id="markdown-source-keyboard-hint" className="sr-only">
+          {keyboardHint}
+        </span>
         <div
           data-editor-stats="true"
           aria-label={`${counts.lines} lines, ${counts.words} words`}
-          className="flex items-center justify-between gap-3 border-t border-document-edge bg-document px-4 py-2 font-mono text-[11px] text-document-subtle"
+          className="flex items-center justify-end gap-3 border-t border-document-edge bg-document px-4 py-2 font-mono text-[11px] text-document-subtle"
         >
-          <span id="markdown-source-keyboard-hint" className="truncate">
-            {keyboardHint}
-          </span>
           <span className="flex shrink-0 items-center gap-3">
             <span>{counts.lines} lines</span>
             <span aria-hidden="true" className="text-document-edge">/</span>

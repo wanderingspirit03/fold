@@ -93,6 +93,7 @@ Primary reference: `DESIGN.md`.
 - Hid the already-active read/edit mode from the default quick switcher while preserving mode search.
 - Removed zero-count review drawer chrome from empty project states while keeping versions and activity available.
 - Made web human personas stable per browser profile and deduped same-persona presence avatars across tabs.
+- Removed visible shortcut/tutorial chrome from the source editor footer and command palette while preserving accessible keyboard context.
 - Polished sidebar file creation into a compact project-tree row with normalized Markdown paths, confirm/cancel controls, and duplicate-path feedback.
 - Hid the routine empty-room creation event from the review drawer so first-open rooms stay focused on document work.
 - Hid the empty-file checkpoint form from the review drawer until a file has content or saved versions.

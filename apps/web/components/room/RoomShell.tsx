@@ -1520,7 +1520,6 @@ function ProjectCommandPalette({
               placeholder="Open file or command"
               className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-subtle"
             />
-            <span className="rounded border border-studio-line px-1.5 py-0.5 font-mono text-[10px] text-ink-subtle">Esc</span>
           </label>
         </form>
         <div id={listboxId} role="listbox" className="max-h-[420px] overflow-y-auto p-1.5">
