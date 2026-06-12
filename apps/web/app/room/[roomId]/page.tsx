@@ -95,6 +95,9 @@ export default function RoomPage() {
   const presenceActivityTimerRef = useRef<number | null>(null);
   const virtualFilesRef = useRef(virtualFiles);
   const projectFileUpdatedAtRef = useRef(projectFileUpdatedAt);
+  const localMyPersonaRef = useRef<RoomPersona | null>(localMyPersona);
+  const selectedFilePathRef = useRef(selectedFilePath);
+  const editModeRef = useRef(editMode);
   const hasRemoteProjectStateRef = useRef(false);
   const projectPrimaryPathRef = useRef("");
   const bootstrappedInitialProjectRef = useRef(false);
@@ -121,6 +124,18 @@ export default function RoomPage() {
   useEffect(() => {
     virtualFilesRef.current = virtualFiles;
   }, [virtualFiles]);
+
+  useEffect(() => {
+    localMyPersonaRef.current = localMyPersona;
+  }, [localMyPersona]);
+
+  useEffect(() => {
+    selectedFilePathRef.current = selectedFilePath;
+  }, [selectedFilePath]);
+
+  useEffect(() => {
+    editModeRef.current = editMode;
+  }, [editMode]);
 
   useEffect(() => {
     projectFileUpdatedAtRef.current = projectFileUpdatedAt;
@@ -788,6 +803,60 @@ export default function RoomPage() {
   }, [clientId, editMode, isConnected, isKeyConfigured, localMyPersona, presenceActivity, roomId, selectedFilePath, serverUrl]);
 
   useEffect(() => {
+    if (!roomId || !isKeyConfigured) return;
+
+    let cancelled = false;
+    const sendLeavePresence = async () => {
+      const key = keyRef.current;
+      const persona = localMyPersonaRef.current;
+      const socket = socketRef.current;
+      if (!key || !persona || cancelled || socket?.readyState !== WebSocket.OPEN) return;
+
+      try {
+        const now = Date.now();
+        const senderId = `${PRESENCE_SENDER_ID}:${clientId}`;
+        const record: CollaborationPresence = {
+          schema: "fold.presence.v1",
+          clientId,
+          authorPersonaId: persona.id,
+          persona,
+          filePath: selectedFilePathRef.current,
+          mode: editModeRef.current,
+          status: "left",
+          activity: "idle",
+          updatedAt: new Date(now).toISOString(),
+          expiresAt: new Date(now).toISOString(),
+        };
+        const encrypted = await encryptUpdate(encoder.encode(JSON.stringify(record)), key, {
+          roomId,
+          senderId,
+        });
+        if (socket.readyState !== WebSocket.OPEN) return;
+        socket.send(
+          JSON.stringify({
+            type: "encrypted-update",
+            update: {
+              senderId,
+              ...encrypted,
+            },
+          }),
+        );
+      } catch {
+        // Leave presence is best-effort; stale collaborators still expire via TTL.
+      }
+    };
+    const onPageHide = () => {
+      void sendLeavePresence();
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      void sendLeavePresence();
+      cancelled = true;
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [clientId, isKeyConfigured, roomId]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setPresenceClock(Date.now()), 15_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -1105,7 +1174,7 @@ function activePresencesForFile(
   now: number,
 ): CollaborationPresence[] {
   return Object.values(presences)
-    .filter((presence) => presence.filePath === filePath && new Date(presence.expiresAt).getTime() > now)
+    .filter((presence) => presence.status !== "left" && presence.filePath === filePath && new Date(presence.expiresAt).getTime() > now)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
@@ -1117,7 +1186,7 @@ function isCollaborationPresence(value: unknown): value is CollaborationPresence
     && typeof presence.filePath === "string"
     && presence.persona?.schema === "fold.persona.v1"
     && (presence.mode === "read" || presence.mode === "edit")
-    && (presence.status === "viewing" || presence.status === "editing")
+    && (presence.status === "viewing" || presence.status === "editing" || presence.status === "left")
     && (!presence.activity || presence.activity === "idle" || presence.activity === "typing" || presence.activity === "commenting")
     && typeof presence.updatedAt === "string"
     && typeof presence.expiresAt === "string";
@@ -1281,6 +1350,7 @@ function activePresencesByFile(
 ): Map<string, CollaborationPresence[]> {
   const byPath = new Map<string, CollaborationPresence[]>();
   for (const presence of Object.values(presences)) {
+    if (presence.status === "left") continue;
     if (new Date(presence.expiresAt).getTime() <= now) continue;
     const list = byPath.get(presence.filePath) || [];
     list.push(presence);

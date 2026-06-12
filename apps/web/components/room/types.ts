@@ -74,7 +74,7 @@ export interface CollaborationPresence {
   persona: RoomPersona;
   filePath: string;
   mode: RoomMode;
-  status: "viewing" | "editing";
+  status: "viewing" | "editing" | "left";
   activity?: "idle" | "typing" | "commenting";
   updatedAt: string;
   expiresAt: string;
