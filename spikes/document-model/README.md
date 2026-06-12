@@ -10,6 +10,9 @@ app chooses an editor architecture.
 - Milkdown candidate: Milkdown CommonMark plus GFM parse/serialize in a hidden
   jsdom harness, used to test the first planned polished editor candidate
   without replacing the product editor.
+- Milkdown with Fold properties: the same Milkdown body parse/serialize path,
+  but with frontmatter/properties kept outside the editor body and reattached,
+  matching the current web edit-mode strategy.
 
 ## Decision Criteria
 
@@ -57,12 +60,19 @@ Current results:
   inline code survive in the current sample set.
 - YAML frontmatter still does not survive as a leading metadata block.
 - No fixture currently round-trips byte-for-byte through Milkdown.
+- When Fold properties are wrapped around the Milkdown body, frontmatter is
+  preserved and no required feature is lost in the current sample set.
+- The properties-wrapped path still does not round-trip byte-for-byte because
+  Milkdown normalizes list markers, table spacing, and other Markdown source
+  formatting.
 
 This means Milkdown remains a stronger editing-surface candidate than the plain
-ProseMirror proxy, but it still fails the current replacement gate for Fold's
-source editor. The next editor spike needs frontmatter handling, deeper
-task-list semantics checks, and a deliberate answer for source formatting
-normalization before product integration.
+ProseMirror proxy. Fold's existing properties strategy removes the frontmatter
+blocker for the current body-editing flow, but not for native editable
+frontmatter. The candidate still fails the current replacement gate for Fold's
+source editor because source formatting normalization remains unresolved. The
+next editor spike needs deeper task-list semantics checks and a deliberate
+answer for acceptable Markdown normalization before product integration.
 
 ## Markdown Canonical Result
 
@@ -88,5 +98,4 @@ Editor-native structures may still help the UI, comments, or block interactions,
 but they should remain derived/helper state unless a richer stack proves
 lossless fidelity for required Markdown features. Plain `prosemirror-markdown`
 is not enough by itself for agent-authored Markdown, and Milkdown CommonMark plus
-GFM is not enough yet because frontmatter and byte-level formatting fidelity
-still fail.
+GFM is not enough yet because byte-level formatting fidelity still fails.

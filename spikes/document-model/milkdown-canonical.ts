@@ -2,6 +2,7 @@ import { JSDOM } from "jsdom";
 import { commonmark } from "@milkdown/preset-commonmark";
 import { gfm } from "@milkdown/preset-gfm";
 import type { Node as ProseMirrorNode } from "@milkdown/prose/model";
+import { extractMarkdownProperties } from "../../apps/web/lib/markdown-properties.js";
 import type { EditorCanonicalFeature, FeatureResult } from "./editor-canonical.js";
 
 export type MilkdownCanonicalReport = {
@@ -68,6 +69,38 @@ let browserDom: JSDOM | null = null;
 export async function analyzeMilkdownCanonicalRoundTrip(
   markdown: string,
 ): Promise<MilkdownCanonicalReport> {
+  return analyzeMilkdownMarkdown(markdown, markdown);
+}
+
+export async function analyzeMilkdownWithPropertiesRoundTrip(
+  markdown: string,
+): Promise<MilkdownCanonicalReport> {
+  const properties = extractMarkdownProperties(markdown);
+  const bodyReport = await analyzeMilkdownMarkdown(properties.content, markdown);
+  const output = `${properties.propertySource}${bodyReport.output}`;
+  const features = analyzeFeatures(markdown, output);
+  const detectedFeatures = features.filter((feature) => feature.detected);
+  const preservedFeatures = detectedFeatures.filter((feature) => feature.preserved);
+
+  return {
+    input: markdown,
+    output,
+    exactRoundTrip: output === markdown,
+    nodeCounts: bodyReport.nodeCounts,
+    features,
+    detectedFeatureCount: detectedFeatures.length,
+    preservedFeatureCount: preservedFeatures.length,
+    preservedFeatureNames: preservedFeatures.map((feature) => feature.feature),
+    lostFeatureNames: detectedFeatures
+      .filter((feature) => !feature.preserved)
+      .map((feature) => feature.feature),
+  };
+}
+
+async function analyzeMilkdownMarkdown(
+  editorMarkdown: string,
+  reportInput: string,
+): Promise<MilkdownCanonicalReport> {
   installBrowserGlobals();
   const editorRoot = document.querySelector("#editor");
 
@@ -85,7 +118,7 @@ export async function analyzeMilkdownCanonicalRoundTrip(
   const editor = await Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, editorRoot as HTMLElement);
-      ctx.set(defaultValueCtx, markdown);
+      ctx.set(defaultValueCtx, editorMarkdown);
     })
     .use(commonmark)
     .use(gfm)
@@ -95,21 +128,21 @@ export async function analyzeMilkdownCanonicalRoundTrip(
     const { output, doc } = editor.action((ctx) => {
       const parser = ctx.get(parserCtx) as MilkdownParser;
       const serializer = ctx.get(serializerCtx) as MilkdownSerializer;
-      const parsedDoc = parser(markdown);
+      const parsedDoc = parser(editorMarkdown);
 
       return {
         doc: parsedDoc,
         output: serializer(parsedDoc),
       };
     });
-    const features = analyzeFeatures(markdown, output);
+    const features = analyzeFeatures(reportInput, output);
     const detectedFeatures = features.filter((feature) => feature.detected);
     const preservedFeatures = detectedFeatures.filter((feature) => feature.preserved);
 
     return {
-      input: markdown,
+      input: reportInput,
       output,
-      exactRoundTrip: output === markdown,
+      exactRoundTrip: output === reportInput,
       nodeCounts: countNodes(doc),
       features,
       detectedFeatureCount: detectedFeatures.length,

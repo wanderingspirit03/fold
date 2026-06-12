@@ -5,12 +5,16 @@ import {
   createMarkdownCanonicalDocument,
   serializeMarkdownCanonical,
 } from "./markdown-canonical.js";
-import { analyzeMilkdownCanonicalRoundTrip } from "./milkdown-canonical.js";
+import {
+  analyzeMilkdownCanonicalRoundTrip,
+  analyzeMilkdownWithPropertiesRoundTrip,
+} from "./milkdown-canonical.js";
 import { loadMarkdownSamples } from "./sample-loader.js";
 
 const reportPath = "spikes/document-model/COMPARISON.md";
 const samples = await loadMarkdownSamples();
 const milkdownReportsByName = new Map<string, Awaited<ReturnType<typeof analyzeMilkdownCanonicalRoundTrip>>>();
+const milkdownPropertiesReportsByName = new Map<string, Awaited<ReturnType<typeof analyzeMilkdownWithPropertiesRoundTrip>>>();
 
 const sections: string[] = [];
 
@@ -22,7 +26,9 @@ for (const sample of samples) {
   const markdownReport = analyzeMarkdownCanonicalRoundTrip(sample.markdown);
   const editorReport = analyzeEditorCanonicalRoundTrip(sample.markdown);
   const milkdownReport = await analyzeMilkdownCanonicalRoundTrip(sample.markdown);
+  const milkdownPropertiesReport = await analyzeMilkdownWithPropertiesRoundTrip(sample.markdown);
   milkdownReportsByName.set(sample.name, milkdownReport);
+  milkdownPropertiesReportsByName.set(sample.name, milkdownPropertiesReport);
 
   sections.push(`## ${sample.name}
 
@@ -33,6 +39,7 @@ for (const sample of samples) {
 | Markdown canonical | ${markdownReport.exactRoundTrip ? "yes" : "no"} | ${formatList(markdownReport.preservedFeatureNames)} | ${formatList(markdownReport.lostFeatureNames)} |
 | Editor canonical | ${editorReport.output === sample.markdown ? "yes" : "no"} | ${formatList(editorReport.preservedFeatureNames)} | ${formatList(editorReport.lostFeatureNames)} |
 | Milkdown candidate | ${milkdownReport.exactRoundTrip ? "yes" : "no"} | ${formatList(milkdownReport.preservedFeatureNames)} | ${formatList(milkdownReport.lostFeatureNames)} |
+| Milkdown with Fold properties | ${milkdownPropertiesReport.exactRoundTrip ? "yes" : "no"} | ${formatList(milkdownPropertiesReport.preservedFeatureNames)} | ${formatList(milkdownPropertiesReport.lostFeatureNames)} |
 
 ### Original Markdown
 
@@ -57,16 +64,23 @@ ${editorReport.output}
 \`\`\`\`md
 ${milkdownReport.output}
 \`\`\`\`
+
+### Milkdown With Fold Properties Export
+
+\`\`\`\`md
+${milkdownPropertiesReport.output}
+\`\`\`\`
 `);
 }
 
 const report = `# Document Model Comparison Report
 
-This report shows the same agent-authored Markdown samples through the durable Markdown model and two editor candidates.
+This report shows the same agent-authored Markdown samples through the durable Markdown model, plain ProseMirror serialization, Milkdown, and Milkdown with Fold properties.
 
 - Markdown canonical keeps raw Markdown as the live \`Y.Text\` document.
 - Editor canonical parses Markdown into a ProseMirror document and serializes it back with \`prosemirror-markdown\`.
 - Milkdown candidate parses and serializes Markdown with Milkdown CommonMark plus GFM in a hidden jsdom harness.
+- Milkdown with Fold properties keeps frontmatter/properties outside the editor body, matching the current web edit-mode strategy.
 
 ${sections.join("\n")}
 `;
@@ -90,8 +104,9 @@ function renderHtmlReport(): string {
     const markdownReport = analyzeMarkdownCanonicalRoundTrip(sample.markdown);
     const editorReport = analyzeEditorCanonicalRoundTrip(sample.markdown);
     const milkdownReport = milkdownReportsByName.get(sample.name);
+    const milkdownPropertiesReport = milkdownPropertiesReportsByName.get(sample.name);
 
-    if (!milkdownReport) {
+    if (!milkdownReport || !milkdownPropertiesReport) {
       throw new Error(`Missing Milkdown report for ${sample.name}`);
     }
 
@@ -101,12 +116,14 @@ function renderHtmlReport(): string {
         <div><strong>Markdown canonical:</strong> exact round-trip: ${markdownReport.exactRoundTrip ? "yes" : "no"}; lost: ${escapeHtml(formatList(markdownReport.lostFeatureNames))}</div>
         <div><strong>Editor canonical:</strong> exact round-trip: ${editorReport.output === sample.markdown ? "yes" : "no"}; lost: ${escapeHtml(formatList(editorReport.lostFeatureNames))}</div>
         <div><strong>Milkdown candidate:</strong> exact round-trip: ${milkdownReport.exactRoundTrip ? "yes" : "no"}; lost: ${escapeHtml(formatList(milkdownReport.lostFeatureNames))}</div>
+        <div><strong>Milkdown with Fold properties:</strong> exact round-trip: ${milkdownPropertiesReport.exactRoundTrip ? "yes" : "no"}; lost: ${escapeHtml(formatList(milkdownPropertiesReport.lostFeatureNames))}</div>
       </div>
       <div class="grid">
         ${renderPane("Original Markdown", sample.markdown)}
         ${renderPane("Markdown-Canonical Export", markdownOutput)}
         ${renderPane("Editor-Canonical Export", editorReport.output)}
         ${renderPane("Milkdown Candidate Export", milkdownReport.output)}
+        ${renderPane("Milkdown With Fold Properties Export", milkdownPropertiesReport.output)}
       </div>
       <div class="diff">
         <h3>Editor-Canonical Changes vs Original</h3>
@@ -115,6 +132,10 @@ function renderHtmlReport(): string {
       <div class="diff">
         <h3>Milkdown Candidate Changes vs Original</h3>
         <pre><code>${renderLineDiff(sample.markdown, milkdownReport.output)}</code></pre>
+      </div>
+      <div class="diff">
+        <h3>Milkdown With Fold Properties Changes vs Original</h3>
+        <pre><code>${renderLineDiff(sample.markdown, milkdownPropertiesReport.output)}</code></pre>
       </div>
     </section>`);
   }
@@ -170,7 +191,7 @@ function renderHtmlReport(): string {
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(260px, 1fr));
+      grid-template-columns: repeat(5, minmax(250px, 1fr));
       gap: 12px;
       align-items: stretch;
     }
@@ -244,7 +265,7 @@ function renderHtmlReport(): string {
 <body>
   <header>
     <h1>Document Model Comparison</h1>
-    <p>Compare the same agent-authored Markdown through raw Markdown/Y.Text, plain ProseMirror serialization, and the hidden Milkdown CommonMark/GFM candidate.</p>
+    <p>Compare the same agent-authored Markdown through raw Markdown/Y.Text, plain ProseMirror serialization, the hidden Milkdown CommonMark/GFM candidate, and Milkdown with Fold properties wrapped around the editor body.</p>
   </header>
   <main>${sampleCards.join("\n")}</main>
 </body>

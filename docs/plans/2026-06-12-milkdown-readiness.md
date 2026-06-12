@@ -37,6 +37,12 @@ The current ProseMirror/CommonMark proxy still fails exact round-trip on the req
 
 This does not disqualify Milkdown as an editor. It means a plain ProseMirror Markdown parse/serialize path is not enough for Fold's canonical document model.
 
+The first hidden Milkdown CommonMark/GFM harness improved the result: task-list
+Markdown syntax and table Markdown survive, and frontmatter survives if Fold
+keeps properties outside the editor body and reattaches them afterward. The
+candidate still fails exact byte-for-byte round-trip because Milkdown normalizes
+Markdown source formatting.
+
 ## Candidate Package Scope
 
 Evaluate Milkdown as the first polished Markdown editor candidate with the package set already listed in `PLAN.md`:
@@ -60,7 +66,7 @@ The Milkdown prototype must run the same fixture set used by `spikes/document-mo
 
 Minimum pass criteria before product UI integration:
 
-- No loss of frontmatter, task-list markers, pipe tables, code fence info strings, Mermaid fences, math fences, links, images, inline code, or long handoff formatting.
+- No loss of frontmatter via the Fold properties wrapper, task-list markers, pipe tables, code fence info strings, Mermaid fences, math fences, links, images, inline code, or long handoff formatting.
 - Exported Markdown is byte-for-byte identical or every difference is deliberately accepted in this file and `PLAN.md`.
 - Markdown remains the persisted encrypted room payload.
 - Any editor state is derived/helper state and can be rebuilt from the Markdown string.

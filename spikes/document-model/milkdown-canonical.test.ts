@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   analyzeMilkdownCanonicalRoundTrip,
+  analyzeMilkdownWithPropertiesRoundTrip,
   summarizeMilkdownCanonicalReports,
 } from "./milkdown-canonical.js";
 import { MARKDOWN_SAMPLE_NAMES } from "./sample-loader.js";
@@ -32,6 +33,17 @@ describe("milkdown editor candidate", () => {
     expect(report.output).not.toMatch(/^---\ntitle: Agent Plan\nowner: coding-agent\n---/);
     expect(report.output).toContain("* [x] Verify E2EE spike");
     expect(report.output).not.toContain("- [x] Verify E2EE spike");
+  });
+
+  it("preserves frontmatter when Fold properties are wrapped around the editor body", async () => {
+    const report = await analyzeMilkdownWithPropertiesRoundTrip(readSample("agent-plan.md"));
+
+    expect(report.exactRoundTrip).toBe(false);
+    expect(report.preservedFeatureNames).toContain("frontmatter");
+    expect(report.preservedFeatureNames).toContain("taskLists");
+    expect(report.lostFeatureNames).not.toContain("frontmatter");
+    expect(report.output).toMatch(/^---\ntitle: Agent Plan\nowner: coding-agent\n---/);
+    expect(report.output).toContain("* [x] Verify E2EE spike");
   });
 
   it("preserves pipe table structure while normalizing table separators", async () => {
@@ -77,6 +89,20 @@ describe("milkdown editor candidate", () => {
     expect(report.preservedFeatureNames).toContain("mathFence");
   });
 
+  it("keeps long handoff frontmatter when properties are wrapped around Milkdown output", async () => {
+    const report = await analyzeMilkdownWithPropertiesRoundTrip(
+      readSample("long-agent-handoff.md"),
+    );
+
+    expect(report.exactRoundTrip).toBe(false);
+    expect(report.preservedFeatureNames).toContain("frontmatter");
+    expect(report.preservedFeatureNames).toContain("taskLists");
+    expect(report.preservedFeatureNames).toContain("tables");
+    expect(report.preservedFeatureNames).toContain("fencedCode");
+    expect(report.lostFeatureNames).toEqual([]);
+    expect(report.output).toMatch(/^---\ntitle: Agent Handoff Review\nowner: review-agent\nroom: fold-ui\nstatus: active\n---/);
+  });
+
   it("summarizes Milkdown feature preservation across the sample set", async () => {
     const reports = [];
 
@@ -94,5 +120,21 @@ describe("milkdown editor candidate", () => {
     expect(summary.mathFence).toEqual({ detected: 2, preserved: 2 });
     expect(summary.links).toEqual({ detected: 2, preserved: 2 });
     expect(summary.images).toEqual({ detected: 2, preserved: 2 });
+  });
+
+  it("summarizes properties-wrapped Milkdown preservation across the sample set", async () => {
+    const reports = [];
+
+    for (const sample of MARKDOWN_SAMPLE_NAMES) {
+      reports.push(await analyzeMilkdownWithPropertiesRoundTrip(readSample(sample)));
+    }
+
+    const summary = summarizeMilkdownCanonicalReports(reports);
+
+    expect(summary.frontmatter).toEqual({ detected: 2, preserved: 2 });
+    expect(summary.taskLists).toEqual({ detected: 2, preserved: 2 });
+    expect(summary.tables).toEqual({ detected: 2, preserved: 2 });
+    expect(summary.fencedCode).toEqual({ detected: 3, preserved: 3 });
+    expect(reports.every((report) => !report.exactRoundTrip)).toBe(true);
   });
 });

@@ -102,7 +102,7 @@ Primary reference: `DESIGN.md`.
 - Expanded the document-model fidelity spike with a long agent handoff sample before swapping in a polished editor surface.
 - Added a Milkdown readiness gate so a richer editor must prove Markdown fidelity, quiet UX, and collaboration mapping before replacing the source editor.
 - Audited current Milkdown package metadata and narrowed the next editor prototype to core/preset fidelity checks before Crepe or collab packages.
-- Added a hidden Milkdown CommonMark/GFM fidelity harness; task-list and table Markdown survive, but frontmatter and exact Markdown bytes still fail.
+- Added a hidden Milkdown CommonMark/GFM fidelity harness; wrapping Fold properties preserves frontmatter, but exact Markdown bytes still fail.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 

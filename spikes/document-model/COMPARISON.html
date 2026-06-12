@@ -49,7 +49,7 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(260px, 1fr));
+      grid-template-columns: repeat(5, minmax(250px, 1fr));
       gap: 12px;
       align-items: stretch;
     }
@@ -123,7 +123,7 @@
 <body>
   <header>
     <h1>Document Model Comparison</h1>
-    <p>Compare the same agent-authored Markdown through raw Markdown/Y.Text, plain ProseMirror serialization, and the hidden Milkdown CommonMark/GFM candidate.</p>
+    <p>Compare the same agent-authored Markdown through raw Markdown/Y.Text, plain ProseMirror serialization, the hidden Milkdown CommonMark/GFM candidate, and Milkdown with Fold properties wrapped around the editor body.</p>
   </header>
   <main><section class="sample">
       <h2>agent-plan.md</h2>
@@ -131,6 +131,7 @@
         <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
         <div><strong>Editor canonical:</strong> exact round-trip: no; lost: frontmatter, taskLists</div>
         <div><strong>Milkdown candidate:</strong> exact round-trip: no; lost: frontmatter</div>
+        <div><strong>Milkdown with Fold properties:</strong> exact round-trip: no; lost: none</div>
       </div>
       <div class="grid">
         <article class="pane"><h3>Original Markdown</h3><pre><code>---
@@ -204,6 +205,25 @@ owner: coding-agent
 
 Agents should preserve Markdown as a portable artifact.
 </code></pre></article>
+        <article class="pane"><h3>Milkdown With Fold Properties Export</h3><pre><code>---
+title: Agent Plan
+owner: coding-agent
+---
+
+# Agent Plan
+
+## Goals
+
+* [ ] Build CLI publish
+
+* [x] Verify E2EE spike
+
+* [ ] Compare document models
+
+## Notes
+
+Agents should preserve Markdown as a portable artifact.
+</code></pre></article>
       </div>
       <div class="diff">
         <h3>Editor-Canonical Changes vs Original</h3>
@@ -260,6 +280,32 @@ Agents should preserve Markdown as a portable artifact.
 <span class="same">  </span>
 <span class="removed">- </span></code></pre>
       </div>
+      <div class="diff">
+        <h3>Milkdown With Fold Properties Changes vs Original</h3>
+        <pre><code><span class="same">  ---</span>
+<span class="same">  title: Agent Plan</span>
+<span class="same">  owner: coding-agent</span>
+<span class="same">  ---</span>
+<span class="same">  </span>
+<span class="same">  # Agent Plan</span>
+<span class="same">  </span>
+<span class="same">  ## Goals</span>
+<span class="same">  </span>
+<span class="removed">- - [ ] Build CLI publish</span>
+<span class="removed">- - [x] Verify E2EE spike</span>
+<span class="removed">- - [ ] Compare document models</span>
+<span class="added">+ * [ ] Build CLI publish</span>
+<span class="same">  </span>
+<span class="added">+ * [x] Verify E2EE spike</span>
+<span class="added">+ </span>
+<span class="added">+ * [ ] Compare document models</span>
+<span class="added">+ </span>
+<span class="same">  ## Notes</span>
+<span class="same">  </span>
+<span class="same">  Agents should preserve Markdown as a portable artifact.</span>
+<span class="same">  </span>
+<span class="removed">- </span></code></pre>
+      </div>
     </section>
 <section class="sample">
       <h2>code-report.md</h2>
@@ -267,6 +313,7 @@ Agents should preserve Markdown as a portable artifact.
         <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
         <div><strong>Editor canonical:</strong> exact round-trip: no; lost: tables</div>
         <div><strong>Milkdown candidate:</strong> exact round-trip: no; lost: none</div>
+        <div><strong>Milkdown with Fold properties:</strong> exact round-trip: no; lost: none</div>
       </div>
       <div class="grid">
         <article class="pane"><h3>Original Markdown</h3><pre><code># Code Report
@@ -358,6 +405,29 @@ npm run typecheck
 | Crypto | Pass    | Metadata is authenticated      |
 | UI     | Pending | Not started                    |
 </code></pre></article>
+        <article class="pane"><h3>Milkdown With Fold Properties Export</h3><pre><code># Code Report
+
+The agent changed `client.ts` and verified the protocol hardening.
+
+```ts
+export function example(value: string): string {
+  return value.trim();
+}
+```
+
+```bash
+npm test
+npm run typecheck
+```
+
+## Findings
+
+| Area   | Status  | Notes                          |
+| ------ | ------- | ------------------------------ |
+| Sync   | Pass    | WebSocket backlog replay works |
+| Crypto | Pass    | Metadata is authenticated      |
+| UI     | Pending | Not started                    |
+</code></pre></article>
       </div>
       <div class="diff">
         <h3>Editor-Canonical Changes vs Original</h3>
@@ -419,6 +489,38 @@ npm run typecheck
 <span class="added">+ | UI     | Pending | Not started                    |</span>
 <span class="same">  </span></code></pre>
       </div>
+      <div class="diff">
+        <h3>Milkdown With Fold Properties Changes vs Original</h3>
+        <pre><code><span class="same">  # Code Report</span>
+<span class="same">  </span>
+<span class="same">  The agent changed `client.ts` and verified the protocol hardening.</span>
+<span class="same">  </span>
+<span class="same">  ```ts</span>
+<span class="same">  export function example(value: string): string {</span>
+<span class="same">    return value.trim();</span>
+<span class="same">  }</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ```bash</span>
+<span class="same">  npm test</span>
+<span class="same">  npm run typecheck</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Findings</span>
+<span class="same">  </span>
+<span class="removed">- | Area | Status | Notes |</span>
+<span class="removed">- | --- | --- | --- |</span>
+<span class="removed">- | Sync | Pass | WebSocket backlog replay works |</span>
+<span class="removed">- | Crypto | Pass | Metadata is authenticated |</span>
+<span class="removed">- | UI | Pending | Not started |</span>
+<span class="removed">- </span>
+<span class="added">+ | Area   | Status  | Notes                          |</span>
+<span class="added">+ | ------ | ------- | ------------------------------ |</span>
+<span class="added">+ | Sync   | Pass    | WebSocket backlog replay works |</span>
+<span class="added">+ | Crypto | Pass    | Metadata is authenticated      |</span>
+<span class="added">+ | UI     | Pending | Not started                    |</span>
+<span class="same">  </span></code></pre>
+      </div>
     </section>
 <section class="sample">
       <h2>rich-agent-output.md</h2>
@@ -426,6 +528,7 @@ npm run typecheck
         <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
         <div><strong>Editor canonical:</strong> exact round-trip: no; lost: none</div>
         <div><strong>Milkdown candidate:</strong> exact round-trip: no; lost: none</div>
+        <div><strong>Milkdown with Fold properties:</strong> exact round-trip: no; lost: none</div>
       </div>
       <div class="grid">
         <article class="pane"><h3>Original Markdown</h3><pre><code># Rich Agent Output
@@ -533,6 +636,32 @@ Block math:
 
 ![Diagram](./diagram.png)
 </code></pre></article>
+        <article class="pane"><h3>Milkdown With Fold Properties Export</h3><pre><code># Rich Agent Output
+
+## Mermaid
+
+```mermaid
+flowchart LR
+  Agent --&gt; Markdown
+  Markdown --&gt; Room
+```
+
+## Math
+
+Inline math: $E = mc^2$.
+
+Block math:
+
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+
+## Links And Images
+
+[Project repo](https://github.com/wanderingspirit03/fold)
+
+![Diagram](./diagram.png)
+</code></pre></article>
       </div>
       <div class="diff">
         <h3>Editor-Canonical Changes vs Original</h3>
@@ -594,6 +723,36 @@ Block math:
 <span class="same">  </span>
 <span class="removed">- </span></code></pre>
       </div>
+      <div class="diff">
+        <h3>Milkdown With Fold Properties Changes vs Original</h3>
+        <pre><code><span class="same">  # Rich Agent Output</span>
+<span class="same">  </span>
+<span class="same">  ## Mermaid</span>
+<span class="same">  </span>
+<span class="same">  ```mermaid</span>
+<span class="same">  flowchart LR</span>
+<span class="same">    Agent --&gt; Markdown</span>
+<span class="same">    Markdown --&gt; Room</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Math</span>
+<span class="same">  </span>
+<span class="same">  Inline math: $E = mc^2$.</span>
+<span class="same">  </span>
+<span class="same">  Block math:</span>
+<span class="same">  </span>
+<span class="same">  ```math</span>
+<span class="same">  \sum_{i=1}^{n} i = \frac{n(n+1)}{2}</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Links And Images</span>
+<span class="same">  </span>
+<span class="same">  [Project repo](https://github.com/wanderingspirit03/fold)</span>
+<span class="same">  </span>
+<span class="same">  ![Diagram](./diagram.png)</span>
+<span class="same">  </span>
+<span class="removed">- </span></code></pre>
+      </div>
     </section>
 <section class="sample">
       <h2>long-agent-handoff.md</h2>
@@ -601,6 +760,7 @@ Block math:
         <div><strong>Markdown canonical:</strong> exact round-trip: yes; lost: none</div>
         <div><strong>Editor canonical:</strong> exact round-trip: no; lost: frontmatter, taskLists, tables</div>
         <div><strong>Milkdown candidate:</strong> exact round-trip: no; lost: frontmatter</div>
+        <div><strong>Milkdown with Fold properties:</strong> exact round-trip: no; lost: none</div>
       </div>
       <div class="grid">
         <article class="pane"><h3>Original Markdown</h3><pre><code>---
@@ -944,6 +1104,97 @@ and keep image syntax portable:
 3. Confirm that bright mode preserves annotation contrast.
 4. Confirm that editor candidate export does not rewrite this file.
 </code></pre></article>
+        <article class="pane"><h3>Milkdown With Fold Properties Export</h3><pre><code>---
+title: Agent Handoff Review
+owner: review-agent
+room: fold-ui
+status: active
+---
+
+# Agent Handoff Review
+
+Fold should let a human open a project, inspect what agents changed, and respond
+directly inside the Markdown file. The document should remain the center of
+gravity while comments, suggestions, and handoff controls stay close enough to
+use without taking over the page.
+
+## Decisions
+
+* [x] Keep raw Markdown as the durable project artifact.
+
+* [x] Store review events as encrypted room records.
+
+* [ ] Replace the textarea only after editor import/export fidelity is proven.
+
+* [ ] Verify mobile comment flows against long reports.
+
+## Current Room State
+
+| Area            | Owner         | Status | Notes                                                |
+| --------------- | ------------- | ------ | ---------------------------------------------------- |
+| Project files   | Human         | Stable | Folder navigation works across nested Markdown files |
+| Inline comments | Human + agent | Active | Text-range anchors use quote and context metadata    |
+| Proposals       | Agent         | Active | File replacements are reviewable before accept       |
+| Versions        | Human         | Draft  | Named checkpoints restore Markdown snapshots         |
+
+## Agent Notes
+
+The next agent should preserve exact Markdown whenever it edits generated plans.
+Pay special attention to `frontmatter`, task lists, tables, code fences, and
+links. Small formatting changes can become noisy in review.
+
+&gt; Agent notes should be useful without becoming a noisy dashboard. The best
+&gt; version of this surface feels like a calm project editor that happens to
+&gt; understand encrypted collaboration.
+
+## Diagram
+
+```mermaid
+flowchart LR
+  Human[Human reviewer] --&gt; Comment[Inline comment]
+  Agent[Agent proposal] --&gt; Review[Review drawer]
+  Comment --&gt; Markdown[(Markdown)]
+  Review --&gt; Markdown
+```
+
+## Patch Command
+
+```bash
+fold propose ./reports/agent-handoff-review.md \
+  --room fold-ui \
+  --path reports/agent-handoff-review.md \
+  --title &quot;Tighten handoff language&quot; \
+  --comment &quot;Keep the document calm and reviewable&quot;
+```
+
+## TypeScript Example
+
+```ts
+export function summarizeOpenWork(items: string[]): string {
+  return items.map((item, index) =&gt; `${index + 1}. ${item}`).join(&quot;\n&quot;);
+}
+```
+
+## Math And Links
+
+Inline scoring can stay simple: $score = preserved / detected$.
+
+```math
+\text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
+```
+
+Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+and keep image syntax portable:
+
+![Review drawer sketch](./assets/review-drawer.png)
+
+## Open Review Items
+
+1. Confirm that file comments open where users expect them.
+2. Confirm that pending suggestions are visible without a permanent rail.
+3. Confirm that bright mode preserves annotation contrast.
+4. Confirm that editor candidate export does not rewrite this file.
+</code></pre></article>
       </div>
       <div class="diff">
         <h3>Editor-Canonical Changes vs Original</h3>
@@ -1059,6 +1310,111 @@ and keep image syntax portable:
 <span class="same">  status: active</span>
 <span class="removed">- ---</span>
 <span class="added">+ --------------</span>
+<span class="same">  </span>
+<span class="same">  # Agent Handoff Review</span>
+<span class="same">  </span>
+<span class="same">  Fold should let a human open a project, inspect what agents changed, and respond</span>
+<span class="same">  directly inside the Markdown file. The document should remain the center of</span>
+<span class="same">  gravity while comments, suggestions, and handoff controls stay close enough to</span>
+<span class="same">  use without taking over the page.</span>
+<span class="same">  </span>
+<span class="same">  ## Decisions</span>
+<span class="same">  </span>
+<span class="removed">- - [x] Keep raw Markdown as the durable project artifact.</span>
+<span class="removed">- - [x] Store review events as encrypted room records.</span>
+<span class="removed">- - [ ] Replace the textarea only after editor import/export fidelity is proven.</span>
+<span class="removed">- - [ ] Verify mobile comment flows against long reports.</span>
+<span class="added">+ * [x] Keep raw Markdown as the durable project artifact.</span>
+<span class="same">  </span>
+<span class="added">+ * [x] Store review events as encrypted room records.</span>
+<span class="added">+ </span>
+<span class="added">+ * [ ] Replace the textarea only after editor import/export fidelity is proven.</span>
+<span class="added">+ </span>
+<span class="added">+ * [ ] Verify mobile comment flows against long reports.</span>
+<span class="added">+ </span>
+<span class="same">  ## Current Room State</span>
+<span class="same">  </span>
+<span class="removed">- | Area | Owner | Status | Notes |</span>
+<span class="removed">- | --- | --- | --- | --- |</span>
+<span class="removed">- | Project files | Human | Stable | Folder navigation works across nested Markdown files |</span>
+<span class="removed">- | Inline comments | Human + agent | Active | Text-range anchors use quote and context metadata |</span>
+<span class="removed">- | Proposals | Agent | Active | File replacements are reviewable before accept |</span>
+<span class="removed">- | Versions | Human | Draft | Named checkpoints restore Markdown snapshots |</span>
+<span class="added">+ | Area            | Owner         | Status | Notes                                                |</span>
+<span class="added">+ | --------------- | ------------- | ------ | ---------------------------------------------------- |</span>
+<span class="added">+ | Project files   | Human         | Stable | Folder navigation works across nested Markdown files |</span>
+<span class="added">+ | Inline comments | Human + agent | Active | Text-range anchors use quote and context metadata    |</span>
+<span class="added">+ | Proposals       | Agent         | Active | File replacements are reviewable before accept       |</span>
+<span class="added">+ | Versions        | Human         | Draft  | Named checkpoints restore Markdown snapshots         |</span>
+<span class="same">  </span>
+<span class="same">  ## Agent Notes</span>
+<span class="same">  </span>
+<span class="same">  The next agent should preserve exact Markdown whenever it edits generated plans.</span>
+<span class="same">  Pay special attention to `frontmatter`, task lists, tables, code fences, and</span>
+<span class="same">  links. Small formatting changes can become noisy in review.</span>
+<span class="same">  </span>
+<span class="same">  &gt; Agent notes should be useful without becoming a noisy dashboard. The best</span>
+<span class="same">  &gt; version of this surface feels like a calm project editor that happens to</span>
+<span class="same">  &gt; understand encrypted collaboration.</span>
+<span class="same">  </span>
+<span class="same">  ## Diagram</span>
+<span class="same">  </span>
+<span class="same">  ```mermaid</span>
+<span class="same">  flowchart LR</span>
+<span class="same">    Human[Human reviewer] --&gt; Comment[Inline comment]</span>
+<span class="same">    Agent[Agent proposal] --&gt; Review[Review drawer]</span>
+<span class="same">    Comment --&gt; Markdown[(Markdown)]</span>
+<span class="same">    Review --&gt; Markdown</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Patch Command</span>
+<span class="same">  </span>
+<span class="same">  ```bash</span>
+<span class="same">  fold propose ./reports/agent-handoff-review.md \</span>
+<span class="same">    --room fold-ui \</span>
+<span class="same">    --path reports/agent-handoff-review.md \</span>
+<span class="same">    --title &quot;Tighten handoff language&quot; \</span>
+<span class="same">    --comment &quot;Keep the document calm and reviewable&quot;</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## TypeScript Example</span>
+<span class="same">  </span>
+<span class="same">  ```ts</span>
+<span class="same">  export function summarizeOpenWork(items: string[]): string {</span>
+<span class="same">    return items.map((item, index) =&gt; `${index + 1}. ${item}`).join(&quot;\n&quot;);</span>
+<span class="same">  }</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  ## Math And Links</span>
+<span class="same">  </span>
+<span class="same">  Inline scoring can stay simple: $score = preserved / detected$.</span>
+<span class="same">  </span>
+<span class="same">  ```math</span>
+<span class="same">  \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}</span>
+<span class="same">  ```</span>
+<span class="same">  </span>
+<span class="same">  Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)</span>
+<span class="same">  and keep image syntax portable:</span>
+<span class="same">  </span>
+<span class="same">  ![Review drawer sketch](./assets/review-drawer.png)</span>
+<span class="same">  </span>
+<span class="same">  ## Open Review Items</span>
+<span class="same">  </span>
+<span class="same">  1. Confirm that file comments open where users expect them.</span>
+<span class="same">  2. Confirm that pending suggestions are visible without a permanent rail.</span>
+<span class="same">  3. Confirm that bright mode preserves annotation contrast.</span>
+<span class="same">  4. Confirm that editor candidate export does not rewrite this file.</span>
+<span class="same">  </span>
+<span class="removed">- </span></code></pre>
+      </div>
+      <div class="diff">
+        <h3>Milkdown With Fold Properties Changes vs Original</h3>
+        <pre><code><span class="same">  ---</span>
+<span class="same">  title: Agent Handoff Review</span>
+<span class="same">  owner: review-agent</span>
+<span class="same">  room: fold-ui</span>
+<span class="same">  status: active</span>
+<span class="same">  ---</span>
 <span class="same">  </span>
 <span class="same">  # Agent Handoff Review</span>
 <span class="same">  </span>
