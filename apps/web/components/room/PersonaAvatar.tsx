@@ -19,7 +19,7 @@ const STUDIO_AVATARS = [
 
 export function PersonaAvatar({ persona, compact = false, className }: PersonaAvatarProps) {
   const seed = persona ? hashString(`${persona.id}:${persona.kind}:${persona.name}`) : 0;
-  const sizeClass = compact ? "h-6 w-6" : "h-8 w-8";
+  const sizeClass = compact ? "h-5 w-5" : "h-8 w-8";
   const avatarSrc = STUDIO_AVATARS[seed % STUDIO_AVATARS.length];
   const fallback = personaInitials(persona);
 
