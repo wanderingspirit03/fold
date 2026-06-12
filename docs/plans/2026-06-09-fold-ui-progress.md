@@ -100,6 +100,7 @@ Primary reference: `DESIGN.md`.
 - Made the file-comment composer cancel action touch-sized and cleared stale draft text after cancel/post.
 - Opened the file-comment list immediately after posting so comment feedback stays in the document surface.
 - Expanded the document-model fidelity spike with a long agent handoff sample before swapping in a polished editor surface.
+- Added a Milkdown readiness gate so a richer editor must prove Markdown fidelity, quiet UX, and collaboration mapping before replacing the source editor.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
@@ -119,7 +120,7 @@ Primary reference: `DESIGN.md`.
 - Keep named versions lightweight and verify restore clarity against long documents.
 - Keep empty states sparse and document-native as more project creation/import states are added.
 - Continue measuring long-document readability against the Obsidian reference screenshots.
-- Eventually replace the textarea editor candidate with the planned Milkdown prototype after Markdown round-trip verification.
+- Prototype Milkdown behind the readiness gate before replacing the source editor.
 
 ## Verification Baseline
 
