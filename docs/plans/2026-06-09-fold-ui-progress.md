@@ -125,6 +125,7 @@ Primary reference: `DESIGN.md`.
 - Added compact named-version size metadata and a restore confirmation delta so long-document checkpoint restores show their line/word impact without adding review-drawer prose.
 - Added a compact encrypted proposal diff panel to the suggestion preview dialog so whole-document and file replacement proposals can be reviewed before accepting.
 - Added a compact two-step accept confirmation in the suggestion preview dialog so agent proposals are harder to apply accidentally.
+- Added the same compact two-step accept confirmation to review-drawer proposal rows so quick actions cannot apply agent changes in one click.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 

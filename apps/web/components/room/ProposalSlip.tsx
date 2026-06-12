@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Check, Circle, Eye, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 import { PersonaChip } from "./PersonaChip";
 import type { Proposal } from "./types";
@@ -14,6 +15,7 @@ interface ProposalSlipProps {
 }
 
 export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept, onReject }: ProposalSlipProps) {
+  const [confirmingAccept, setConfirmingAccept] = useState(false);
   const state =
     proposal.status === "accepted"
       ? { label: "Accepted", icon: Check, className: "text-emerald-400", accentClassName: "border-l-emerald-400/55" }
@@ -27,6 +29,10 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
       ? "Section suggestion"
       : "Whole-document suggestion";
   const renderedAnchor = proposal.selectedQuote ? `"${anchorText}"` : anchorText;
+
+  useEffect(() => {
+    setConfirmingAccept(false);
+  }, [proposal.id, proposal.status]);
 
   return (
     <article
@@ -71,14 +77,40 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
             <Eye className="h-3.5 w-3.5" />
             <span className="md:sr-only">Preview</span>
           </button>
-          {proposal.status === "pending" && (
+          {proposal.status === "pending" && confirmingAccept && (
+            <div className="flex min-h-11 items-center gap-1 rounded px-1 md:min-h-8">
+              <span className="text-[11px] text-midnight-strong">Apply?</span>
+              <button
+                type="button"
+                aria-label={`Cancel accepting ${proposal.title}`}
+                title="Cancel"
+                className="inline-flex h-11 min-w-11 items-center justify-center rounded px-2 text-xs text-ink-muted transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-w-8 md:px-0"
+                onClick={() => setConfirmingAccept(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Confirm accepting ${proposal.title}`}
+                title="Apply"
+                className="inline-flex h-11 min-w-11 items-center justify-center rounded px-2 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-w-8 md:px-0"
+                onClick={() => {
+                  onAccept?.(proposal);
+                  setConfirmingAccept(false);
+                }}
+              >
+                <Check className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {proposal.status === "pending" && !confirmingAccept && (
             <>
               <button
                 type="button"
                 aria-label={`Accept ${proposal.title}`}
                 title="Accept"
                 className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded px-2.5 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:min-h-8 md:w-8 md:gap-0 md:px-0"
-                onClick={() => onAccept?.(proposal)}
+                onClick={() => setConfirmingAccept(true)}
               >
                 <Check className="h-3.5 w-3.5" />
                 <span className="md:sr-only">Accept</span>
