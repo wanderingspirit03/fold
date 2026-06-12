@@ -31,6 +31,7 @@ Primary reference: `DESIGN.md`.
 - Embedded frontmatter/properties as metadata inside the document/editor surface instead of rendering them as body text.
 - Kept edit mode as Markdown source only; removed extra rich/source controls.
 - Added Markdown source editor Tab/Shift+Tab indentation so list and code editing feels closer to a real Markdown workspace.
+- Softened the Markdown source editor stats into a quiet in-surface overlay instead of a bordered footer bar.
 - Added inline selected-text comment composer and clickable inline comment markers.
 - Added invisible mobile tap halos to inline annotation markers so comments/suggestions are easier to open without louder document styling.
 - Made mouse text selection open the inline comment composer directly while preserving keyboard selection.

@@ -86,7 +86,7 @@ export default function MarkdownSourceEditor({
       data-editor-shell="true"
       className="overflow-hidden rounded-md border border-document-edge bg-document text-document-ink shadow-[0_4px_18px_rgba(0,0,0,0.10),0_1px_0_rgba(255,255,255,0.56)_inset]"
     >
-      <div className="flex min-h-[560px] flex-col bg-document sm:min-h-[680px]">
+      <div className="relative flex min-h-[560px] flex-col bg-document sm:min-h-[680px]">
         {properties.length > 0 && (
           <div className="border-b border-document-edge bg-black/[0.018] px-6 py-3 sm:px-12 lg:px-16">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -114,7 +114,7 @@ export default function MarkdownSourceEditor({
           }}
           placeholder="Write Markdown..."
           spellCheck={false}
-          className="min-h-[520px] flex-1 resize-none rounded-none border-0 bg-document px-6 pb-8 pt-8 font-mono text-[13px] leading-6 text-document-ink shadow-none outline-none placeholder:text-document-subtle selection:bg-midnight-soft focus-visible:ring-0 sm:min-h-[640px] sm:px-12 sm:pt-10 lg:px-16"
+          className="min-h-[560px] flex-1 resize-none rounded-none border-0 bg-document px-6 pb-14 pt-8 font-mono text-[13px] leading-6 text-document-ink shadow-none outline-none placeholder:text-document-subtle selection:bg-midnight-soft focus-visible:ring-0 sm:min-h-[680px] sm:px-12 sm:pt-10 lg:px-16"
         />
         <span id="markdown-source-keyboard-hint" className="sr-only">
           {keyboardHint}
@@ -122,9 +122,9 @@ export default function MarkdownSourceEditor({
         <div
           data-editor-stats="true"
           aria-label={`${counts.lines} lines, ${counts.words} words`}
-          className="flex items-center justify-end gap-3 border-t border-document-edge bg-document px-4 py-2 font-mono text-[11px] text-document-subtle"
+          className="pointer-events-none absolute bottom-3 right-4 flex items-center justify-end gap-2 rounded bg-document/85 px-1.5 py-0.5 font-mono text-[11px] text-document-subtle sm:right-6 lg:right-10"
         >
-          <span className="flex shrink-0 items-center gap-3">
+          <span className="flex shrink-0 items-center gap-2">
             <span>{counts.lines} lines</span>
             <span aria-hidden="true" className="text-document-edge">/</span>
             <span>{counts.words} words</span>
