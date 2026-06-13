@@ -57,8 +57,9 @@ agent handoff sample through a minimal Milkdown core editor with CommonMark,
 GFM, history, clipboard, and cursor plugins. This route is intentionally hidden
 from the launcher, room UI, and production builds: it is visual evidence for the readiness gate, not
 a product editor replacement. `npm run web:smoke:milkdown` verifies local desktop dark,
-desktop light, and mobile dark renderings, checks for table rendering, blocks
-horizontal page overflow, and asserts that no nested Rich/Source chrome or
+desktop light, mobile dark, and mobile bright renderings, checks for table
+rendering, blocks horizontal page overflow, exercises a local-only
+selection/comment probe, and asserts that no nested Rich/Source chrome or editor
 textarea fallback appears.
 
 ## Candidate Package Scope

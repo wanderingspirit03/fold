@@ -152,6 +152,7 @@ Primary reference: `DESIGN.md`.
 - Strengthened the Milkdown harness with structural task-list and table semantics checks.
 - Classified Milkdown source rewrites so the remaining editor gate can separate acceptable formatting normalization from unexplained Markdown churn.
 - Added a development-only `/milkdown-lab` fixture route and `npm run web:smoke:milkdown` to visually test the long handoff sample in a minimal Milkdown editor before any product editor swap.
+- Extended `/milkdown-lab` with a local-only selection/comment probe and mobile bright smoke coverage so the editor gate better reflects Fold's inline annotation workflow.
 - Added compact named-version size metadata and a restore confirmation delta so long-document checkpoint restores show their line/word impact without adding review-drawer prose.
 - Added a compact encrypted proposal diff panel to the suggestion preview dialog so whole-document and file replacement proposals can be reviewed before accepting.
 - Added a compact two-step accept confirmation in the suggestion preview dialog so agent proposals are harder to apply accidentally.
