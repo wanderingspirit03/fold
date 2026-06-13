@@ -98,6 +98,7 @@ Primary reference: `DESIGN.md`.
 - Added `npm run web:smoke:annotations` to verify multiple bright-theme inline comment markers on desktop and mobile without overflow.
 - Added `npm run web:smoke:design` to verify DESIGN.md layout invariants and capture desktop/mobile workspace comparison screenshots.
 - Extended design smoke to verify the desktop project title is derived from encrypted project content instead of staying generic.
+- Added `npm run web:reference:capture` to refresh the Obsidian public reference screenshot pack named in `DESIGN.md` for visual comparison work.
 - Added `npm run web:smoke:proposal` to verify encrypted CLI proposals, compact preview/diff dialogs, guarded accept, and CLI replay after web acceptance.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
@@ -204,6 +205,12 @@ npm run web:smoke:proposal # requires web app plus sync server on 127.0.0.1:8787
 npm run spike:e2ee
 npm run spike:document-model
 npm run spike:document-model:report
+```
+
+Optional visual-reference refresh when the `/tmp/agent-md-obsidian-reference` pack is missing or stale:
+
+```bash
+npm run web:reference:capture
 ```
 
 Visual verification should include at least:
