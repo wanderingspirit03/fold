@@ -8,6 +8,8 @@ import { MermaidDiagram } from "./MermaidDiagram";
 
 interface MarkdownRendererProps {
   content: string;
+  currentFilePath?: string;
+  projectFilePaths?: string[];
   activeTextHighlightId?: string | null;
   textHighlights?: Array<{
     id: string;
@@ -18,15 +20,21 @@ interface MarkdownRendererProps {
     before?: string;
     after?: string;
   }>;
+  onProjectFileLinkClick?: (path: string) => void;
   onTextHighlightClick?: (id: string, event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export default function MarkdownRenderer({
   content,
+  currentFilePath = "",
+  projectFilePaths = [],
   activeTextHighlightId = null,
   textHighlights = [],
+  onProjectFileLinkClick,
   onTextHighlightClick,
 }: MarkdownRendererProps) {
+  const projectFilePathSet = React.useMemo(() => new Set(projectFilePaths), [projectFilePaths]);
+
   return (
     <article className="max-w-none text-document-muted">
       <ReactMarkdown
@@ -127,11 +135,29 @@ export default function MarkdownRenderer({
           tbody: ({ children }) => <tbody className="divide-y divide-document-edge">{children}</tbody>,
           th: ({ children }) => <th className="px-4 py-2 font-medium">{children}</th>,
           td: ({ children }) => <td className="px-4 py-2">{children}</td>,
-          a: ({ children, href }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-midnight underline underline-offset-4 hover:text-midnight-strong">
-              {children}
-            </a>
-          ),
+          a: ({ children, href }) => {
+            const projectPath = resolveProjectMarkdownHref(href || "", currentFilePath, projectFilePathSet);
+            if (projectPath && onProjectFileLinkClick) {
+              return (
+                <a
+                  href={href}
+                  title={`Open ${projectPath}`}
+                  className="text-midnight underline underline-offset-4 hover:text-midnight-strong"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onProjectFileLinkClick(projectPath);
+                  }}
+                >
+                  {children}
+                </a>
+              );
+            }
+            return (
+              <a href={href} target="_blank" rel="noopener noreferrer" className="text-midnight underline underline-offset-4 hover:text-midnight-strong">
+                {children}
+              </a>
+            );
+          },
           hr: () => <hr className="my-8 border-document-edge" />,
         }}
       >
@@ -139,6 +165,57 @@ export default function MarkdownRenderer({
       </ReactMarkdown>
     </article>
   );
+}
+
+function resolveProjectMarkdownHref(
+  href: string,
+  currentFilePath: string,
+  projectFilePaths: Set<string>,
+) {
+  const trimmed = href.trim();
+  if (!trimmed || /^(https?:|mailto:|tel:|#)/i.test(trimmed)) return "";
+
+  const withoutFragment = trimmed.split("#")[0]?.split("?")[0] || "";
+  if (!withoutFragment) return "";
+
+  const decoded = safeDecodeUri(withoutFragment).replace(/\\/g, "/");
+  const isRootPath = decoded.startsWith("/");
+  const linkPath = decoded.replace(/^\/+/, "");
+  const currentFolder = currentFilePath.split("/").slice(0, -1).join("/");
+  const candidates = new Set<string>();
+  candidates.add(normalizeProjectLinkPath(linkPath));
+  if (currentFolder && !isRootPath) {
+    candidates.add(normalizeProjectLinkPath(`${currentFolder}/${linkPath}`));
+  }
+
+  for (const candidate of Array.from(candidates)) {
+    if (!candidate) continue;
+    if (projectFilePaths.has(candidate)) return candidate;
+    if (!/\.[a-z0-9]+$/i.test(candidate) && projectFilePaths.has(`${candidate}.md`)) return `${candidate}.md`;
+  }
+
+  return "";
+}
+
+function normalizeProjectLinkPath(path: string) {
+  const parts: string[] = [];
+  for (const part of path.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      parts.pop();
+      continue;
+    }
+    parts.push(part);
+  }
+  return parts.join("/");
+}
+
+function safeDecodeUri(value: string) {
+  try {
+    return decodeURI(value);
+  } catch {
+    return value;
+  }
 }
 
 function renderWithInlineComments(

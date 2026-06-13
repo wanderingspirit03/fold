@@ -15,8 +15,11 @@ import type { ChatComment, Proposal, RoomMode } from "./types";
 interface DocumentSurfaceProps {
   mode: RoomMode;
   markdown: string;
+  currentFilePath: string;
+  projectFilePaths: string[];
   onMarkdownChange: (markdown: string) => void;
   onMarkdownCommit?: (markdown: string) => void;
+  onProjectFileLinkClick?: (path: string) => void;
   selectedQuote: string;
   onSelectedQuoteChange: (quote: string) => void;
   comments: ChatComment[];
@@ -35,8 +38,11 @@ interface DocumentSurfaceProps {
 export function DocumentSurface({
   mode,
   markdown,
+  currentFilePath,
+  projectFilePaths,
   onMarkdownChange,
   onMarkdownCommit,
+  onProjectFileLinkClick,
   selectedQuote,
   onSelectedQuoteChange,
   comments,
@@ -360,6 +366,9 @@ export function DocumentSurface({
             )}
             <MarkdownRenderer
               content={parsedMarkdown.content}
+              currentFilePath={currentFilePath}
+              projectFilePaths={projectFilePaths}
+              onProjectFileLinkClick={onProjectFileLinkClick}
               activeTextHighlightId={activeCommentCard ? `comment:${activeCommentCard.commentId}` : activeProposalId ? `proposal:${activeProposalId}` : null}
               textHighlights={[
                 ...activeComments

@@ -37,6 +37,8 @@ async function main() {
     await contentSearchInput.fill("center of gravity");
     await page.getByRole("option", { name: /agent-handoff-review\.md.*center of gravity/i }).first().click();
     await page.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
+    await page.getByRole("link", { name: /review flow/i }).click();
+    await page.waitForFunction(() => document.body.innerText.includes("Review Flow"), null, { timeout: 8_000 });
 
     const architectureFolder = page.getByRole("button", { name: /^architecture/i });
     await architectureFolder.waitFor({ timeout: 10_000 });

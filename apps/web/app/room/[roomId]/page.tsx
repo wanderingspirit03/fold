@@ -1159,6 +1159,13 @@ export default function RoomPage() {
   const selectedFileConflict = fileConflicts[selectedFilePath] || null;
   const selectedFilePresences = activePresencesForFile(presenceByClientId, selectedFilePath, presenceClock);
   const selectedFileParticipants = uniquePersonas(selectedFileProposals, selectedFileComments, selectedFileVersions, selectedFilePresences, localMyPersona);
+  const handleSelectProjectFile = (path: string) => {
+    flushProjectFileSnapshot(selectedFilePath);
+    setSelectedFilePath(path);
+    setSelectedQuote("");
+    setNewCommentText("");
+    clearPresenceActivity();
+  };
   const agentInvite = useMemo(() => {
     if (!roomId || !roomSecret || typeof window === "undefined") return null;
     return createAgentInvite({
@@ -1210,16 +1217,15 @@ export default function RoomPage() {
           setEditMode(nextMode);
         }}
         onFileSelect={(path) => {
-          flushProjectFileSnapshot(selectedFilePath);
-          setSelectedFilePath(path);
-          setSelectedQuote("");
-          setNewCommentText("");
-          clearPresenceActivity();
+          handleSelectProjectFile(path);
         }}
         document={
           <DocumentSurface
             mode={editMode}
             markdown={selectedMarkdown}
+            currentFilePath={selectedFilePath}
+            projectFilePaths={projectFiles.map((file) => file.path)}
+            onProjectFileLinkClick={handleSelectProjectFile}
             selectedQuote={selectedQuote}
             onSelectedQuoteChange={setSelectedQuote}
             comments={selectedFileComments}
@@ -1950,6 +1956,7 @@ function createInitialVirtualFiles(): Record<string, string> {
       "- Comments attach to selected text or the whole file.",
       "- Suggestions are reviewable before they change accepted content.",
       "- Agent handoff data stays encrypted with the room payloads.",
+      "- Cross-file links open inside the project, for example [review flow](../docs/runbooks/review-flow.md).",
       "",
       "## Decisions",
       "",

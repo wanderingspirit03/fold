@@ -65,6 +65,7 @@ Primary reference: `DESIGN.md`.
 - Tightened suggestion rows further and sorted pending suggestions first in the review drawer.
 - Clarified pending suggestion actions with compact labeled pills and larger touch targets for mobile review.
 - Added command palette / quick switcher and made the header filename open it.
+- Made relative Markdown links open matching project files in-place so cross-file document links behave like project navigation.
 - Grouped command palette results into create/files/actions with active-file and review-count metadata.
 - Added a recent-file section to the empty quick switcher so project navigation starts from recently opened Markdown files.
 - Expanded the seeded project with nested architecture, runbook, research, and notes files so navigation is exercised against a realistic project shape.
