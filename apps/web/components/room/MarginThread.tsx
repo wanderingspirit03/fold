@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Check, Eye, Quote, RotateCcw, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { PersonaChip } from "./PersonaChip";
@@ -27,10 +28,15 @@ export function MarginThread({
   onRejectProposal,
   onResolveComment,
 }: MarginThreadProps) {
+  const [confirmingAccept, setConfirmingAccept] = useState(false);
   const persona = comment?.persona || proposal?.persona;
   const text = comment?.text || proposal?.comment || "Start a note or ask an agent to revise this passage.";
   const quote = selectedQuote || comment?.selectedQuote || proposal?.selectedQuote;
   const anchorLabel = getAnchorLabel(comment?.anchorType || proposal?.anchorType, quote);
+
+  useEffect(() => {
+    setConfirmingAccept(false);
+  }, [proposal?.id, proposal?.status]);
 
   return (
     <div
@@ -97,9 +103,30 @@ export function MarginThread({
               <Eye className="h-3.5 w-3.5" />
               Preview
             </Button>
-            {proposal.status === "pending" && (
+            {proposal.status === "pending" && confirmingAccept && (
+              <div className="flex min-h-9 items-center gap-1 rounded px-1">
+                <span className="text-[11px] text-midnight-strong">Apply?</span>
+                <Button type="button" variant="outline" size="sm" aria-label={`Cancel accepting ${proposal.title}`} onClick={() => setConfirmingAccept(false)}>
+                  <X className="h-3.5 w-3.5" />
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  aria-label={`Confirm accepting ${proposal.title}`}
+                  onClick={() => {
+                    onAcceptProposal?.(proposal);
+                    setConfirmingAccept(false);
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Apply
+                </Button>
+              </div>
+            )}
+            {proposal.status === "pending" && !confirmingAccept && (
               <>
-                <Button type="button" size="sm" onClick={() => onAcceptProposal?.(proposal)}>
+                <Button type="button" size="sm" onClick={() => setConfirmingAccept(true)}>
                   <Check className="h-3.5 w-3.5" />
                   Accept
                 </Button>
