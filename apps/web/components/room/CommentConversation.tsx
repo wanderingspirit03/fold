@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, X } from "lucide-react";
+import { Reply, Send, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -32,8 +32,13 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
   };
 
   return (
-    <div className={cn("space-y-2.5", compact && "space-y-2")}>
-      <div className="space-y-2 border-l border-studio-line/80 pl-2.5">
+    <div className={cn("min-h-0 space-y-2.5", compact && "space-y-2")}>
+      <div
+        className={cn(
+          "space-y-2 border-l border-studio-line/80 pl-2.5",
+          !compact && "max-h-[min(24dvh,180px)] overflow-y-auto pr-1 md:max-h-[min(40dvh,260px)]",
+        )}
+      >
         <ThreadMessage
           author={comment.persona?.name || "Comment"}
           persona={comment.persona}
@@ -65,7 +70,7 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
       </div>
       {canReply && (
         <form
-          className="pt-0.5"
+          className="shrink-0 pt-0.5"
           onSubmit={(event) => {
             event.preventDefault();
             const text = draft.trim();
@@ -76,8 +81,14 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
           }}
         >
           {replyTarget && (
-            <div className="mb-1.5 flex min-h-7 items-center justify-between gap-2 rounded bg-studio-sunken/70 px-2 text-[11px] text-ink-subtle">
-              <span className="truncate">Replying to {replyTarget.authorName}</span>
+            <div
+              data-comment-reply-target
+              className="mb-1.5 flex min-h-7 items-center justify-between gap-2 rounded bg-studio-sunken/70 px-2 text-[11px] text-ink-subtle"
+            >
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <Reply className="h-3 w-3 shrink-0 text-midnight-strong" aria-hidden />
+                <span className="truncate">to {replyTarget.authorName}</span>
+              </span>
               <button
                 type="button"
                 aria-label="Clear reply target"
@@ -139,10 +150,11 @@ function ThreadMessage({
             <button
               type="button"
               aria-label={`Reply to ${author}`}
-              className="inline-flex h-11 items-center rounded px-2 text-[11px] text-ink-subtle opacity-100 transition-colors hover:bg-studio-sunken hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-auto md:px-1.5 md:py-0.5 md:opacity-0 md:group-hover/message:opacity-100 md:focus-visible:opacity-100"
+              title={`Reply to ${author}`}
+              className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle opacity-100 transition-colors hover:bg-studio-sunken hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-7 md:w-7 md:opacity-0 md:group-hover/message:opacity-100 md:focus-visible:opacity-100"
               onClick={() => onReplyTarget(replyTarget)}
             >
-              Reply
+              <Reply className="h-3.5 w-3.5" aria-hidden />
             </button>
           )}
         </div>

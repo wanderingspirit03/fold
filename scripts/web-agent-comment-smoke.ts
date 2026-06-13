@@ -93,11 +93,7 @@ async function main() {
       { timeout: 8_000 },
     );
     await page.getByRole("button", { name: /^Reply to / }).nth(1).click();
-    await page.waitForFunction(
-      () => document.body.innerText.includes("Replying to "),
-      null,
-      { timeout: 8_000 },
-    );
+    await page.waitForSelector("[data-comment-reply-target]", { timeout: 8_000 });
     await page.getByLabel("Reply to comment").fill(HUMAN_REPLY_TO_REPLY);
     await page.getByRole("button", { name: "Reply", exact: true }).click();
     await page.waitForFunction(
@@ -125,7 +121,7 @@ async function main() {
     }
 
     const screenshotPath = join(screenshotDir, "agent-inline-comment-thread-desktop.png");
-    await page.screenshot({ path: screenshotPath, fullPage: true, caret: "initial" });
+    await page.screenshot({ path: screenshotPath, fullPage: false, caret: "initial" });
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     if (overflow) {
@@ -143,11 +139,7 @@ async function main() {
       { timeout: 8_000 },
     );
     await mobilePage.getByRole("button", { name: /^Reply to / }).nth(1).click();
-    await mobilePage.waitForFunction(
-      () => document.body.innerText.includes("Replying to "),
-      null,
-      { timeout: 8_000 },
-    );
+    await mobilePage.waitForSelector("[data-comment-reply-target]", { timeout: 8_000 });
     await mobilePage.getByLabel("Reply to comment").fill(MOBILE_REPLY_TO_REPLY);
     await mobilePage.getByRole("button", { name: "Reply", exact: true }).click();
     await mobilePage.waitForFunction(
@@ -167,7 +159,7 @@ async function main() {
       throw new Error("CLI replay did not preserve the encrypted mobile reply-target metadata.");
     }
     const mobileScreenshotPath = join(screenshotDir, "agent-inline-comment-thread-mobile.png");
-    await mobilePage.screenshot({ path: mobileScreenshotPath, fullPage: true, caret: "initial" });
+    await mobilePage.screenshot({ path: mobileScreenshotPath, fullPage: false, caret: "initial" });
     const mobileOverflow = await mobilePage.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     if (mobileOverflow) {
       throw new Error("Agent comment smoke created horizontal overflow on mobile.");

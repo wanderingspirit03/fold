@@ -436,41 +436,44 @@ export function DocumentSurface({
         {activeComment && activeCommentCard && (
           <div
             data-comment-popover
-            className="fixed inset-x-3 bottom-3 z-50 max-h-[min(72dvh,420px)] overflow-y-auto rounded-md border border-midnight/25 bg-studio-paper p-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] text-ink shadow-[0_-12px_36px_rgba(0,0,0,0.28)] md:absolute md:inset-x-auto md:bottom-auto md:top-[var(--comment-popover-top)] md:left-[var(--comment-popover-left)] md:z-20 md:w-[min(310px,calc(100%-2rem))] md:max-h-none md:overflow-visible md:pb-2.5 md:shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+            className="fixed inset-x-3 bottom-3 z-50 flex max-h-[min(72dvh,420px)] flex-col overflow-hidden rounded-md border border-midnight/25 bg-studio-paper p-2.5 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] text-ink shadow-[0_-12px_36px_rgba(0,0,0,0.28)] md:absolute md:inset-x-auto md:bottom-auto md:top-[var(--comment-popover-top)] md:left-[var(--comment-popover-left)] md:z-20 md:block md:w-[min(310px,calc(100%-2rem))] md:max-h-none md:overflow-visible md:pb-2.5 md:shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
             style={overlayPositionStyle("--comment-popover-top", activeCommentCard.top, "--comment-popover-left", activeCommentCard.left)}
           >
-            <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="mb-2 flex shrink-0 items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-ink">
                 <MessageSquare className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
                 <span className="truncate">Comment thread</span>
               </div>
-              <button
-                type="button"
-                aria-label="Close comment"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-9 md:w-9"
-                onClick={() => setActiveCommentCard(null)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {onResolveComment && (
+                  <button
+                    type="button"
+                    aria-label="Resolve comment"
+                    title="Resolve"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-9 md:w-9"
+                    onClick={() => {
+                      onResolveComment(activeComment, true);
+                      setActiveCommentCard(null);
+                    }}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Close comment"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-9 md:w-9"
+                  onClick={() => setActiveCommentCard(null)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] text-ink-subtle">
+            <div className="mb-2 flex shrink-0 items-center gap-1.5 text-[11px] text-ink-subtle">
               <MessageSquare className="h-3.5 w-3.5 text-midnight-strong" />
               <span className="truncate">{activeComment.selectedQuote || "Document note"}</span>
             </div>
             <CommentConversation comment={activeComment} onReply={onReplyToComment} />
-            {onResolveComment && (
-              <button
-                type="button"
-                className="mt-3 inline-flex h-11 items-center gap-1.5 rounded px-3 text-xs text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:px-2"
-                onClick={() => {
-                  onResolveComment(activeComment, true);
-                  setActiveCommentCard(null);
-                }}
-              >
-                <Check className="h-3.5 w-3.5" />
-                Resolve
-              </button>
-            )}
           </div>
         )}
         {selectedQuote && anchorPoint && inlineComposerOpen && (
