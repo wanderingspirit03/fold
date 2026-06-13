@@ -63,7 +63,7 @@ export default function HomePage() {
         return;
       }
 
-      saveRoomToRecent(roomId, matchKey[1], `Project ${roomId.slice(0, 8)}`);
+      saveRoomToRecent(roomId, matchKey[1], "Joined project");
       router.push(`/room/${roomId}#key=${matchKey[1]}`);
     } catch {
       window.alert("Paste a full project link.");
@@ -154,13 +154,14 @@ export default function HomePage() {
                     <button
                       key={room.roomId}
                       type="button"
+                      title={`Project id ${room.roomId}`}
                       onClick={() => router.push(`/room/${room.roomId}#key=${room.key}`)}
                       className="flex min-h-10 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
                     >
                       <FileText className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-ink">{room.name}</span>
-                        <span className="block truncate font-mono text-[11px] text-ink-subtle">{room.roomId.slice(0, 12)}</span>
+                        <span className="block truncate text-sm font-medium text-ink">{projectDisplayName(room)}</span>
+                        <span className="block truncate text-[11px] text-ink-subtle">{recentProjectDetail(room)}</span>
                       </span>
                     </button>
                   ))}
@@ -224,4 +225,14 @@ export default function HomePage() {
       </div>
     </TooltipProvider>
   );
+}
+
+function projectDisplayName(room: RecentRoom) {
+  return /^Project [a-zA-Z0-9_-]{4,}$/.test(room.name) ? "Joined project" : room.name;
+}
+
+function recentProjectDetail(room: RecentRoom) {
+  const date = new Date(room.visitedAt);
+  if (Number.isNaN(date.getTime())) return "Private workspace";
+  return `Private workspace · ${date.toLocaleDateString([], { month: "short", day: "numeric" })}`;
 }

@@ -132,6 +132,7 @@ Primary reference: `DESIGN.md`.
 - Made inline comment composer and comment read cards become compact mobile bottom sheets while preserving anchored desktop popovers.
 - Shifted the project sidebar header from product/raw-room identity to `Fold project` with quiet private-workspace metadata.
 - Reworked the missing-key access gate with Fold branding, project-first copy, and softer elevation.
+- Calmed launcher recent-project rows so old room-id-style entries display as project/workspace metadata instead of visible raw ids.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
