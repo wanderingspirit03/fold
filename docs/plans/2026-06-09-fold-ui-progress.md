@@ -96,6 +96,7 @@ Primary reference: `DESIGN.md`.
 - Extended the web collaboration smoke to verify incoming edit conflicts can be kept locally or accepted from another browser without losing the later comment/reply flow.
 - Added `npm run web:smoke:agent-comment` to verify a CLI-authored encrypted inline comment streams into the open web document and a browser reply replays back through the CLI.
 - Updated the agent-comment smoke to capture viewport screenshots for fixed thread popovers so visual evidence matches what users see on desktop and mobile.
+- Added encrypted parent-text previews for browser reply-to-reply comments so minimal threads show the message being answered, with desktop/mobile agent-comment smoke coverage.
 - Added `npm run web:smoke:navigation` to verify folder collapse persistence and quick-switch reopening of nested file ancestors.
 - Extended navigation smoke to verify command-palette `Add file comment` opens the document-native file comment composer and can dismiss cleanly.
 - Added client-side command-palette content matches for decrypted Markdown files so project search can open a file by body text without server-readable search.

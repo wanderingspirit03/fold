@@ -18,6 +18,7 @@ export interface CommentReplyTarget {
   id: string;
   authorPersonaId: string;
   authorName: string;
+  text: string;
 }
 
 export function CommentConversation({ comment, onReply, compact = false }: CommentConversationProps) {
@@ -29,6 +30,7 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
     id: comment.id,
     authorPersonaId: comment.authorPersonaId,
     authorName: comment.persona?.name || "Comment",
+    text: comment.text,
   };
 
   return (
@@ -57,11 +59,13 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
             createdAt={reply.createdAt}
             text={reply.text}
             parentAuthorName={reply.parentAuthorName}
+            parentText={reply.parentText}
             compact={compact}
             replyTarget={{
               id: reply.id,
               authorPersonaId: reply.authorPersonaId,
               authorName: reply.persona?.name || "Reply",
+              text: reply.text,
             }}
             canReply={canReply}
             onReplyTarget={setReplyTarget}
@@ -83,20 +87,25 @@ export function CommentConversation({ comment, onReply, compact = false }: Comme
           {replyTarget && (
             <div
               data-comment-reply-target
-              className="mb-1.5 flex min-h-7 items-center justify-between gap-2 rounded bg-studio-sunken/70 px-2 text-[11px] text-ink-subtle"
+              className="mb-2 rounded bg-studio-sunken/70 px-2 py-1.5 text-[11px] text-ink-subtle"
             >
-              <span className="inline-flex min-w-0 items-center gap-1.5">
-                <Reply className="h-3 w-3 shrink-0 text-midnight-strong" aria-hidden />
-                <span className="truncate">to {replyTarget.authorName}</span>
-              </span>
-              <button
-                type="button"
-                aria-label="Clear reply target"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-7 md:w-7"
-                onClick={() => setReplyTarget(null)}
-              >
-                <X className="h-3 w-3" />
-              </button>
+              <div className="flex min-h-7 items-center justify-between gap-2">
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <Reply className="h-3 w-3 shrink-0 text-midnight-strong" aria-hidden />
+                  <span className="truncate">to {replyTarget.authorName}</span>
+                </span>
+                <button
+                  type="button"
+                  aria-label="Clear reply target"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-7 md:w-7"
+                  onClick={() => setReplyTarget(null)}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <p className="line-clamp-2 border-l border-midnight/35 pl-2 text-xs leading-5 text-ink-muted">
+                {replyTarget.text}
+              </p>
             </div>
           )}
           <Textarea
@@ -125,6 +134,7 @@ function ThreadMessage({
   createdAt,
   text,
   parentAuthorName,
+  parentText,
   compact,
   replyTarget,
   canReply,
@@ -135,6 +145,7 @@ function ThreadMessage({
   createdAt: string;
   text: string;
   parentAuthorName?: string;
+  parentText?: string;
   compact: boolean;
   replyTarget: CommentReplyTarget;
   canReply: boolean;
@@ -160,7 +171,10 @@ function ThreadMessage({
         </div>
       </div>
       {parentAuthorName && (
-        <p className="text-[11px] leading-4 text-ink-subtle">to {parentAuthorName}</p>
+        <div data-comment-parent-preview className="border-l border-midnight/30 pl-2 text-[11px] leading-4 text-ink-subtle">
+          <p className="font-medium text-ink-subtle">to {parentAuthorName}</p>
+          {parentText ? <p className="mt-0.5 line-clamp-2 text-ink-muted">{parentText}</p> : null}
+        </div>
       )}
       <p className={cn("whitespace-pre-wrap text-sm text-ink-muted", compact ? "leading-5" : "leading-6")}>{text}</p>
     </div>

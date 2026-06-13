@@ -20,6 +20,7 @@ export interface CommentReply {
   parentId?: string;
   parentAuthorPersonaId?: string;
   parentAuthorName?: string;
+  parentText?: string;
 }
 
 export interface RoomComment {

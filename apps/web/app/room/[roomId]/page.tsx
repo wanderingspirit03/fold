@@ -685,7 +685,7 @@ export default function RoomPage() {
   const handleReplyToComment = async (
     comment: ChatComment,
     text: string,
-    target?: { id: string; authorPersonaId: string; authorName: string },
+    target?: { id: string; authorPersonaId: string; authorName: string; text: string },
   ) => {
     const trimmed = text.trim();
     if (!trimmed || !keyRef.current || !localMyPersona) return;
@@ -712,6 +712,7 @@ export default function RoomPage() {
                 parentId: target.id,
                 parentAuthorPersonaId: target.authorPersonaId,
                 parentAuthorName: target.authorName,
+                parentText: target.text.slice(0, 220),
               }
             : {}),
         },

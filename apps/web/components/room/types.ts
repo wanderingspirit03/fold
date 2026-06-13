@@ -53,6 +53,7 @@ export interface ChatCommentReply {
   parentId?: string;
   parentAuthorPersonaId?: string;
   parentAuthorName?: string;
+  parentText?: string;
 }
 
 export interface ChatComment {
