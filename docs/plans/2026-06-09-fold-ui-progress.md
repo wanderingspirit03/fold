@@ -104,6 +104,7 @@ Primary reference: `DESIGN.md`.
 - Extended design smoke to verify the desktop project title is derived from encrypted project content instead of staying generic.
 - Added `npm run web:reference:capture` to refresh the Obsidian public reference screenshot pack named in `DESIGN.md` for visual comparison work.
 - Added `npm run web:smoke:proposal` to verify encrypted CLI proposals, compact preview/diff dialogs, guarded accept, and CLI replay after web acceptance.
+- Updated the proposal smoke to capture viewport screenshots for the fixed preview dialog on desktop and mobile.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
@@ -149,6 +150,7 @@ Primary reference: `DESIGN.md`.
 - Added compact named-version size metadata and a restore confirmation delta so long-document checkpoint restores show their line/word impact without adding review-drawer prose.
 - Added a compact encrypted proposal diff panel to the suggestion preview dialog so whole-document and file replacement proposals can be reviewed before accepting.
 - Added a compact two-step accept confirmation in the suggestion preview dialog so agent proposals are harder to apply accidentally.
+- Lightened the suggestion preview overlay and shadow so proposal review keeps more document context visible.
 - Added the same compact two-step accept confirmation to review-drawer proposal rows so quick actions cannot apply agent changes in one click.
 - Hardened the reusable margin-thread proposal branch with the same two-step accept confirmation so stale or future proposal surfaces cannot reintroduce one-click acceptance.
 - Added a compact two-step confirmation before applying incoming edits so remote replacements or deletions cannot overwrite local drafts in one click.

@@ -40,7 +40,7 @@ export function ThreadReviewDialog({
 
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_14px_44px_rgba(0,0,0,0.24)]">
+      <DialogContent className="max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_12px_34px_rgba(0,0,0,0.18)]">
         {proposal && (
           <>
             <DialogHeader className="border-b border-studio-line px-4 py-3 sm:px-5">

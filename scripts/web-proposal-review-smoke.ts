@@ -74,7 +74,7 @@ async function main() {
     await desktop.getByRole("button", { name: /cancel accepting/i }).click();
     await desktop.getByRole("button", { name: "Accept", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
     const desktopDialogScreenshotPath = join(screenshotDir, "desktop-proposal-preview.png");
-    await desktop.screenshot({ path: desktopDialogScreenshotPath, fullPage: true, caret: "initial" });
+    await desktop.screenshot({ path: desktopDialogScreenshotPath, fullPage: false, caret: "initial" });
     await desktop.keyboard.press("Escape");
     await desktop.waitForFunction(() => !document.body.innerText.includes("Suggestion preview"), null, { timeout: 8_000 });
 
@@ -86,7 +86,7 @@ async function main() {
     await mobile.getByRole("button", { name: new RegExp(`preview ${escapeRegExp(PROPOSAL_TITLE)}`, "i") }).click({ timeout: 8_000 });
     await assertProposalDialog(mobile);
     const mobileDialogScreenshotPath = join(screenshotDir, "mobile-proposal-preview.png");
-    await mobile.screenshot({ path: mobileDialogScreenshotPath, fullPage: true, caret: "initial" });
+    await mobile.screenshot({ path: mobileDialogScreenshotPath, fullPage: false, caret: "initial" });
     await assertNoHorizontalOverflow(mobile, "mobile proposal preview");
 
     await desktop.getByRole("button", { name: /open pending suggestion/i }).click({ timeout: 8_000 });
