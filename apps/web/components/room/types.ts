@@ -12,6 +12,7 @@ export interface Proposal {
   authorPersonaId: string;
   persona: RoomPersona;
   proposedMarkdown: string;
+  proposedSha256?: string;
   createdAt: string;
   status: ProposalStatus;
   filePath?: string;
@@ -30,12 +31,14 @@ export interface Proposal {
 }
 
 export interface TimelineEvent {
+  schema?: "fold.timeline-event.v1";
   id: string;
   type: string;
   createdAt: string;
   actorPersonaId: string;
   message: string;
   proposalId?: string;
+  documentSha256?: string | null;
   commentId?: string;
   filePath?: string;
   reply?: ChatCommentReply;

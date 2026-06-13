@@ -331,6 +331,7 @@ export default function RoomPage() {
         authorPersonaId: parsed.authorPersonaId,
         persona: parsed.persona,
         proposedMarkdown: parsed.proposedMarkdown || parsed.proposed?.markdown || "",
+        proposedSha256: typeof parsed.proposed?.sha256 === "string" ? parsed.proposed.sha256 : undefined,
         createdAt: parsed.createdAt,
         status: "pending",
         kind: parsed.kind,
@@ -476,11 +477,13 @@ export default function RoomPage() {
 
       const createdAt = new Date().toISOString();
       const eventRecord: TimelineEvent = {
+        schema: "fold.timeline-event.v1",
         id: `ev-acc-${proposal.id}`,
         type: "proposal_accepted",
         createdAt,
         actorPersonaId: localMyPersona.id,
         proposalId: proposal.id,
+        documentSha256: proposal.proposedSha256 || null,
         message: `Accepted ${proposal.title}`,
       };
       const encryptedEvent = await encryptUpdate(encoder.encode(JSON.stringify(eventRecord)), keyRef.current, {
@@ -599,11 +602,13 @@ export default function RoomPage() {
     try {
       const createdAt = new Date().toISOString();
       const eventRecord: TimelineEvent = {
+        schema: "fold.timeline-event.v1",
         id: `ev-rej-${proposal.id}`,
         type: "proposal_rejected",
         createdAt,
         actorPersonaId: localMyPersona.id,
         proposalId: proposal.id,
+        documentSha256: null,
         message: `Rejected ${proposal.title}`,
       };
       const encryptedEvent = await encryptUpdate(encoder.encode(JSON.stringify(eventRecord)), keyRef.current, {
@@ -1847,7 +1852,7 @@ function createInitialVirtualFiles(): Record<string, string> {
       "- Frontmatter properties",
       "- GFM tables and task lists",
       "- Math and code fences",
-      "- Mermaid placeholders",
+      "- Mermaid diagrams",
     ].join("\n"),
     "research/milkdown-prototype.md": [
       "# Milkdown Prototype",
@@ -1942,7 +1947,7 @@ function createInitialVirtualFiles(): Record<string, string> {
       "  --json",
       "```",
       "",
-      "## Mermaid Placeholder",
+      "## Mermaid Diagram",
       "",
       "```mermaid",
       "flowchart LR",

@@ -24,6 +24,7 @@ async function main() {
     await desktop.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
     await desktop.getByRole("button", { name: /^agent-handoff-review\.md/i }).click();
     await desktop.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
+    await assertMermaidRendered(desktop, "desktop");
     await assertDesktopDesign(desktop);
     const desktopScreenshotPath = join(screenshotDir, "desktop-project-workspace.png");
     await desktop.screenshot({ path: desktopScreenshotPath, fullPage: true, caret: "initial" });
@@ -36,6 +37,7 @@ async function main() {
     await mobile.getByRole("textbox", { name: /search project files/i }).fill("reports/agent-handoff-review.md");
     await mobile.getByRole("button", { name: /^agent-handoff-review\.md/i }).click();
     await mobile.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
+    await assertMermaidRendered(mobile, "mobile");
     await assertMobileDesign(mobile);
     const mobileScreenshotPath = join(screenshotDir, "mobile-document-first.png");
     await mobile.screenshot({ path: mobileScreenshotPath, fullPage: true, caret: "initial" });
@@ -129,6 +131,25 @@ async function assertMobileDesign(page: Page) {
   }
   if (metrics.surfaceLeft < 0) throw new Error("Mobile document surface starts outside the viewport.");
   if (metrics.scrollWidth > metrics.viewportWidth) throw new Error("Mobile design smoke created horizontal overflow.");
+}
+
+async function assertMermaidRendered(page: Page, label: string) {
+  await page.waitForSelector('[data-mermaid-diagram="rendered"] svg', { timeout: 12_000 });
+  const metrics = await page.evaluate(() => {
+    const diagram = document.querySelector('[data-mermaid-diagram="rendered"]');
+    const svg = diagram?.querySelector("svg");
+    const rect = svg?.getBoundingClientRect();
+    return {
+      label: diagram?.querySelector("figcaption")?.textContent || "",
+      width: rect?.width || 0,
+      height: rect?.height || 0,
+    };
+  });
+
+  if (metrics.label.includes("Source")) throw new Error(`${label} Mermaid block is still shown as source instead of a diagram.`);
+  if (metrics.width < 180 || metrics.height < 32) {
+    throw new Error(`${label} Mermaid diagram rendered too small: ${metrics.width}x${metrics.height}.`);
+  }
 }
 
 async function assertNoHorizontalOverflow(page: Page, label: string) {

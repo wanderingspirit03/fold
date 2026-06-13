@@ -96,6 +96,7 @@ Primary reference: `DESIGN.md`.
 - Extended navigation smoke to verify broad quick-switcher searches clip to a calm result set with an explicit hidden-match hint and still open files by keyboard.
 - Added `npm run web:smoke:annotations` to verify multiple bright-theme inline comment markers on desktop and mobile without overflow.
 - Added `npm run web:smoke:design` to verify DESIGN.md layout invariants and capture desktop/mobile workspace comparison screenshots.
+- Added `npm run web:smoke:proposal` to verify encrypted CLI proposals, compact preview/diff dialogs, guarded accept, and CLI replay after web acceptance.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
@@ -157,7 +158,8 @@ Primary reference: `DESIGN.md`.
 - Shortened and unboxed review comment anchor labels so whole-document notes read like quiet annotation metadata instead of nested chips.
 - Collapsed the review-drawer version checkpoint form behind a quiet `Save checkpoint` action so comments and suggestions stay primary until versioning is requested.
 - Lightened the review drawer scrim and shadow so document context remains visible while review work is open.
-- Renamed Mermaid placeholder chrome from implementation-style `Preview disabled` to quiet `Source` while keeping sanitized source rendering.
+- Upgraded Mermaid fences from sanitized source placeholders to isolated strict client-side SVG diagrams with source fallback on parse/render failure.
+- Extended the design-direction smoke to verify desktop and mobile Mermaid diagrams render as diagrams, not source blocks.
 - Verified recent UI slices with Playwright screenshots on desktop and mobile because `iab` is unavailable in this session.
 - Continue verifying substantial slices with a separate reviewer/subagent before pushing.
 
@@ -195,6 +197,7 @@ npm run web:smoke:agent-comment # requires web app plus sync server on 127.0.0.1
 npm run web:smoke:navigation # requires web app plus sync server on 127.0.0.1:8787
 npm run web:smoke:annotations # requires web app plus sync server on 127.0.0.1:8787
 npm run web:smoke:design # requires web app plus sync server on 127.0.0.1:8787
+npm run web:smoke:proposal # requires web app plus sync server on 127.0.0.1:8787
 npm run spike:e2ee
 npm run spike:document-model
 npm run spike:document-model:report
