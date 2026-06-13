@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock, FileText, Github, Link2, Plus, Trash2 } from "lucide-react";
 import { toBase64Url } from "../lib/crypto";
-import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -175,9 +174,8 @@ export default function HomePage() {
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-medium">Open project</h2>
-                  <p className="mt-1 text-sm text-ink-muted">Create or join with an encrypted link.</p>
+                  <p className="mt-1 text-sm text-ink-muted">Private Markdown workspace.</p>
                 </div>
-                <Badge variant="muted">Local keys</Badge>
               </div>
 
               <div className="overflow-hidden rounded-md border border-studio-line bg-studio-paper">
@@ -188,7 +186,7 @@ export default function HomePage() {
                   className="flex min-h-14 w-full items-center justify-between gap-3 px-4 text-left transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-midnight-strong disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-studio-line bg-studio-sunken text-midnight-strong">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center text-midnight-strong">
                       <Plus className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">
@@ -199,8 +197,8 @@ export default function HomePage() {
                   <ArrowRight className="h-4 w-4 shrink-0 text-ink-subtle" />
                 </button>
 
-                <form onSubmit={handleJoinUrl} className="border-t border-studio-line p-4">
-                  <label htmlFor="room-link" className="mb-2 flex items-center gap-2 text-sm font-medium text-ink">
+                <form onSubmit={handleJoinUrl} className="border-t border-studio-line px-4 py-3">
+                  <label htmlFor="room-link" className="mb-2 flex items-center gap-2 text-sm font-medium text-ink-muted">
                     <Link2 className="h-4 w-4 text-ink-subtle" />
                     Join project
                   </label>
