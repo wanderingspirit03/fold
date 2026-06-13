@@ -5,6 +5,7 @@ import { chromium, type Page } from "playwright";
 
 const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
+const EDIT_MODE_COMMENT_MARKER = `Edit mode source comment ${Date.now()}.`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -22,6 +23,43 @@ async function main() {
     await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
     await page.getByRole("button", { name: /create project/i }).click();
     await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const sourceEditor = page.getByRole("textbox", { name: /markdown source/i });
+    await sourceEditor.waitFor({ state: "visible", timeout: 8_000 });
+    const editModeAnchor = await sourceEditor.evaluate((element) => {
+      if (!(element instanceof HTMLTextAreaElement)) throw new Error("Markdown source editor is not a textarea.");
+      const candidates = ["single Markdown room", "inline comment markers", "dark-first project workspace"];
+      const anchor = candidates.find((candidate) => element.value.includes(candidate));
+      if (!anchor) throw new Error("Could not find a stable source-editor phrase to annotate.");
+      const start = element.value.indexOf(anchor);
+      element.focus();
+      element.setSelectionRange(start, start + anchor.length);
+      element.dispatchEvent(new Event("select", { bubbles: true }));
+      element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      return anchor;
+    });
+    await page.getByRole("button", { name: /open command palette/i }).click();
+    const editModePaletteInput = page.getByRole("combobox", { name: /search commands and files/i });
+    await editModePaletteInput.fill("comment");
+    await page.getByRole("option", { name: /add file comment/i }).first().waitFor({ state: "visible", timeout: 8_000 });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /add comment to source selection/i }).click({ timeout: 8_000 });
+    await page.waitForSelector('[data-comment-composer]', { timeout: 8_000 });
+    await page.getByRole("textbox", { name: /^inline comment$/i }).fill(EDIT_MODE_COMMENT_MARKER);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("button", { name: "Read", exact: true }).click();
+    await page.waitForFunction(
+      (anchor) => document.querySelector("[data-inline-comment-marker]")?.textContent?.includes(anchor),
+      editModeAnchor,
+      { timeout: 8_000 },
+    );
+    await page.getByRole("button", { name: new RegExp(`open inline comment for ${escapeRegExp(editModeAnchor)}`, "i") }).click({ timeout: 8_000 });
+    await page.waitForFunction(
+      (marker) => document.body.innerText.includes(marker),
+      EDIT_MODE_COMMENT_MARKER,
+      { timeout: 8_000 },
+    );
 
     await page.getByRole("button", { name: /open command palette/i }).click();
     const firstPaletteInput = page.getByRole("combobox", { name: /search commands and files/i });
@@ -139,6 +177,10 @@ async function assertSyncServerReady(syncUrl: string) {
       `Start it before running the navigation smoke:\n` +
       `  npm run server -- --port 8787 --data ./data`,
   );
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function canReach(url: string) {

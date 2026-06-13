@@ -67,6 +67,7 @@ export function DocumentSurface({
   } | null>(null);
   const [fileCommentsOpen, setFileCommentsOpen] = useState(false);
   const [fileComposerOpen, setFileComposerOpen] = useState(false);
+  const [editComposerOpen, setEditComposerOpen] = useState(false);
   const [inlineComposerOpen, setInlineComposerOpen] = useState(false);
   const parsedMarkdown = useMemo(() => extractMarkdownProperties(markdown), [markdown]);
   const activeComments = useMemo(() => comments.filter((comment) => !comment.resolvedAt), [comments]);
@@ -88,6 +89,7 @@ export function DocumentSurface({
   };
 
   useEffect(() => {
+    if (mode === "edit") return;
     if (composerFocusToken === 0) return;
     if (selectedQuote && anchorPoint) {
       setFileComposerOpen(false);
@@ -98,7 +100,17 @@ export function DocumentSurface({
     setFileComposerOpen(true);
     setAnchorPoint(null);
     onSelectedQuoteChange("");
-  }, [anchorPoint, composerFocusToken, onSelectedQuoteChange, selectedQuote]);
+  }, [anchorPoint, composerFocusToken, mode, onSelectedQuoteChange, selectedQuote]);
+
+  useEffect(() => {
+    if (mode !== "edit" || composerFocusToken === 0) return;
+    setEditComposerOpen(true);
+    setFileComposerOpen(false);
+    setInlineComposerOpen(false);
+    setAnchorPoint(null);
+    onSelectedQuoteChange("");
+    window.requestAnimationFrame(() => composerRef.current?.focus());
+  }, [composerFocusToken, mode, onSelectedQuoteChange]);
 
   useEffect(() => {
     if (!fileComposerOpen || selectedQuote) return;
@@ -180,10 +192,85 @@ export function DocumentSurface({
     const wrapEditedMarkdown = (content: string) => `${parsedMarkdown.propertySource}${content}`;
 
     return (
-      <section className="mx-auto w-full max-w-[880px]">
+      <section className="mx-auto w-full max-w-[880px] space-y-3">
+        {selectedQuote && !editComposerOpen && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              aria-label="Add comment to source selection"
+              className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border border-midnight/25 bg-studio-paper px-3 py-2 text-xs text-ink-muted shadow-[0_6px_18px_rgba(0,0,0,0.12)] transition-colors hover:border-midnight/45 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:min-h-9"
+              onClick={() => {
+                setEditComposerOpen(true);
+                window.requestAnimationFrame(() => composerRef.current?.focus());
+              }}
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+              <span className="truncate">Comment selection</span>
+            </button>
+          </div>
+        )}
+        {editComposerOpen && (
+          <form
+            data-comment-composer
+            onSubmit={(event) => {
+              if (!newCommentText.trim()) {
+                event.preventDefault();
+                return;
+              }
+              onPostComment(event);
+              setEditComposerOpen(false);
+              onSelectedQuoteChange("");
+              onNewCommentTextChange("");
+            }}
+            className="rounded-md border border-midnight/25 bg-studio-paper p-2 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
+          >
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 px-1 text-xs text-ink-subtle">
+                  <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+                  <span>{selectedQuote ? "Selection comment" : "File comment"}</span>
+                </div>
+                {selectedQuote && (
+                  <p className="mt-1 line-clamp-2 border-l border-midnight/35 pl-2 text-xs leading-5 text-ink-muted">
+                    {selectedQuote}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label="Cancel comment"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
+                onClick={() => {
+                  setEditComposerOpen(false);
+                  onSelectedQuoteChange("");
+                  onNewCommentTextChange("");
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Textarea
+              ref={composerRef}
+              aria-label={selectedQuote ? "Inline comment" : "File comment"}
+              placeholder="Comment"
+              rows={2}
+              value={newCommentText}
+              onChange={(event) => onNewCommentTextChange(event.target.value)}
+              required
+              className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
+            />
+            <div className="mt-2 flex justify-end">
+              <Button type="submit" size="sm" className="h-11 md:h-8">
+                <Send className="h-3.5 w-3.5" />
+                Add
+              </Button>
+            </div>
+          </form>
+        )}
         <MarkdownSourceEditor
           initialMarkdown={parsedMarkdown.content}
           properties={parsedMarkdown.properties}
+          onSelectionQuoteChange={(quote) => onSelectedQuoteChange(quote)}
           onChange={(content) => onMarkdownChange(wrapEditedMarkdown(content))}
           onCommit={(content) => onMarkdownCommit?.(wrapEditedMarkdown(content))}
         />

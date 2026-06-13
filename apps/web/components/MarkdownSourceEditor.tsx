@@ -10,6 +10,7 @@ interface MarkdownSourceEditorProps {
   properties?: Array<{ key: string; value: string }>;
   onChange: (markdown: string) => void;
   onCommit?: (markdown: string) => void;
+  onSelectionQuoteChange?: (quote: string) => void;
 }
 
 export default function MarkdownSourceEditor({
@@ -17,9 +18,11 @@ export default function MarkdownSourceEditor({
   properties = [],
   onChange,
   onCommit,
+  onSelectionQuoteChange,
 }: MarkdownSourceEditorProps) {
   const onChangeRef = useRef(onChange);
   const onCommitRef = useRef(onCommit);
+  const onSelectionQuoteChangeRef = useRef(onSelectionQuoteChange);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [markdown, setMarkdown] = useState(initialMarkdown);
   const [tabIndents, setTabIndents] = useState(true);
@@ -27,6 +30,7 @@ export default function MarkdownSourceEditor({
 
   onChangeRef.current = onChange;
   onCommitRef.current = onCommit;
+  onSelectionQuoteChangeRef.current = onSelectionQuoteChange;
 
   const counts = useMemo(() => ({
     lines: markdown.split("\n").length,
@@ -42,6 +46,14 @@ export default function MarkdownSourceEditor({
     setMarkdown(nextMarkdown);
     onChangeRef.current(nextMarkdown);
   };
+
+  const syncSelectionQuote = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const selectedText = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).trim();
+    onSelectionQuoteChangeRef.current?.(selectedText.length >= 2 ? selectedText.slice(0, 180) : "");
+  };
+
   const handleSourceKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "m") {
       event.preventDefault();
@@ -107,6 +119,9 @@ export default function MarkdownSourceEditor({
           value={markdown}
           onChange={handleSourceChange}
           onKeyDown={handleSourceKeyDown}
+          onKeyUp={syncSelectionQuote}
+          onMouseUp={syncSelectionQuote}
+          onSelect={syncSelectionQuote}
           onBlur={() => {
             setTabIndents(true);
             setKeyboardHint("Tab indents Markdown. Press Escape to let Tab move focus.");

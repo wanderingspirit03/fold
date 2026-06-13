@@ -1202,7 +1202,7 @@ export default function RoomPage() {
         pendingCount={selectedFilePendingCount}
         conflictCount={selectedFileConflict ? 1 : 0}
         reviewCount={selectedFileActiveComments.length + selectedFilePendingCount + (selectedFileConflict ? 1 : 0)}
-        selectedQuote={selectedQuote}
+        selectedQuote={editMode === "edit" ? "" : selectedQuote}
         persona={localMyPersona}
         activePresences={selectedFilePresences}
         mode={editMode}

@@ -99,6 +99,7 @@ Primary reference: `DESIGN.md`.
 - Added encrypted parent-text previews for browser reply-to-reply comments so minimal threads show the message being answered, with desktop/mobile agent-comment smoke coverage.
 - Added `npm run web:smoke:navigation` to verify folder collapse persistence and quick-switch reopening of nested file ancestors.
 - Extended navigation smoke to verify command-palette `Add file comment` opens the document-native file comment composer and can dismiss cleanly.
+- Added an edit-mode source-selection comment affordance so selected Markdown text can create the same encrypted inline comments before returning to read mode.
 - Added client-side command-palette content matches for decrypted Markdown files so project search can open a file by body text without server-readable search.
 - Extended navigation smoke to verify broad quick-switcher searches clip to a calm result set with an explicit hidden-match hint and still open files by keyboard.
 - Added `npm run web:smoke:annotations` to verify multiple bright-theme inline comment markers on desktop and mobile without overflow.
