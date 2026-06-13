@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { Check, ListChecks, MessageSquare, MessageSquarePlus, Pencil, Send, X } from "lucide-react";
+import { Bot, Check, ListChecks, MessageSquare, MessageSquarePlus, Pencil, Send, X } from "lucide-react";
 import MarkdownRenderer from "../MarkdownRenderer";
 import MarkdownSourceEditor from "../MarkdownSourceEditor";
 import { extractMarkdownProperties } from "../../lib/markdown-properties";
@@ -32,9 +32,10 @@ interface DocumentSurfaceProps {
   onReplyToComment?: (comment: ChatComment, text: string, target?: CommentReplyTarget) => void;
   onStartEditing?: () => void;
   newCommentText: string;
+  isPostingComment?: boolean;
   composerFocusToken: number;
   onNewCommentTextChange: (value: string) => void;
-  onPostComment: (event?: React.FormEvent) => void;
+  onPostComment: (event?: React.SyntheticEvent, type?: ChatComment["type"]) => void;
 }
 
 export function DocumentSurface({
@@ -57,6 +58,7 @@ export function DocumentSurface({
   onReplyToComment,
   onStartEditing,
   newCommentText,
+  isPostingComment = false,
   composerFocusToken,
   onNewCommentTextChange,
   onPostComment,
@@ -277,8 +279,24 @@ export function DocumentSurface({
               required
               className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
             />
-            <div className="mt-2 flex justify-end">
-              <Button type="submit" size="sm" className="h-11 md:h-8">
+            <div className="mt-2 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 md:h-8"
+                disabled={!newCommentText.trim() || isPostingComment}
+                onClick={(event) => {
+                  onPostComment(event, "request");
+                  setEditComposerOpen(false);
+                  clearSelectedAnchor();
+                  onNewCommentTextChange("");
+                }}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                Ask
+              </Button>
+              <Button type="submit" size="sm" className="h-11 md:h-8" disabled={!newCommentText.trim() || isPostingComment}>
                 <Send className="h-3.5 w-3.5" />
                 Add
               </Button>
@@ -452,10 +470,27 @@ export function DocumentSurface({
                   <X className="h-3.5 w-3.5" />
                   Cancel
                 </button>
-                <Button type="submit" size="sm">
-                  <Send className="h-3.5 w-3.5" />
-                  Add
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!newCommentText.trim() || isPostingComment}
+                    onClick={(event) => {
+                      onPostComment(event, "request");
+                      setFileComposerOpen(false);
+                      setFileCommentsOpen(true);
+                      onNewCommentTextChange("");
+                    }}
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                    Ask
+                  </Button>
+                  <Button type="submit" size="sm" disabled={!newCommentText.trim() || isPostingComment}>
+                    <Send className="h-3.5 w-3.5" />
+                    Add
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
@@ -487,8 +522,8 @@ export function DocumentSurface({
                   .map((comment) => ({
                     id: `comment:${comment.id}`,
                     text: comment.selectedQuote!,
-                    label: "comment",
-                    kind: "comment" as const,
+                    label: comment.type === "request" ? "agent request" : "comment",
+                    kind: comment.type === "request" ? "suggestion" as const : "comment" as const,
                     before: comment.beforeContext,
                     after: comment.afterContext,
                   })),
@@ -552,8 +587,12 @@ export function DocumentSurface({
           >
             <div className="mb-2 flex shrink-0 items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-ink">
-                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
-                <span className="truncate">Comment thread</span>
+                {activeComment.type === "request" ? (
+                  <Bot className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                ) : (
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                )}
+                <span className="truncate">{activeComment.type === "request" ? "Agent request" : "Comment thread"}</span>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {onResolveComment && (
@@ -581,7 +620,11 @@ export function DocumentSurface({
               </div>
             </div>
             <div className="mb-2 flex shrink-0 items-center gap-1.5 text-[11px] text-ink-subtle">
-              <MessageSquare className="h-3.5 w-3.5 text-midnight-strong" />
+              {activeComment.type === "request" ? (
+                <Bot className="h-3.5 w-3.5 text-midnight-strong" />
+              ) : (
+                <MessageSquare className="h-3.5 w-3.5 text-midnight-strong" />
+              )}
               <span className="truncate">{activeComment.selectedQuote || "Document note"}</span>
             </div>
             <CommentConversation comment={activeComment} onReply={onReplyToComment} />
@@ -632,10 +675,28 @@ export function DocumentSurface({
                 >
                   Cancel
                 </button>
-                <Button type="submit" size="sm" className="h-11 px-3 md:h-8">
-                  <Send className="h-3.5 w-3.5" />
-                  Add
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-11 px-3 md:h-8"
+                    disabled={!newCommentText.trim() || isPostingComment}
+                    onClick={(event) => {
+                      onPostComment(event, "request");
+                      setInlineComposerOpen(false);
+                      setAnchorPoint(null);
+                      clearSelectedAnchor();
+                    }}
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                    Ask
+                  </Button>
+                  <Button type="submit" size="sm" className="h-11 px-3 md:h-8" disabled={!newCommentText.trim() || isPostingComment}>
+                    <Send className="h-3.5 w-3.5" />
+                    Add
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
@@ -676,6 +737,7 @@ function createInsertionPreview(markdown: string, offset: number) {
 }
 
 function getCommentAnchorLabel(comment: ChatComment) {
+  if (comment.type === "request") return "Agent request";
   if (comment.anchorType === "insertion-point") return "Insertion point";
   if (comment.anchorType === "block") return "Section";
   if (comment.anchorType === "text-range" && comment.selectedQuote) return "Saved text";

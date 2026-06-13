@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, Eye, Quote, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Bot, Check, Eye, Quote, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -35,7 +35,7 @@ export function MarginThread({
   const persona = comment?.persona || proposal?.persona;
   const text = comment?.text || proposal?.comment || "Start a note or ask an agent to revise this passage.";
   const quote = selectedQuote || comment?.selectedQuote || proposal?.selectedQuote;
-  const anchorLabel = getAnchorLabel(comment?.anchorType || proposal?.anchorType, quote);
+  const anchorLabel = comment?.type === "request" ? "Agent request" : getAnchorLabel(comment?.anchorType || proposal?.anchorType, quote);
 
   useEffect(() => {
     setConfirmingAccept(false);
@@ -77,7 +77,10 @@ export function MarginThread({
         </p>
       )}
       {!selectedQuote && !quote && anchorLabel && (
-        <p className="mb-1.5 px-0.5 text-[11px] leading-5 text-ink-subtle">{anchorLabel}</p>
+        <p className="mb-1.5 inline-flex items-center gap-1.5 px-0.5 text-[11px] leading-5 text-ink-subtle">
+          {comment?.type === "request" && <Bot className="h-3 w-3 text-midnight-strong" />}
+          {anchorLabel}
+        </p>
       )}
       {comment ? (
         <CommentConversation comment={comment} onReply={onReplyToComment} compact />

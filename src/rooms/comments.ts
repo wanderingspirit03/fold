@@ -33,7 +33,7 @@ export interface RoomComment {
   createdAt: string;
   resolvedAt?: string;
   resolvedByPersonaId?: string;
-  type: 'note';
+  type: 'note' | 'request';
   anchorType?: ThreadAnchorType;
   selectedQuote?: string;
   createdFromMarkdown?: string;
@@ -183,7 +183,7 @@ function isRoomComment(value: unknown): value is RoomComment {
     && candidate.persona?.schema === 'fold.persona.v1'
     && typeof candidate.text === 'string'
     && typeof candidate.createdAt === 'string'
-    && candidate.type === 'note';
+    && (candidate.type === 'note' || candidate.type === 'request');
 }
 
 function isCommentSender(senderId: string) {

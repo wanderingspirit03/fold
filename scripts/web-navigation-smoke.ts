@@ -7,6 +7,7 @@ const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
 const EDIT_MODE_COMMENT_MARKER = `Edit mode source comment ${Date.now()}.`;
 const EDIT_MODE_CURSOR_COMMENT_MARKER = `Edit mode cursor comment ${Date.now()}.`;
+const AGENT_REQUEST_MARKER = `Agent request ${Date.now()}.`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -102,6 +103,24 @@ async function main() {
       { timeout: 8_000 },
     );
     await page.getByRole("button", { name: /close file comments/i }).click();
+
+    const agentRequestAnchor = "Keep Markdown canonical.";
+    await selectDocumentText(page, agentRequestAnchor, "keyup");
+    await page.keyboard.press("Control+K");
+    const askPaletteInput = page.getByRole("combobox", { name: /search commands and files/i });
+    await askPaletteInput.fill("ask");
+    await page.getByRole("option", { name: /ask agent at selection/i }).first().waitFor({ state: "visible", timeout: 8_000 });
+    await page.keyboard.press("Enter");
+    await page.waitForSelector('[data-inline-comment-composer]', { timeout: 8_000 });
+    await page.getByRole("textbox", { name: /^inline comment$/i }).fill(AGENT_REQUEST_MARKER);
+    await page.getByRole("button", { name: "Ask", exact: true }).click();
+    await page.getByRole("button", { name: new RegExp(`open inline agent request for ${escapeRegExp(agentRequestAnchor)}`, "i") }).click({ timeout: 8_000 });
+    await page.waitForFunction(
+      (marker) => document.body.innerText.includes(marker) && document.body.innerText.includes("Agent request"),
+      AGENT_REQUEST_MARKER,
+      { timeout: 8_000 },
+    );
+    await page.getByRole("button", { name: /close comment/i }).click();
 
     await page.getByRole("button", { name: /open command palette/i }).click();
     const firstPaletteInput = page.getByRole("combobox", { name: /search commands and files/i });
@@ -242,6 +261,36 @@ async function assertSyncServerReady(syncUrl: string) {
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function selectDocumentText(page: Page, phrase: string, eventType: "mouseup" | "keyup" = "mouseup") {
+  await page.evaluate(({ targetPhrase, eventType }) => {
+    const surface = document.querySelector('[data-document-surface="true"]');
+    if (!surface) throw new Error("Document surface not found.");
+
+    const walker = document.createTreeWalker(surface, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const text = node.textContent || "";
+      const index = text.indexOf(targetPhrase);
+      if (index >= 0) {
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + targetPhrase.length);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        if (eventType === "keyup") {
+          surface.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
+        } else {
+          surface.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        }
+        return;
+      }
+      node = walker.nextNode();
+    }
+    throw new Error(`Could not select document phrase: ${targetPhrase}`);
+  }, { targetPhrase: phrase, eventType });
 }
 
 async function canReach(url: string) {

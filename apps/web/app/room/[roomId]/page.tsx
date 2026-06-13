@@ -86,6 +86,7 @@ export default function RoomPage() {
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
 
   const [newCommentText, setNewCommentText] = useState("");
+  const [isPostingComment, setIsPostingComment] = useState(false);
   const [composerFocusToken, setComposerFocusToken] = useState(0);
   const [selectedQuote, setSelectedQuote] = useState("");
   const [selectedInsertionOffset, setSelectedInsertionOffset] = useState<number | null>(null);
@@ -103,6 +104,7 @@ export default function RoomPage() {
   const localMyPersonaRef = useRef<RoomPersona | null>(localMyPersona);
   const selectedFilePathRef = useRef(selectedFilePath);
   const editModeRef = useRef(editMode);
+  const isPostingCommentRef = useRef(false);
   const hasRemoteProjectStateRef = useRef(false);
   const projectPrimaryPathRef = useRef("");
   const bootstrappedInitialProjectRef = useRef(false);
@@ -628,13 +630,15 @@ export default function RoomPage() {
     }
   };
 
-  const handlePostComment = async (e?: React.FormEvent) => {
+  const handlePostComment = async (e?: React.SyntheticEvent, type: ChatComment["type"] = "note") => {
     e?.preventDefault();
-    if (!newCommentText.trim() || !keyRef.current || !localMyPersona) return;
+    if (isPostingCommentRef.current || !newCommentText.trim() || !keyRef.current || !localMyPersona) return;
     const currentMarkdown = selectedFilePath === LIVE_FILE_PATH
       ? markdown
       : virtualFiles[selectedFilePath] || "";
 
+    isPostingCommentRef.current = true;
+    setIsPostingComment(true);
     try {
       const id = Math.random().toString(36).slice(2, 11);
       const record: ChatComment = {
@@ -644,7 +648,7 @@ export default function RoomPage() {
         filePath: selectedFilePath,
         text: newCommentText.trim(),
         createdAt: new Date().toISOString(),
-        type: "note",
+        type,
         ...createCommentAnchor(currentMarkdown, selectedQuote, selectedInsertionOffset),
       };
       const encrypted = await encryptUpdate(encoder.encode(JSON.stringify(record)), keyRef.current, {
@@ -660,6 +664,9 @@ export default function RoomPage() {
       clearPresenceActivity();
     } catch (err) {
       setSyncError(`Could not post comment: ${String(err)}`);
+    } finally {
+      isPostingCommentRef.current = false;
+      setIsPostingComment(false);
     }
   };
 
@@ -707,7 +714,7 @@ export default function RoomPage() {
         actorPersonaId: localMyPersona.id,
         commentId: comment.id,
         filePath: comment.filePath || selectedFilePath,
-        message: `Replied to comment on ${comment.selectedQuote || comment.filePath || "document"}`,
+        message: `Replied to ${comment.type === "request" ? "request" : "comment"} on ${comment.selectedQuote || comment.filePath || "document"}`,
         reply: {
           id: replyId,
           authorPersonaId: localMyPersona.id,
@@ -1315,6 +1322,7 @@ export default function RoomPage() {
             onReplyToComment={handleReplyToComment}
             onStartEditing={() => setEditMode("edit")}
             newCommentText={newCommentText}
+            isPostingComment={isPostingComment}
             composerFocusToken={composerFocusToken}
             onNewCommentTextChange={(value) => {
               setNewCommentText(value);

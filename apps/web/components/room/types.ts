@@ -67,7 +67,7 @@ export interface ChatComment {
   createdAt: string;
   resolvedAt?: string;
   resolvedByPersonaId?: string;
-  type: "note";
+  type: "note" | "request";
   anchorType?: ThreadAnchorType;
   selectedQuote?: string;
   createdFromMarkdown?: string;

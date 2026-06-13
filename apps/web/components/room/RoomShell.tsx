@@ -1491,6 +1491,16 @@ function ProjectCommandPalette({
       action: onFocusCommentComposer,
     },
     {
+      id: "ask-agent",
+      label: trimmedQuote ? "Ask agent at selection" : "Ask agent about file",
+      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
+      group: "actions",
+      searchText: "ask agent request selection revise clarify help",
+      showByDefault: Boolean(trimmedQuote),
+      icon: <Bot className="h-4 w-4" />,
+      action: onFocusCommentComposer,
+    },
+    {
       id: "show-comments",
       label: "Show unresolved comments",
       detail: `${commentCount} ${commentCount === 1 ? "comment" : "comments"} in current file`,
