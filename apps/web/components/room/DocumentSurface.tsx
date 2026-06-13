@@ -473,6 +473,7 @@ export function DocumentSurface({
         )}
         {selectedQuote && anchorPoint && inlineComposerOpen && (
           <div
+            data-inline-comment-composer
             className="fixed inset-x-3 bottom-3 z-50 w-auto pb-[env(safe-area-inset-bottom)] md:absolute md:inset-x-auto md:bottom-auto md:top-[var(--comment-composer-top)] md:left-[var(--comment-composer-left)] md:z-10 md:w-[min(340px,calc(100%-2rem))] md:pb-0"
             style={overlayPositionStyle("--comment-composer-top", anchorPoint.top, "--comment-composer-left", anchorPoint.left)}
           >
@@ -484,10 +485,13 @@ export function DocumentSurface({
                 setAnchorPoint(null);
                 onSelectedQuoteChange("");
               }}
-              className="rounded-md border border-midnight/30 bg-studio-paper p-2 text-ink shadow-[0_16px_42px_rgba(0,0,0,0.22)]"
+              className="rounded-md border border-studio-line bg-studio-paper/95 p-2 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.18)] backdrop-blur"
             >
-              <div className="mb-2 flex items-start gap-2 px-1">
-                <MessageSquarePlus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+              <div className="mb-2 rounded border border-studio-line bg-studio-sunken/70 px-2 py-1.5">
+                <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+                  <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
+                  <span>Selection</span>
+                </div>
                 <p className="line-clamp-2 text-xs leading-5 text-ink-subtle">"{selectedQuote}"</p>
               </div>
               <Textarea
@@ -498,7 +502,7 @@ export function DocumentSurface({
                 value={newCommentText}
                 onChange={(event) => onNewCommentTextChange(event.target.value)}
                 required
-                className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
+                className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle focus-visible:ring-1"
               />
               <div className="mt-2 flex items-center justify-between gap-2">
                 <button
