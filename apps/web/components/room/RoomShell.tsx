@@ -639,9 +639,11 @@ function ProjectFilesHeader({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span aria-hidden className="fold-logo-mark h-5 w-5 shrink-0" />
-          <h2 className="truncate text-sm font-semibold">Fold</h2>
+          <h2 className="truncate text-sm font-semibold">Fold project</h2>
         </div>
-        <p className="truncate font-mono text-[11px] text-ink-subtle">{roomId?.slice(0, 18)}</p>
+        <p className="truncate text-[11px] font-medium text-ink-subtle" title={roomId ? `Project id ${roomId}` : undefined}>
+          Private workspace
+        </p>
       </div>
       <Tooltip>
         <TooltipTrigger asChild>
