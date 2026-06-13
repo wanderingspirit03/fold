@@ -10,7 +10,9 @@ const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
 const ORIGINAL_TEXT = "Original proposal smoke sentence.";
 const PROPOSED_TEXT = "Accepted proposal smoke sentence.";
+const REJECTED_TEXT = "Rejected proposal smoke sentence.";
 const PROPOSAL_TITLE = `Proposal review smoke ${Date.now()}`;
+const REJECT_PROPOSAL_TITLE = `Rejected proposal smoke ${Date.now()}`;
 const execFileAsync = promisify(execFile);
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const tsxCli = join(repoRoot, "node_modules/tsx/dist/cli.mjs");
@@ -69,7 +71,7 @@ async function main() {
     );
 
     await desktop.getByRole("button", { name: /open pending suggestion/i }).click({ timeout: 8_000 });
-    await assertProposalDialog(desktop);
+    await assertProposalDialog(desktop, PROPOSAL_TITLE, PROPOSED_TEXT);
     await desktop.getByRole("button", { name: "Accept", exact: true }).click();
     await desktop.getByRole("button", { name: /cancel accepting/i }).click();
     await desktop.getByRole("button", { name: "Accept", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
@@ -84,7 +86,7 @@ async function main() {
     await mobile.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
     await mobile.getByRole("button", { name: /open review, 1 pending suggestion/i }).click({ timeout: 8_000 });
     await mobile.getByRole("button", { name: new RegExp(`preview ${escapeRegExp(PROPOSAL_TITLE)}`, "i") }).click({ timeout: 8_000 });
-    await assertProposalDialog(mobile);
+    await assertProposalDialog(mobile, PROPOSAL_TITLE, PROPOSED_TEXT);
     const mobileDialogScreenshotPath = join(screenshotDir, "mobile-proposal-preview.png");
     await mobile.screenshot({ path: mobileDialogScreenshotPath, fullPage: false, caret: "initial" });
     await assertNoHorizontalOverflow(mobile, "mobile proposal preview");
@@ -122,6 +124,53 @@ async function main() {
       throw new Error(`Expected proposal ${proposed.proposal.id} to replay as accepted.`);
     }
 
+    await writeFile(planPath, `# Proposal Review Smoke\n\n${REJECTED_TEXT}\n`, "utf8");
+    const rejectedCandidate = await runCliJson<ProposeJson>(cwd, [
+      "propose",
+      "plan.md",
+      "--room",
+      published.room.token,
+      "--path",
+      "plan.md",
+      "--title",
+      REJECT_PROPOSAL_TITLE,
+      "--comment",
+      "Verify rejected suggestions replay without changing export.",
+      "--json",
+    ]);
+
+    await desktop.getByRole("button", { name: /open pending suggestion/i }).click({ timeout: 8_000 });
+    await assertProposalDialog(desktop, REJECT_PROPOSAL_TITLE, REJECTED_TEXT);
+    await desktop.getByRole("button", { name: "Reject", exact: true }).click();
+    await desktop.waitForFunction(() => !document.body.innerText.includes("Suggestion preview"), null, { timeout: 8_000 });
+
+    const replayedAfterReject = await runCliJson<ProposalsJson>(cwd, [
+      "proposals",
+      "--room",
+      published.room.token,
+      "--json",
+    ]);
+    const rejectedProposal = replayedAfterReject.proposals.find((proposal) => proposal.id === rejectedCandidate.proposal.id);
+    if (rejectedProposal?.status !== "rejected") {
+      throw new Error(`Expected proposal ${rejectedCandidate.proposal.id} to replay as rejected.`);
+    }
+    const acceptedProposalAfterReject = replayedAfterReject.proposals.find((proposal) => proposal.id === proposed.proposal.id);
+    if (acceptedProposalAfterReject?.status !== "accepted") {
+      throw new Error(`Expected proposal ${proposed.proposal.id} to remain accepted after rejecting another proposal.`);
+    }
+    const exportedAfterReject = await runCliJson<ExportJson>(cwd, [
+      "export",
+      "--room",
+      published.room.token,
+      "--json",
+    ]);
+    if (!exportedAfterReject.document.markdown.includes(PROPOSED_TEXT)) {
+      throw new Error("CLI export lost the accepted proposal markdown after rejecting another proposal.");
+    }
+    if (exportedAfterReject.document.markdown.includes(REJECTED_TEXT)) {
+      throw new Error("CLI export included rejected proposal markdown.");
+    }
+
     await assertNoHorizontalOverflow(desktop, "desktop proposal review smoke");
     const errors = logs.filter((entry) => entry.includes("pageerror:") || entry.includes(" console:error:"));
     if (errors.length > 0) {
@@ -136,6 +185,7 @@ async function main() {
           syncUrl: DEFAULT_SYNC_URL,
           roomUrl: published.room.url,
           proposalId: proposed.proposal.id,
+          rejectedProposalId: rejectedCandidate.proposal.id,
           desktopDialogScreenshotPath,
           mobileDialogScreenshotPath,
         },
@@ -149,8 +199,8 @@ async function main() {
   }
 }
 
-async function assertProposalDialog(page: Page) {
-  await page.getByRole("dialog", { name: PROPOSAL_TITLE }).waitFor({ state: "visible", timeout: 8_000 });
+async function assertProposalDialog(page: Page, title: string, proposedText: string) {
+  await page.getByRole("dialog", { name: title }).waitFor({ state: "visible", timeout: 8_000 });
   await page.waitForFunction(
     ([title, proposedText]) => (
       document.body.innerText.includes(title) &&
@@ -158,7 +208,7 @@ async function assertProposalDialog(page: Page) {
       document.body.innerText.includes("Diff") &&
       document.body.innerText.includes(proposedText)
     ),
-    [PROPOSAL_TITLE, PROPOSED_TEXT],
+    [title, proposedText],
     { timeout: 8_000 },
   );
   await page.getByRole("button", { name: "Accept", exact: true }).waitFor({ state: "visible", timeout: 8_000 });

@@ -105,6 +105,7 @@ Primary reference: `DESIGN.md`.
 - Added `npm run web:reference:capture` to refresh the Obsidian public reference screenshot pack named in `DESIGN.md` for visual comparison work.
 - Added `npm run web:smoke:proposal` to verify encrypted CLI proposals, compact preview/diff dialogs, guarded accept, and CLI replay after web acceptance.
 - Updated the proposal smoke to capture viewport screenshots for the fixed preview dialog on desktop and mobile.
+- Extended the proposal smoke to reject a second encrypted proposal in the web UI and verify CLI replay/export keep rejected Markdown out of accepted content.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
