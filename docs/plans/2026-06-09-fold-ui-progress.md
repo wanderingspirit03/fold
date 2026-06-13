@@ -89,6 +89,7 @@ Primary reference: `DESIGN.md`.
 - Added minimalist encrypted comment replies so humans and agents can thread back-and-forth inside a document comment.
 - Added CLI comment commands so agents can list comment ids, add encrypted file/quote comments, and reply into the same encrypted threads.
 - Extended the web collaboration smoke to verify live Markdown edits, comment creation, and comment replies across two browser clients without refresh.
+- Added `npm run web:smoke:agent-comment` to verify a CLI-authored encrypted inline comment streams into the open web document and a browser reply replays back through the CLI.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
@@ -183,6 +184,7 @@ npm test
 npm run typecheck
 npm run web:build
 npm run web:smoke:collab # requires web app plus sync server on 127.0.0.1:8787
+npm run web:smoke:agent-comment # requires web app plus sync server on 127.0.0.1:8787
 npm run spike:e2ee
 npm run spike:document-model
 npm run spike:document-model:report

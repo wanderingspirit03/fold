@@ -16,6 +16,7 @@
     "web:dev": "npm run dev --workspace=apps/web",
     "web:build": "npm run build --workspace=apps/web",
     "web:smoke:collab": "tsx scripts/web-collaboration-smoke.ts",
+    "web:smoke:agent-comment": "tsx scripts/web-agent-comment-smoke.ts",
     "spike:e2ee": "tsx spikes/e2ee-yjs-append-log/run-spike.ts",
     "spike:document-model": "vitest run spikes/document-model",
     "spike:document-model:report": "tsx spikes/document-model/run-comparison.ts",
