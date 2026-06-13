@@ -8,6 +8,10 @@ const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
 const EDIT_MARKER = `Collab smoke ${Date.now()}.`;
 const COMMENT_MARKER = `Thread smoke ${Date.now()}.`;
 const REPLY_MARKER = `Reply smoke ${Date.now()}.`;
+const LOCAL_CONFLICT_MARKER = `Keep local conflict ${Date.now()}.`;
+const REMOTE_CONFLICT_MARKER = `Remote conflict ${Date.now()}.`;
+const SECOND_LOCAL_CONFLICT_MARKER = `Second local conflict ${Date.now()}.`;
+const ACCEPTED_REMOTE_CONFLICT_MARKER = `Accepted remote conflict ${Date.now()}.`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -40,13 +44,36 @@ async function main() {
     await editor.waitFor({ timeout: 10_000 });
     await editor.fill(`${await editor.inputValue()}\n\n${EDIT_MARKER}`);
 
-    await pageB.waitForFunction(
+    await step("client-b receives live edit", () => pageB.waitForFunction(
       (marker) => document.body.innerText.includes(marker),
       EDIT_MARKER,
       { timeout: 8_000 },
-    );
+    ));
 
+    await pageB.getByRole("button", { name: "Edit", exact: true }).click();
+    const editorB = pageB.locator("textarea").first();
+    await editorB.waitFor({ timeout: 10_000 });
+    await pauseProjectFileSaveDebounce(pageA);
+    await editor.fill(`${await editor.inputValue()}\n\n${LOCAL_CONFLICT_MARKER}`);
+    await editorB.fill(`${await editorB.inputValue()}\n\n${REMOTE_CONFLICT_MARKER}`);
+    await editorB.press(process.platform === "darwin" ? "Meta+S" : "Control+S");
+    await pageA.getByRole("button", { name: /open review, 1 incoming edit/i }).click({ timeout: 8_000 });
+    await pageA.getByRole("button", { name: "Keep mine", exact: true }).click();
+    await step("client-a keeps local conflict", () => waitForEditorValue(pageA,
+      [LOCAL_CONFLICT_MARKER, REMOTE_CONFLICT_MARKER],
+    ));
+    await step("client-b receives kept local conflict", () => waitForEditorValue(pageB, [LOCAL_CONFLICT_MARKER, REMOTE_CONFLICT_MARKER]));
+
+    await editor.fill(`${await editor.inputValue()}\n\n${SECOND_LOCAL_CONFLICT_MARKER}`);
+    await editorB.fill(`${await editorB.inputValue()}\n\n${ACCEPTED_REMOTE_CONFLICT_MARKER}`);
+    await editorB.press(process.platform === "darwin" ? "Meta+S" : "Control+S");
+    await pageA.getByRole("button", { name: "Use incoming", exact: true }).click();
+    await pageA.getByRole("button", { name: /confirm incoming edit/i }).click({ timeout: 8_000 });
+    await step("client-a applies incoming conflict", () => waitForEditorValue(pageA, [ACCEPTED_REMOTE_CONFLICT_MARKER, SECOND_LOCAL_CONFLICT_MARKER]));
+
+    await pageA.getByRole("button", { name: "Close review", exact: true }).click();
     await pageA.getByRole("button", { name: "Read", exact: true }).click();
+    await pageB.getByRole("button", { name: "Read", exact: true }).click();
     const surfaceA = pageA.locator('[data-document-surface="true"]');
     await surfaceA.getByRole("button", { name: "Add file comment", exact: true }).click();
     await surfaceA.getByRole("textbox", { name: "File comment" }).fill(COMMENT_MARKER);
@@ -85,6 +112,9 @@ async function main() {
           marker: EDIT_MARKER,
           commentMarker: COMMENT_MARKER,
           replyMarker: REPLY_MARKER,
+          localConflictMarker: LOCAL_CONFLICT_MARKER,
+          remoteConflictMarker: REMOTE_CONFLICT_MARKER,
+          acceptedRemoteConflictMarker: ACCEPTED_REMOTE_CONFLICT_MARKER,
           screenshotPath,
         },
         null,
@@ -104,6 +134,43 @@ async function preparePage(page: Page, label: string, logs: string[]) {
   });
   page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
   await page.addInitScript(() => localStorage.setItem("fold:theme", "dark"));
+}
+
+async function step<T>(label: string, action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    throw new Error(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+async function waitForEditorValue(page: Page, markers: [expected: string] | [expected: string, absent: string]) {
+  await page.waitForFunction(
+    ([expected, absent]) => {
+      const textarea = document.querySelector("textarea");
+      if (!(textarea instanceof HTMLTextAreaElement)) return false;
+      const value = textarea.value;
+      return value.includes(expected) && (!absent || !value.includes(absent));
+    },
+    markers,
+    { timeout: 8_000 },
+  );
+}
+
+async function pauseProjectFileSaveDebounce(page: Page) {
+  await page.evaluate(() => {
+    const windowWithHook = window as typeof window & {
+      __foldPauseProjectFileSaveDebounce?: boolean;
+      __foldOriginalSetTimeout?: typeof window.setTimeout;
+    };
+    if (windowWithHook.__foldPauseProjectFileSaveDebounce) return;
+    windowWithHook.__foldPauseProjectFileSaveDebounce = true;
+    windowWithHook.__foldOriginalSetTimeout = window.setTimeout.bind(window);
+    window.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+      const nextTimeout = timeout === 700 ? 60_000 : timeout;
+      return windowWithHook.__foldOriginalSetTimeout!(handler, nextTimeout, ...args);
+    }) as typeof window.setTimeout;
+  });
 }
 
 async function resolveBaseUrl() {

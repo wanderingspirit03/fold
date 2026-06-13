@@ -93,6 +93,7 @@ Primary reference: `DESIGN.md`.
 - Polished comment threads with quieter per-message reply icons, a header-level resolve action, and a mobile sheet layout that keeps thread context visible while messages scroll.
 - Added CLI comment commands so agents can list comment ids, add encrypted file/quote comments, and reply into the same encrypted threads.
 - Extended the web collaboration smoke to verify live Markdown edits, comment creation, and comment replies across two browser clients without refresh.
+- Extended the web collaboration smoke to verify incoming edit conflicts can be kept locally or accepted from another browser without losing the later comment/reply flow.
 - Added `npm run web:smoke:agent-comment` to verify a CLI-authored encrypted inline comment streams into the open web document and a browser reply replays back through the CLI.
 - Updated the agent-comment smoke to capture viewport screenshots for fixed thread popovers so visual evidence matches what users see on desktop and mobile.
 - Added `npm run web:smoke:navigation` to verify folder collapse persistence and quick-switch reopening of nested file ancestors.
