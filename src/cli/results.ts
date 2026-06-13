@@ -1,5 +1,6 @@
 import type { MarkdownDocumentSummary } from '../rooms/markdown-snapshot.js';
 import type { ProjectSummary } from '../rooms/project-state.js';
+import type { RoomComment } from '../rooms/comments.js';
 import type { ProposalStatus, ProposalView } from '../rooms/proposals.js';
 import type { TimelineEvent } from '../rooms/timeline.js';
 
@@ -250,5 +251,29 @@ export interface RoomInviteResult {
   invite: {
     text: string;
     skillUrl: string | null;
+  };
+}
+
+export interface CommentsResult {
+  schema: 'fold.comments.result.v1';
+  ok: true;
+  mode: 'comment-list';
+  room: PublicRoomResult;
+  comments: RoomComment[];
+  server: {
+    recordCount: number;
+    latestSeq: number | null;
+  };
+}
+
+export interface CommentResult {
+  schema: 'fold.comment.result.v1' | 'fold.reply.result.v1';
+  ok: true;
+  mode: 'comment';
+  room: PublicRoomResult;
+  comment: RoomComment;
+  server: {
+    recordCount: number;
+    latestSeq: number;
   };
 }

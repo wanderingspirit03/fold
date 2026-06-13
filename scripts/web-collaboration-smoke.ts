@@ -6,6 +6,8 @@ import { chromium, type Page } from "playwright";
 const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
 const EDIT_MARKER = `Collab smoke ${Date.now()}.`;
+const COMMENT_MARKER = `Thread smoke ${Date.now()}.`;
+const REPLY_MARKER = `Reply smoke ${Date.now()}.`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -44,6 +46,27 @@ async function main() {
       { timeout: 8_000 },
     );
 
+    await pageA.getByRole("button", { name: "Read", exact: true }).click();
+    const surfaceA = pageA.locator('[data-document-surface="true"]');
+    await surfaceA.getByRole("button", { name: "Add file comment", exact: true }).click();
+    await surfaceA.getByRole("textbox", { name: "File comment" }).fill(COMMENT_MARKER);
+    await surfaceA.getByRole("button", { name: "Add", exact: true }).click();
+
+    await pageB.getByRole("button", { name: /open 1 file comment/i }).click({ timeout: 8_000 });
+    await pageB.waitForFunction(
+      (marker) => document.body.innerText.includes(marker),
+      COMMENT_MARKER,
+      { timeout: 8_000 },
+    );
+    await pageB.getByLabel("Reply to comment").fill(REPLY_MARKER);
+    await pageB.getByRole("button", { name: "Reply", exact: true }).click();
+
+    await pageA.waitForFunction(
+      (marker) => document.body.innerText.includes(marker),
+      REPLY_MARKER,
+      { timeout: 8_000 },
+    );
+
     const screenshotPath = join(screenshotDir, "client-b-after-client-a-edit.png");
     await pageB.screenshot({ path: screenshotPath, fullPage: true, caret: "initial" });
 
@@ -60,6 +83,8 @@ async function main() {
           syncUrl: DEFAULT_SYNC_URL,
           roomUrl,
           marker: EDIT_MARKER,
+          commentMarker: COMMENT_MARKER,
+          replyMarker: REPLY_MARKER,
           screenshotPath,
         },
         null,

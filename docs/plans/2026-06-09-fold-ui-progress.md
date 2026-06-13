@@ -86,6 +86,9 @@ Primary reference: `DESIGN.md`.
 - Added encrypted live presence snapshots with a compact collaborator stack for the selected Markdown file.
 - Added quiet per-file presence indicators in the project sidebar so collaboration is visible across the file tree.
 - Added encrypted typing/commenting activity hints to presence records with quiet toolbar and sidebar indicators.
+- Added minimalist encrypted comment replies so humans and agents can thread back-and-forth inside a document comment.
+- Added CLI comment commands so agents can list comment ids, add encrypted file/quote comments, and reply into the same encrypted threads.
+- Extended the web collaboration smoke to verify live Markdown edits, comment creation, and comment replies across two browser clients without refresh.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.

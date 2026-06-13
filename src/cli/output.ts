@@ -1,6 +1,8 @@
 import type { CommandContext } from '@stricli/core';
 import type {
   DecideProposalResult,
+  CommentResult,
+  CommentsResult,
   ExportResult,
   PatchResult,
   ProposalsResult,
@@ -139,6 +141,31 @@ export function writeDecisionHuman(context: CommandContext, result: DecidePropos
     `→ Server records: ${result.server.recordCount}`,
     '',
   ].filter(Boolean).join('\n'));
+}
+
+export function writeCommentsHuman(context: CommandContext, result: CommentsResult): void {
+  if (result.comments.length === 0) {
+    context.process.stdout.write('No comments found.\n');
+    return;
+  }
+
+  context.process.stdout.write(`${result.comments.map((comment) => [
+    `${comment.id}  ${comment.resolvedAt ? 'resolved' : 'open'}  ${comment.filePath ?? 'document'}`,
+    `  ${comment.persona.name} (${comment.persona.label}): ${comment.text}`,
+    ...(comment.replies || []).map((reply) => `  ↳ ${reply.id}  ${reply.persona.name}: ${reply.text}`),
+  ].join('\n')).join('\n')}\n`);
+}
+
+export function writeCommentHuman(context: CommandContext, result: CommentResult): void {
+  context.process.stdout.write([
+    result.schema === 'fold.reply.result.v1' ? '✓ Added encrypted comment reply' : '✓ Added encrypted comment',
+    `→ Room: ${result.room.serverRoomUrl}`,
+    `→ Comment: ${result.comment.id}`,
+    `→ File: ${result.comment.filePath ?? 'document'}`,
+    `→ Replies: ${result.comment.replies?.length ?? 0}`,
+    `→ Server records: ${result.server.recordCount}`,
+    '',
+  ].join('\n'));
 }
 
 export function writeRoomProfileHuman(context: CommandContext, result: RoomProfileResult): void {

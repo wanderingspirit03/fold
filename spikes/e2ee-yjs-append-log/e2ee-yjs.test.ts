@@ -212,6 +212,8 @@ describe('encrypted Yjs append-log spike', () => {
         'fold-cli:suggestion:test',
         'fold-cli:proposal:test',
         'fold-cli:event:test',
+        'fold-cli:comment:test',
+        'fold-cli:comment-event:test',
         'web-client:presence:test',
       ]) {
         const opaque = await encryptUpdate(

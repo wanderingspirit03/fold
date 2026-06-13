@@ -38,6 +38,15 @@ export interface TimelineEvent {
   proposalId?: string;
   commentId?: string;
   filePath?: string;
+  reply?: ChatCommentReply;
+}
+
+export interface ChatCommentReply {
+  id: string;
+  authorPersonaId: string;
+  persona: RoomPersona;
+  text: string;
+  createdAt: string;
 }
 
 export interface ChatComment {
@@ -46,6 +55,7 @@ export interface ChatComment {
   persona: RoomPersona;
   filePath?: string;
   text: string;
+  replies?: ChatCommentReply[];
   createdAt: string;
   resolvedAt?: string;
   resolvedByPersonaId?: string;

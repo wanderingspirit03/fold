@@ -52,6 +52,13 @@ import {
   replayProposalsFromRecords,
   type ProposalView,
 } from '../rooms/proposals.js';
+import {
+  createComment,
+  createCommentReplyEvent,
+  createEncryptedCommentEvent,
+  createEncryptedCommentRecord,
+  replayCommentsFromRecords,
+} from '../rooms/comments.js';
 import { assignPersona } from '../rooms/personas.js';
 import {
   createEncryptedTimelineEvent,
@@ -59,6 +66,8 @@ import {
 } from '../rooms/timeline.js';
 import type {
   DecideProposalResult,
+  CommentResult,
+  CommentsResult,
   ExportResult,
   PatchResult,
   ProposalSummaryResult,
@@ -77,6 +86,7 @@ import type {
 
 const CLI_SENDER_ID = 'fold-cli:document';
 const CLI_REVIEWER_FINGERPRINT = 'fold-cli:review';
+const CLI_COMMENTER_FINGERPRINT = 'fold-cli:comment';
 
 export interface PublishOptions {
   cwd: string;
@@ -121,6 +131,21 @@ export interface ProposeOptions {
 export interface ProposalRoomOptions {
   cwd: string;
   room: string;
+}
+
+export interface CommentListOptions extends ProposalRoomOptions {
+  path?: string;
+}
+
+export interface AddCommentOptions extends ProposalRoomOptions {
+  path?: string;
+  text: string;
+  quote?: string;
+}
+
+export interface ReplyCommentOptions extends ProposalRoomOptions {
+  commentId: string;
+  text: string;
 }
 
 export interface ProposalIdOptions extends ProposalRoomOptions {
@@ -485,6 +510,97 @@ export async function listProposals(options: ProposalRoomOptions): Promise<Propo
   };
 }
 
+export async function listComments(options: CommentListOptions): Promise<CommentsResult> {
+  const reference = await resolveRoomReference(options.cwd, options.room);
+  const records = await listEncryptedUpdates(reference);
+  const comments = await replayCommentsFromRecords(reference, records);
+  const visibleComments = options.path
+    ? comments.filter((comment) => comment.filePath === options.path)
+    : comments;
+
+  return {
+    schema: 'fold.comments.result.v1',
+    ok: true,
+    mode: 'comment-list',
+    room: publicRoomResult(reference, createRoomToken(reference)),
+    comments: visibleComments,
+    server: {
+      recordCount: records.length,
+      latestSeq: records.at(-1)?.seq ?? null,
+    },
+  };
+}
+
+export async function addComment(options: AddCommentOptions): Promise<CommentResult> {
+  const text = options.text.trim();
+  if (!text) throw new Error('Comment text is required');
+  const reference = await resolveRoomReference(options.cwd, options.room);
+  const records = await listEncryptedUpdates(reference);
+  const project = await currentProjectFromRecords(records, reference);
+  const filePath = options.path ?? project.primaryPath;
+  const file = projectFileOrThrow(project, filePath);
+  const persona = assignPersona({
+    roomId: reference.roomId,
+    participantKind: 'agent',
+    participantFingerprint: CLI_COMMENTER_FINGERPRINT,
+  });
+  const comment = createComment({
+    persona,
+    text,
+    markdown: file.markdown,
+    filePath: file.path,
+    selectedQuote: options.quote,
+  });
+  const record = await appendEncryptedUpdate(reference, await createEncryptedCommentRecord(reference, comment));
+
+  return {
+    schema: 'fold.comment.result.v1',
+    ok: true,
+    mode: 'comment',
+    room: publicRoomResult(reference, createRoomToken(reference)),
+    comment,
+    server: {
+      recordCount: record.seq,
+      latestSeq: record.seq,
+    },
+  };
+}
+
+export async function replyToComment(options: ReplyCommentOptions): Promise<CommentResult> {
+  const text = options.text.trim();
+  if (!text) throw new Error('Reply text is required');
+  const reference = await resolveRoomReference(options.cwd, options.room);
+  const records = await listEncryptedUpdates(reference);
+  const comments = await replayCommentsFromRecords(reference, records);
+  const comment = comments.find((candidate) => candidate.id === options.commentId);
+  if (!comment) throw new Error(`Comment not found: ${options.commentId}`);
+  if (comment.resolvedAt) throw new Error(`Comment ${options.commentId} is resolved; reopen it before replying`);
+
+  const persona = assignPersona({
+    roomId: reference.roomId,
+    participantKind: 'agent',
+    participantFingerprint: CLI_COMMENTER_FINGERPRINT,
+  });
+  const event = createCommentReplyEvent({ comment, persona, text });
+  const record = await appendEncryptedUpdate(reference, await createEncryptedCommentEvent(reference, event));
+  const updated = {
+    ...comment,
+    replies: [...(comment.replies || []), event.reply!].sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
+  };
+
+  return {
+    schema: 'fold.reply.result.v1',
+    ok: true,
+    mode: 'comment',
+    room: publicRoomResult(reference, createRoomToken(reference)),
+    comment: updated,
+    server: {
+      recordCount: record.seq,
+      latestSeq: record.seq,
+    },
+  };
+}
+
 export async function showProposal(options: ProposalIdOptions): Promise<ShowProposalResult> {
   const { reference, records, proposal, timeline } = await getProposalOrThrow(options);
   return {
@@ -704,6 +820,11 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
     '4. Work through proposals, not direct mutation:',
     `   fold export --room ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     `   fold propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+    '',
+    '5. Join comment threads when clarification is better than a proposal:',
+    `   fold comments --room ${JSON.stringify(options.alias)} --json`,
+    `   fold reply "<comment-id>" --room ${JSON.stringify(options.alias)} --text "Short reply." --json`,
+    `   fold comment --room ${JSON.stringify(options.alias)} --path "docs/PLAN.md" --text "Short note." --json`,
   ].join('\n');
   const text = options.audience === 'agent'
     ? agentInviteText

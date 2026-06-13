@@ -4,6 +4,7 @@ import { AlertTriangle, Check, Eye, Quote, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { CommentConversation } from "./CommentConversation";
 import { PersonaChip } from "./PersonaChip";
 import type { ChatComment, Proposal } from "./types";
 
@@ -16,6 +17,7 @@ interface MarginThreadProps {
   onAcceptProposal?: (proposal: Proposal) => void;
   onRejectProposal?: (proposal: Proposal) => void;
   onResolveComment?: (comment: ChatComment, resolved: boolean) => void;
+  onReplyToComment?: (comment: ChatComment, text: string) => void;
 }
 
 export function MarginThread({
@@ -27,6 +29,7 @@ export function MarginThread({
   onAcceptProposal,
   onRejectProposal,
   onResolveComment,
+  onReplyToComment,
 }: MarginThreadProps) {
   const [confirmingAccept, setConfirmingAccept] = useState(false);
   const persona = comment?.persona || proposal?.persona;
@@ -76,7 +79,11 @@ export function MarginThread({
       {!selectedQuote && !quote && anchorLabel && (
         <p className="mb-1.5 px-0.5 text-[11px] leading-5 text-ink-subtle">{anchorLabel}</p>
       )}
-      <p className="text-sm leading-6 text-ink-muted">{text}</p>
+      {comment ? (
+        <CommentConversation comment={comment} onReply={onReplyToComment} compact />
+      ) : (
+        <p className="text-sm leading-6 text-ink-muted">{text}</p>
+      )}
       {comment && onResolveComment && (
         <div className="mt-2 flex justify-end">
           <button

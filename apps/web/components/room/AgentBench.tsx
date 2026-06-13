@@ -23,6 +23,7 @@ interface AgentBenchProps {
   onAcceptProposal: (proposal: Proposal) => void;
   onRejectProposal: (proposal: Proposal) => void;
   onResolveComment: (comment: ChatComment, resolved: boolean) => void;
+  onReplyToComment: (comment: ChatComment, text: string) => void;
   onCreateVersion: (title: string) => void;
   onRestoreVersion: (version: FileVersion) => void;
   onUseIncomingConflict: (conflict: FileConflict) => void;
@@ -43,6 +44,7 @@ export function AgentBench({
   onAcceptProposal,
   onRejectProposal,
   onResolveComment,
+  onReplyToComment,
   onCreateVersion,
   onRestoreVersion,
   onUseIncomingConflict,
@@ -209,6 +211,7 @@ export function AgentBench({
                 comment={comment}
                 anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
                 onResolveComment={onResolveComment}
+                onReplyToComment={onReplyToComment}
               />
             ))}
             {resolvedComments.length > 0 && (
@@ -233,6 +236,7 @@ export function AgentBench({
                         comment={comment}
                         anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
                         onResolveComment={onResolveComment}
+                        onReplyToComment={onReplyToComment}
                       />
                     ))}
                   </div>

@@ -17,6 +17,9 @@ fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-
 fold status --room <alias-or-url-or-token> [--json]
 fold propose <file-or-directory> --room <alias-or-url-or-token> [--path <room-path>] [--title <text>] [--comment <text>] [--json]
 fold proposals --room <alias-or-url-or-token> [--json]
+fold comments --room <alias-or-url-or-token> [--path <room-path>] [--json]
+fold comment --room <alias-or-url-or-token> --text <text> [--path <room-path>] [--quote <text>] [--json]
+fold reply <comment-id> --room <alias-or-url-or-token> --text <text> [--json]
 fold show-proposal <proposal-id> --room <alias-or-url-or-token> [--json]
 fold accept <proposal-id> --room <alias-or-url-or-token> [--json]
 fold reject <proposal-id> --room <alias-or-url-or-token> [--json]
@@ -64,6 +67,9 @@ fold room invite launch --for human
 - `status` calls `GET /rooms/:roomId/status`, which returns metadata only: `roomId`, `recordCount`, and `latestSeq`.
 - `propose` submits an encrypted whole-file or whole-project replacement proposal. It does not mutate accepted Markdown. Its JSON response is compact and returns proposal ids, status, persona, hashes, and project summaries, not full proposed Markdown.
 - `proposals` lists decrypted proposal summaries by replaying encrypted room records.
+- `comments` lists decrypted comment roots and replies by replaying encrypted room records.
+- `comment` appends an encrypted agent-authored file or quote comment without changing Markdown.
+- `reply` appends an encrypted reply to an unresolved comment. Resolved threads reject replies until reopened.
 - `show-proposal` decrypts one proposal, including proposed Markdown and timeline events.
 - `accept` appends an encrypted canonical document update plus an encrypted proposal-accepted event. Its JSON response is compact and does not echo the accepted Markdown body.
 - `reject` appends an encrypted proposal-rejected event without changing canonical Markdown. Its JSON response is compact and does not echo the rejected Markdown body.
@@ -74,6 +80,9 @@ fold room invite launch --for human
   - `fold.status.result.v1`
   - `fold.propose.result.v1`
   - `fold.proposals.result.v1`
+  - `fold.comments.result.v1`
+  - `fold.comment.result.v1`
+  - `fold.reply.result.v1`
   - `fold.show-proposal.result.v1`
   - `fold.accept.result.v1`
   - `fold.reject.result.v1`
@@ -90,6 +99,7 @@ ROOM_URL=$(node -e 'let s=""; process.stdin.on("data", d => s += d); process.std
 npm run --silent cli -- room add "$ROOM_URL" --alias launch
 npm run --silent cli -- status --room launch --json
 npm run --silent cli -- export --room launch --output ./accepted-project --json
+npm run --silent cli -- comments --room launch --json
 npm run --silent cli -- propose ./accepted-project --room launch --title "Tighten plan" --comment "Proposed by agent workflow." --json
 npm run --silent cli -- proposals --room launch --json
 ```
@@ -172,5 +182,8 @@ The current fresh local workflow has been verified with:
 - `accept --json`
 - `export --output --json`
 - `publish --no-save --json`
+- `comments --json`
+- `comment --json`
+- `reply --json`
 
 The verification also checked that fresh test Markdown phrases were not present as plaintext in `./data` or `.fold`.

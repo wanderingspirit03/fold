@@ -9,6 +9,7 @@ import { extractMarkdownProperties } from "../../lib/markdown-properties";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { CommentConversation } from "./CommentConversation";
 import { PersonaChip } from "./PersonaChip";
 import type { ChatComment, Proposal, RoomMode } from "./types";
 
@@ -24,6 +25,7 @@ interface DocumentSurfaceProps {
   activeProposalId?: string | null;
   onOpenProposal: (proposal: Proposal) => void;
   onResolveComment?: (comment: ChatComment, resolved: boolean) => void;
+  onReplyToComment?: (comment: ChatComment, text: string) => void;
   onStartEditing?: () => void;
   newCommentText: string;
   composerFocusToken: number;
@@ -43,6 +45,7 @@ export function DocumentSurface({
   activeProposalId = null,
   onOpenProposal,
   onResolveComment,
+  onReplyToComment,
   onStartEditing,
   newCommentText,
   composerFocusToken,
@@ -293,7 +296,7 @@ export function DocumentSurface({
                       )}
                     </div>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-ink-muted">{comment.text}</p>
+                  <CommentConversation comment={comment} onReply={onReplyToComment} compact />
                 </div>
               ))}
             </div>
@@ -455,7 +458,7 @@ export function DocumentSurface({
               <MessageSquare className="h-3.5 w-3.5 text-midnight-strong" />
               <span className="truncate">{activeComment.selectedQuote || "Document note"}</span>
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-ink-muted">{activeComment.text}</p>
+            <CommentConversation comment={activeComment} onReply={onReplyToComment} />
             {onResolveComment && (
               <button
                 type="button"

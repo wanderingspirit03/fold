@@ -23,6 +23,7 @@ const DOCUMENT_SENDER_ID = "fold-cli:document";
 const PROJECT_SCHEMA = "fold.project.v1";
 const PROJECT_SENDER_ID = "fold-cli:project";
 const COMMENT_EVENT_SENDER_ID = "web-client:comment-event";
+const CLI_COMMENT_EVENT_SENDER_ID = "fold-cli:comment-event";
 const PRESENCE_SENDER_ID = "web-client:presence";
 const FILE_VERSION_SENDER_ID = "web-client:version";
 const LIVE_FILE_PATH = "reports/launch-review.md";
@@ -345,7 +346,7 @@ export default function RoomPage() {
       return;
     }
 
-    if (rec.senderId.startsWith(COMMENT_EVENT_SENDER_ID)) {
+    if (rec.senderId.startsWith(COMMENT_EVENT_SENDER_ID) || rec.senderId.startsWith(CLI_COMMENT_EVENT_SENDER_ID)) {
       const parsed = await decryptJson<TimelineEvent>(payload, cryptKey, rec);
       setTimeline((prev) => [parsed, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       setComments((prev) => applyCommentEvent(prev, parsed));
@@ -366,10 +367,13 @@ export default function RoomPage() {
       if (parsed.type === "comment_resolved" || parsed.type === "comment_reopened") {
         setComments((prev) => applyCommentEvent(prev, parsed));
       }
+      if (parsed.type === "comment_replied") {
+        setComments((prev) => applyCommentEvent(prev, parsed));
+      }
       return;
     }
 
-    if (rec.senderId.startsWith("web-client:comment")) {
+    if (rec.senderId.startsWith("web-client:comment") || rec.senderId.startsWith("fold-cli:comment")) {
       const parsed = await decryptJson<ChatComment>(payload, cryptKey, rec);
       setComments((prev) => upsertComment(prev, parsed));
       return;
@@ -670,6 +674,42 @@ export default function RoomPage() {
       setComments((prev) => applyCommentEvent(prev, eventRecord));
     } catch (err) {
       setSyncError(`Could not update comment: ${String(err)}`);
+    }
+  };
+
+  const handleReplyToComment = async (comment: ChatComment, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || !keyRef.current || !localMyPersona) return;
+
+    try {
+      const createdAt = new Date().toISOString();
+      const replyId = Math.random().toString(36).slice(2, 11);
+      const eventRecord: TimelineEvent = {
+        id: `ev-comment-reply-${comment.id}-${replyId}`,
+        type: "comment_replied",
+        createdAt,
+        actorPersonaId: localMyPersona.id,
+        commentId: comment.id,
+        filePath: comment.filePath || selectedFilePath,
+        message: `Replied to comment on ${comment.selectedQuote || comment.filePath || "document"}`,
+        reply: {
+          id: replyId,
+          authorPersonaId: localMyPersona.id,
+          persona: localMyPersona,
+          text: trimmed,
+          createdAt,
+        },
+      };
+      const encryptedEvent = await encryptUpdate(encoder.encode(JSON.stringify(eventRecord)), keyRef.current, {
+        roomId,
+        senderId: `${COMMENT_EVENT_SENDER_ID}:${eventRecord.id}`,
+      });
+      const response = await postEncryptedRecord(`${COMMENT_EVENT_SENDER_ID}:${eventRecord.id}`, encryptedEvent);
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
+      setComments((prev) => applyCommentEvent(prev, eventRecord));
+      clearPresenceActivity();
+    } catch (err) {
+      setSyncError(`Could not reply to comment: ${String(err)}`);
     }
   };
 
@@ -1166,6 +1206,7 @@ export default function RoomPage() {
             activeProposalId={selectedProposal?.id ?? null}
             onOpenProposal={setSelectedProposal}
             onResolveComment={handleResolveComment}
+            onReplyToComment={handleReplyToComment}
             onStartEditing={() => setEditMode("edit")}
             newCommentText={newCommentText}
             composerFocusToken={composerFocusToken}
@@ -1206,6 +1247,7 @@ export default function RoomPage() {
             onAcceptProposal={handleAcceptProposal}
             onRejectProposal={handleRejectProposal}
             onResolveComment={handleResolveComment}
+            onReplyToComment={handleReplyToComment}
             onCreateVersion={handleCreateFileVersion}
             onRestoreVersion={handleRestoreFileVersion}
             onUseIncomingConflict={handleUseIncomingFileConflict}
@@ -1231,7 +1273,7 @@ function upsertProposal(proposals: Proposal[], next: Proposal): Proposal[] {
 
 function upsertComment(comments: ChatComment[], next: ChatComment): ChatComment[] {
   if (comments.some((comment) => comment.id === next.id)) return comments;
-  return [next, ...comments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return [{ ...next, replies: sortCommentReplies(next.replies || []) }, ...comments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function upsertFileVersion(versions: FileVersion[], next: FileVersion): FileVersion[] {
@@ -1257,8 +1299,20 @@ function applyCommentEvent(comments: ChatComment[], event: TimelineEvent): ChatC
       const { resolvedAt, resolvedByPersonaId, ...reopened } = comment;
       return reopened;
     }
+    if (event.type === "comment_replied" && event.reply) {
+      const replies = comment.replies || [];
+      if (replies.some((reply) => reply.id === event.reply?.id)) return comment;
+      return {
+        ...comment,
+        replies: sortCommentReplies([...replies, event.reply]),
+      };
+    }
     return comment;
   });
+}
+
+function sortCommentReplies(replies: NonNullable<ChatComment["replies"]>) {
+  return [...replies].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 }
 
 function uniquePersonas(
@@ -1272,6 +1326,7 @@ function uniquePersonas(
     ...presences.map((presence) => presence.persona),
     ...proposals.map((proposal) => proposal.persona),
     ...comments.map((comment) => comment.persona),
+    ...comments.flatMap((comment) => (comment.replies || []).map((reply) => reply.persona)),
     ...versions.map((version) => version.persona),
     ...(local ? [local] : []),
   ].filter(Boolean);

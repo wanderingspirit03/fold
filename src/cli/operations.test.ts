@@ -8,16 +8,19 @@ import { defaultMetadataPath, readRoomMetadata } from '../rooms/metadata.js';
 import { createRoomToken, parseRoomReference, type RoomAccess } from '../rooms/room-reference.js';
 import {
   acceptProposal,
+  addComment,
   addRoomProfile,
   createRoomInvite,
   createRoomProfile,
   exportMarkdown,
+  listComments,
   listRoomProfiles,
   listProposals,
   patchMarkdown,
   proposeMarkdown,
   publishMarkdown,
   rejectProposal,
+  replyToComment,
   roomStatus,
   showProposal,
 } from './operations.js';
@@ -182,6 +185,52 @@ describe('CLI operations', () => {
       expect(status.server.checked).toBe(true);
       expect(status.server.recordCount).toBe(3);
       expect(status.room.serverRoomUrl).not.toContain('#key=');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('lets agents add and reply to encrypted room comments', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-comments-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'plan.md'), '# Plan\n\nKeep comments inline.', 'utf8');
+      const published = await publishMarkdown({
+        cwd,
+        filePath: 'plan.md',
+        serverUrl,
+        save: true,
+      });
+
+      const added = await addComment({
+        cwd,
+        room: published.room.alias!,
+        path: 'plan.md',
+        quote: 'comments inline',
+        text: 'Can an agent clarify this?',
+      });
+      const replied = await replyToComment({
+        cwd,
+        room: published.room.alias!,
+        commentId: added.comment.id,
+        text: 'Yes, threaded replies are encrypted room records.',
+      });
+      const listed = await listComments({
+        cwd,
+        room: published.room.alias!,
+      });
+
+      expect(added.schema).toBe('fold.comment.result.v1');
+      expect(added.comment.persona.kind).toBe('agent');
+      expect(added.comment.anchorType).toBe('text-range');
+      expect(replied.schema).toBe('fold.reply.result.v1');
+      expect(replied.comment.replies).toHaveLength(1);
+      expect(listed.comments).toHaveLength(1);
+      expect(listed.comments[0]?.replies?.[0]?.text).toBe('Yes, threaded replies are encrypted room records.');
+      expect(server.store.serialized(published.room.roomId)).not.toContain('Can an agent clarify this?');
+      expect(server.store.serialized(published.room.roomId)).not.toContain('threaded replies');
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });
