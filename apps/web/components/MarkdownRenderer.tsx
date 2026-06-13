@@ -105,7 +105,7 @@ export default function MarkdownRenderer({
                 <div className="my-6 rounded-md border border-document-edge bg-black/[0.04] p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-medium text-document-muted">Mermaid</span>
-                    <span className="text-xs text-document-subtle">Preview disabled</span>
+                    <span className="text-xs text-document-subtle">Source</span>
                   </div>
                   <pre className="overflow-x-auto rounded-md bg-document p-3 font-mono text-xs leading-5 text-document-muted">
                     {String(children).trim()}
