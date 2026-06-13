@@ -94,6 +94,7 @@ Primary reference: `DESIGN.md`.
 - Added `npm run web:smoke:agent-comment` to verify a CLI-authored encrypted inline comment streams into the open web document and a browser reply replays back through the CLI.
 - Added `npm run web:smoke:navigation` to verify folder collapse persistence and quick-switch reopening of nested file ancestors.
 - Extended navigation smoke to verify broad quick-switcher searches clip to a calm result set with an explicit hidden-match hint and still open files by keyboard.
+- Added `npm run web:smoke:annotations` to verify multiple bright-theme inline comment markers on desktop and mobile without overflow.
 - Added a mobile-only collaborator hint that appears only when more than one active persona is on the current file.
 - Added `npm run web:smoke:collab` to verify two browser clients stream encrypted Markdown edits in the same project room without refresh.
 - Removed boxed collaborator avatar chrome and moved the E2EE signal into quiet file metadata instead of a right-toolbar pill.
@@ -191,6 +192,7 @@ npm run web:build
 npm run web:smoke:collab # requires web app plus sync server on 127.0.0.1:8787
 npm run web:smoke:agent-comment # requires web app plus sync server on 127.0.0.1:8787
 npm run web:smoke:navigation # requires web app plus sync server on 127.0.0.1:8787
+npm run web:smoke:annotations # requires web app plus sync server on 127.0.0.1:8787
 npm run spike:e2ee
 npm run spike:document-model
 npm run spike:document-model:report
