@@ -423,6 +423,8 @@ export function RoomShell({
                 onClose={() => setProjectFilesOpen(false)}
               />
               <ProjectFilesBody
+                key={`mobile-project-files:${roomId}`}
+                roomId={roomId}
                 files={files}
                 recentFiles={recentFiles}
                 autoFocusSearch
@@ -587,6 +589,8 @@ function ProjectFileSidebar({
         projectLinkCopied={projectLinkCopied}
       />
       <ProjectFilesBody
+        key={`desktop-project-files:${roomId}`}
+        roomId={roomId}
         files={files}
         recentFiles={recentFiles}
         onFileSelect={onFileSelect}
@@ -664,6 +668,7 @@ function ProjectFilesHeader({
 }
 
 function ProjectFilesBody({
+  roomId,
   files,
   recentFiles,
   autoFocusSearch = false,
@@ -672,6 +677,7 @@ function ProjectFilesBody({
   onImportFile,
   onOpenReview,
 }: {
+  roomId: string;
   files: ProjectFile[];
   recentFiles: ProjectFile[];
   autoFocusSearch?: boolean;
@@ -680,16 +686,16 @@ function ProjectFilesBody({
   onImportFile: () => void;
   onOpenReview?: () => void;
 }) {
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    docs: true,
-    reports: true,
-  });
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() => defaultProjectFolderState());
   const [query, setQuery] = useState("");
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [newFilePath, setNewFilePath] = useState("docs/untitled.md");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const createInputRef = useRef<HTMLInputElement | null>(null);
+  const [loadedFolderStateKey, setLoadedFolderStateKey] = useState<string | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
+  const folderStateStorageKey = `fold:project-folders:${roomId}`;
+  const activeFilePath = files.find((file) => file.active)?.path || "";
   const requestedSearchPath = normalizeSidebarCreatePath(query);
   const requestedNewFilePath = normalizeSidebarCreatePath(newFilePath);
   const fileTree = useMemo(() => buildProjectFileTree(files, normalizedQuery), [files, normalizedQuery]);
@@ -739,6 +745,52 @@ function ProjectFilesBody({
     setNewFilePath("docs/untitled.md");
     setIsCreatingFile(false);
   };
+
+  useEffect(() => {
+    setLoadedFolderStateKey(null);
+    const defaultOpenFolders = defaultProjectFolderState();
+    let stored: unknown = null;
+    try {
+      const raw = window.localStorage.getItem(folderStateStorageKey);
+      stored = raw ? JSON.parse(raw) : null;
+    } catch {
+      stored = null;
+    }
+
+    if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+      setOpenFolders({
+        ...defaultOpenFolders,
+        ...Object.fromEntries(
+          Object.entries(stored).filter((entry): entry is [string, boolean] => typeof entry[0] === "string" && typeof entry[1] === "boolean"),
+        ),
+      });
+    } else {
+      setOpenFolders(defaultOpenFolders);
+    }
+    setLoadedFolderStateKey(folderStateStorageKey);
+  }, [folderStateStorageKey]);
+
+  useEffect(() => {
+    if (loadedFolderStateKey !== folderStateStorageKey) return;
+    try {
+      window.localStorage.setItem(folderStateStorageKey, JSON.stringify(openFolders));
+    } catch {
+      // Folder expansion is convenience state; navigation still works if storage is unavailable.
+    }
+  }, [folderStateStorageKey, loadedFolderStateKey, openFolders]);
+
+  useEffect(() => {
+    if (!activeFilePath) return;
+    const ancestorFolders = ancestorFolderPaths(activeFilePath);
+    if (ancestorFolders.length === 0) return;
+
+    setOpenFolders((current) => {
+      if (ancestorFolders.every((path) => current[path] !== false)) return current;
+      const next = { ...current };
+      for (const path of ancestorFolders) next[path] = true;
+      return next;
+    });
+  }, [activeFilePath]);
 
   useEffect(() => {
     if (!isCreatingFile) return;
@@ -1265,6 +1317,13 @@ function compareProjectReviewFiles(a: ProjectFile, b: ProjectFile) {
   return compareProjectFiles(a, b);
 }
 
+function defaultProjectFolderState(): Record<string, boolean> {
+  return {
+    docs: true,
+    reports: true,
+  };
+}
+
 function projectFileMatchScore(file: ProjectFile, query: string) {
   const name = file.name.toLowerCase();
   const path = file.path.toLowerCase();
@@ -1284,6 +1343,11 @@ function projectFileMatchScore(file: ProjectFile, query: string) {
 
 function treeHasFiles(folder: ProjectTreeFolder): boolean {
   return folder.files.length > 0 || folder.folders.some(treeHasFiles);
+}
+
+function ancestorFolderPaths(filePath: string) {
+  const parts = filePath.split("/").filter(Boolean).slice(0, -1);
+  return parts.map((_, index) => parts.slice(0, index + 1).join("/"));
 }
 
 function folderReviewCounts(folder: ProjectTreeFolder) {

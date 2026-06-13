@@ -9,8 +9,7 @@ import { extractMarkdownProperties } from "../../lib/markdown-properties";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { CommentConversation } from "./CommentConversation";
-import { PersonaChip } from "./PersonaChip";
+import { CommentConversation, type CommentReplyTarget } from "./CommentConversation";
 import type { ChatComment, Proposal, RoomMode } from "./types";
 
 interface DocumentSurfaceProps {
@@ -25,7 +24,7 @@ interface DocumentSurfaceProps {
   activeProposalId?: string | null;
   onOpenProposal: (proposal: Proposal) => void;
   onResolveComment?: (comment: ChatComment, resolved: boolean) => void;
-  onReplyToComment?: (comment: ChatComment, text: string) => void;
+  onReplyToComment?: (comment: ChatComment, text: string, target?: CommentReplyTarget) => void;
   onStartEditing?: () => void;
   newCommentText: string;
   composerFocusToken: number;
@@ -279,24 +278,19 @@ export function DocumentSurface({
             <div className="max-h-64 space-y-2 overflow-y-auto">
               {fileComments.map((comment) => (
                 <div key={comment.id} className="rounded-md border border-studio-line bg-studio-sunken/60 px-2.5 py-2">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <p className="truncate text-xs font-medium text-ink">{comment.persona?.name || "Comment"}</p>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <p className="font-mono text-[11px] text-ink-subtle">{formatTime(comment.createdAt)}</p>
-                      {onResolveComment && (
-                        <button
-                          type="button"
-                          aria-label="Resolve file comment"
-                          title="Resolve"
-                          className="inline-flex h-11 w-11 items-center justify-center rounded text-ink-subtle hover:bg-studio-paper hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-7 md:w-7"
-                          onClick={() => onResolveComment(comment, true)}
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
                   <CommentConversation comment={comment} onReply={onReplyToComment} compact />
+                  {onResolveComment && (
+                    <button
+                      type="button"
+                      aria-label="Resolve file comment"
+                      title="Resolve"
+                      className="mt-2 inline-flex h-11 items-center gap-1.5 rounded px-2 text-xs text-ink-subtle hover:bg-studio-paper hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-7"
+                      onClick={() => onResolveComment(comment, true)}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Resolve
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -437,13 +431,9 @@ export function DocumentSurface({
             style={overlayPositionStyle("--comment-popover-top", activeCommentCard.top, "--comment-popover-left", activeCommentCard.left)}
           >
             <div className="mb-2 flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                {activeComment.persona ? (
-                  <PersonaChip persona={activeComment.persona} compact />
-                ) : (
-                  <p className="truncate text-xs font-medium text-ink">Comment</p>
-                )}
-                <p className="shrink-0 font-mono text-[11px] text-ink-subtle">{formatTime(activeComment.createdAt)}</p>
+              <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-ink">
+                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                <span className="truncate">Comment thread</span>
               </div>
               <button
                 type="button"
@@ -552,10 +542,4 @@ function expandPartialWordSelection(markdown: string, selectedText: string) {
   while (end < markdown.length && /[A-Za-z0-9_-]/.test(markdown[end])) end += 1;
 
   return markdown.slice(start, end).trim() || quote;
-}
-
-function formatTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

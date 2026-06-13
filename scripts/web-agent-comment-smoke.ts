@@ -12,6 +12,8 @@ const ANCHOR_TEXT = "agent-visible anchor";
 const AGENT_COMMENT = `Agent inline comment ${Date.now()}.`;
 const AGENT_REPLY = `Agent CLI reply ${Date.now()}.`;
 const HUMAN_REPLY = `Human reply ${Date.now()}.`;
+const HUMAN_REPLY_TO_REPLY = `Human reply-to-reply ${Date.now()}.`;
+const MOBILE_REPLY_TO_REPLY = `Mobile reply-to-reply ${Date.now()}.`;
 const execFileAsync = promisify(execFile);
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const tsxCli = join(repoRoot, "node_modules/tsx/dist/cli.mjs");
@@ -90,6 +92,19 @@ async function main() {
       HUMAN_REPLY,
       { timeout: 8_000 },
     );
+    await page.getByRole("button", { name: /^Reply to / }).nth(1).click();
+    await page.waitForFunction(
+      () => document.body.innerText.includes("Replying to "),
+      null,
+      { timeout: 8_000 },
+    );
+    await page.getByLabel("Reply to comment").fill(HUMAN_REPLY_TO_REPLY);
+    await page.getByRole("button", { name: "Reply", exact: true }).click();
+    await page.waitForFunction(
+      (text) => document.body.innerText.includes(text),
+      HUMAN_REPLY_TO_REPLY,
+      { timeout: 8_000 },
+    );
 
     const replayed = await runCliJson<CommentsJson>(cwd, [
       "comments",
@@ -103,6 +118,10 @@ async function main() {
     }
     if (!replayedComment.replies.some((reply) => reply.text === HUMAN_REPLY)) {
       throw new Error("CLI replay did not include the browser-authored thread reply.");
+    }
+    const replyToReply = replayedComment.replies.find((reply) => reply.text === HUMAN_REPLY_TO_REPLY);
+    if (!replyToReply?.parentId || !replyToReply.parentAuthorName) {
+      throw new Error("CLI replay did not preserve the encrypted browser reply-target metadata.");
     }
 
     const screenshotPath = join(screenshotDir, "agent-inline-comment-thread-desktop.png");
@@ -123,6 +142,30 @@ async function main() {
       [AGENT_COMMENT, HUMAN_REPLY],
       { timeout: 8_000 },
     );
+    await mobilePage.getByRole("button", { name: /^Reply to / }).nth(1).click();
+    await mobilePage.waitForFunction(
+      () => document.body.innerText.includes("Replying to "),
+      null,
+      { timeout: 8_000 },
+    );
+    await mobilePage.getByLabel("Reply to comment").fill(MOBILE_REPLY_TO_REPLY);
+    await mobilePage.getByRole("button", { name: "Reply", exact: true }).click();
+    await mobilePage.waitForFunction(
+      (text) => document.body.innerText.includes(text),
+      MOBILE_REPLY_TO_REPLY,
+      { timeout: 8_000 },
+    );
+    const replayedAfterMobile = await runCliJson<CommentsJson>(cwd, [
+      "comments",
+      "--room",
+      published.room.token,
+      "--json",
+    ]);
+    const mobileReplayedComment = replayedAfterMobile.comments.find((comment) => comment.id === added.comment.id);
+    const mobileReplyToReply = mobileReplayedComment?.replies?.find((reply) => reply.text === MOBILE_REPLY_TO_REPLY);
+    if (!mobileReplyToReply?.parentId || !mobileReplyToReply.parentAuthorName) {
+      throw new Error("CLI replay did not preserve the encrypted mobile reply-target metadata.");
+    }
     const mobileScreenshotPath = join(screenshotDir, "agent-inline-comment-thread-mobile.png");
     await mobilePage.screenshot({ path: mobileScreenshotPath, fullPage: true, caret: "initial" });
     const mobileOverflow = await mobilePage.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
@@ -146,6 +189,8 @@ async function main() {
           agentComment: AGENT_COMMENT,
           agentReply: AGENT_REPLY,
           humanReply: HUMAN_REPLY,
+          humanReplyToReply: HUMAN_REPLY_TO_REPLY,
+          mobileReplyToReply: MOBILE_REPLY_TO_REPLY,
           screenshotPath,
           mobileScreenshotPath,
         },
@@ -183,7 +228,7 @@ interface CommentJson {
 interface CommentsJson {
   comments: Array<{
     id: string;
-    replies?: Array<{ text: string }>;
+    replies?: Array<{ text: string; parentId?: string; parentAuthorName?: string }>;
   }>;
 }
 

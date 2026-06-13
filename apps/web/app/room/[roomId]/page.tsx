@@ -677,7 +677,11 @@ export default function RoomPage() {
     }
   };
 
-  const handleReplyToComment = async (comment: ChatComment, text: string) => {
+  const handleReplyToComment = async (
+    comment: ChatComment,
+    text: string,
+    target?: { id: string; authorPersonaId: string; authorName: string },
+  ) => {
     const trimmed = text.trim();
     if (!trimmed || !keyRef.current || !localMyPersona) return;
 
@@ -698,6 +702,13 @@ export default function RoomPage() {
           persona: localMyPersona,
           text: trimmed,
           createdAt,
+          ...(target
+            ? {
+                parentId: target.id,
+                parentAuthorPersonaId: target.authorPersonaId,
+                parentAuthorName: target.authorName,
+              }
+            : {}),
         },
       };
       const encryptedEvent = await encryptUpdate(encoder.encode(JSON.stringify(eventRecord)), keyRef.current, {

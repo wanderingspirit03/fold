@@ -1,0 +1,131 @@
+import { mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { chromium, type Page } from "playwright";
+
+const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
+const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
+
+async function main() {
+  const baseUrl = await resolveBaseUrl();
+  await assertSyncServerReady(DEFAULT_SYNC_URL);
+
+  const screenshotDir = process.env.FOLD_SMOKE_SCREENSHOT_DIR || join(tmpdir(), "fold-web-navigation-smoke");
+  await mkdir(screenshotDir, { recursive: true });
+
+  const browser = await chromium.launch({ headless: true });
+  const logs: string[] = [];
+
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+    await preparePage(page, "desktop", logs);
+    await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
+    await page.getByRole("button", { name: /create project/i }).click();
+    await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+
+    const architectureFolder = page.getByRole("button", { name: /^architecture/i });
+    await architectureFolder.waitFor({ timeout: 10_000 });
+    if ((await architectureFolder.getAttribute("aria-expanded")) !== "true") {
+      throw new Error("Expected architecture folder to start open.");
+    }
+
+    await architectureFolder.click();
+    if ((await architectureFolder.getAttribute("aria-expanded")) !== "false") {
+      throw new Error("Expected architecture folder to collapse.");
+    }
+
+    await page.reload({ waitUntil: "networkidle", timeout: 20_000 });
+    await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+    const architectureAfterReload = page.getByRole("button", { name: /^architecture/i });
+    if ((await architectureAfterReload.getAttribute("aria-expanded")) !== "false") {
+      throw new Error("Expected collapsed architecture folder to persist after reload.");
+    }
+
+    await page.getByRole("button", { name: /open command palette/i }).click();
+    await page.getByRole("combobox", { name: /search commands and files/i }).fill("e2ee");
+    await page.getByRole("option", { name: /e2ee\.md/i }).first().click();
+    await page.waitForFunction(() => document.body.innerText.includes("E2EE Architecture"), null, { timeout: 8_000 });
+
+    if ((await page.getByRole("button", { name: /^architecture/i }).getAttribute("aria-expanded")) !== "true") {
+      throw new Error("Expected quick-switching to a nested file to reopen ancestor folders.");
+    }
+
+    const screenshotPath = join(screenshotDir, "quick-switch-reopened-folder.png");
+    await page.screenshot({ path: screenshotPath, fullPage: true, caret: "initial" });
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    const errors = logs.filter((entry) => entry.includes("pageerror:") || entry.includes(" console:error:"));
+    if (errors.length > 0) {
+      throw new Error(`Browser errors during navigation smoke:\n${errors.join("\n")}`);
+    }
+    if (overflow) {
+      throw new Error("Navigation smoke created horizontal overflow.");
+    }
+
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          baseUrl,
+          syncUrl: DEFAULT_SYNC_URL,
+          roomUrl: page.url(),
+          screenshotPath,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
+async function preparePage(page: Page, label: string, logs: string[]) {
+  page.on("console", (message) => {
+    if (message.type() === "info" && message.text().includes("React DevTools")) return;
+    if (message.type() === "log" && message.text().includes("[HMR]")) return;
+    logs.push(`${label} console:${message.type()}: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
+  await page.addInitScript(() => localStorage.setItem("fold:theme", "dark"));
+}
+
+async function resolveBaseUrl() {
+  const candidates = [process.env.FOLD_WEB_URL, ...DEFAULT_URLS].filter((value): value is string => Boolean(value));
+  for (const candidate of candidates) {
+    if (await canReach(candidate)) return candidate;
+  }
+  throw new Error(
+    `No Fold web app responded. Start one first, for example:\n` +
+      `  npm run web:dev -- --port 3001\n` +
+      `or set FOLD_WEB_URL to an existing app URL.`,
+  );
+}
+
+async function assertSyncServerReady(syncUrl: string) {
+  if (await canReach(`${syncUrl.replace(/\/$/, "")}/health`)) return;
+
+  throw new Error(
+    `No Fold sync server responded at ${syncUrl}.\n` +
+      `Start it before running the navigation smoke:\n` +
+      `  npm run server -- --port 8787 --data ./data`,
+  );
+}
+
+async function canReach(url: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1200);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

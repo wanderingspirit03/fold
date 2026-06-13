@@ -17,6 +17,9 @@ export interface CommentReply {
   persona: RoomPersona;
   text: string;
   createdAt: string;
+  parentId?: string;
+  parentAuthorPersonaId?: string;
+  parentAuthorName?: string;
 }
 
 export interface RoomComment {
