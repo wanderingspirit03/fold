@@ -32,6 +32,12 @@ async function main() {
     await page.getByRole("button", { name: /cancel/i }).click();
     await page.waitForSelector('[data-comment-composer]', { state: "hidden", timeout: 8_000 });
 
+    await page.getByRole("button", { name: /open command palette/i }).click();
+    const contentSearchInput = page.getByRole("combobox", { name: /search commands and files/i });
+    await contentSearchInput.fill("center of gravity");
+    await page.getByRole("option", { name: /agent-handoff-review\.md.*center of gravity/i }).first().click();
+    await page.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
+
     const architectureFolder = page.getByRole("button", { name: /^architecture/i });
     await architectureFolder.waitFor({ timeout: 10_000 });
     if ((await architectureFolder.getAttribute("aria-expanded")) !== "true") {

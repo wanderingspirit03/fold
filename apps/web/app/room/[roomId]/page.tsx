@@ -1533,10 +1533,10 @@ function createProjectFiles(
   includeLegacyLiveFile = true,
   defaultRecordFilePath = LIVE_FILE_PATH,
 ) {
-  const filesByPath = new Map<string, { name: string; path: string; folder: string; status?: string }>();
+  const filesByPath = new Map<string, { name: string; path: string; folder: string; status?: string; markdown?: string }>();
   const commentCounts = countRecordsByFile(comments.filter((comment) => !comment.resolvedAt), defaultRecordFilePath);
   const pendingProposalCounts = countRecordsByFile(proposals.filter((proposal) => proposal.status === "pending"), defaultRecordFilePath);
-  const addFile = (path: string, status?: string) => {
+  const addFile = (path: string, status?: string, markdown = "") => {
     const normalized = normalizeProjectFilePath(path);
     if (!normalized) return;
     filesByPath.set(normalized, {
@@ -1544,10 +1544,11 @@ function createProjectFiles(
       path: normalized,
       folder: folderForPath(normalized),
       status,
+      markdown,
     });
   };
 
-  Object.keys(virtualFiles).forEach((path) => addFile(path));
+  Object.entries(virtualFiles).forEach(([path, markdown]) => addFile(path, undefined, markdown));
   if (includeLegacyLiveFile) {
     filesByPath.set(LIVE_FILE_PATH, {
       name: "launch-review.md",

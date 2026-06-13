@@ -94,6 +94,7 @@ Primary reference: `DESIGN.md`.
 - Added `npm run web:smoke:agent-comment` to verify a CLI-authored encrypted inline comment streams into the open web document and a browser reply replays back through the CLI.
 - Added `npm run web:smoke:navigation` to verify folder collapse persistence and quick-switch reopening of nested file ancestors.
 - Extended navigation smoke to verify command-palette `Add file comment` opens the document-native file comment composer and can dismiss cleanly.
+- Added client-side command-palette content matches for decrypted Markdown files so project search can open a file by body text without server-readable search.
 - Extended navigation smoke to verify broad quick-switcher searches clip to a calm result set with an explicit hidden-match hint and still open files by keyboard.
 - Added `npm run web:smoke:annotations` to verify multiple bright-theme inline comment markers on desktop and mobile without overflow.
 - Added `npm run web:smoke:design` to verify DESIGN.md layout invariants and capture desktop/mobile workspace comparison screenshots.

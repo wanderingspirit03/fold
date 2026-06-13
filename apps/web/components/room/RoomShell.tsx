@@ -552,6 +552,7 @@ interface ProjectFile {
   name: string;
   path: string;
   folder: string;
+  markdown?: string;
   active?: boolean;
   status?: string;
   updatedAt?: string;
@@ -1380,7 +1381,7 @@ type PaletteItem = {
   id: string;
   label: string;
   detail?: string;
-  group: "create" | "recent" | "files" | "actions";
+  group: "create" | "recent" | "files" | "matches" | "actions";
   searchText?: string;
   showByDefault?: boolean;
   icon: ReactNode;
@@ -1543,6 +1544,24 @@ function ProjectCommandPalette({
     meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
     action: () => onFileSelect(file.path),
   }));
+  const contentItems: PaletteItem[] = normalizedQuery.length >= 2
+    ? files
+      .filter((file) => projectFileMatchScore(file, normalizedQuery) === 0)
+      .flatMap((file) => {
+        const snippet = projectFileContentSnippet(file.markdown || "", normalizedQuery);
+        if (!snippet) return [];
+        return [{
+          id: `content:${file.path}`,
+          label: file.name,
+          detail: [filePathDetail(file) || file.path, snippet].filter(Boolean).join(" · "),
+          group: "matches" as const,
+          searchText: `${file.path} ${snippet}`,
+          icon: <Search className="h-4 w-4" />,
+          meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
+          action: () => onFileSelect(file.path),
+        }];
+      })
+    : [];
   const recentPaths = new Set(recentFiles.map((file) => file.path));
   const recentItems: PaletteItem[] = recentFiles.map((file) => ({
     id: `recent:${file.path}`,
@@ -1569,7 +1588,7 @@ function ProjectCommandPalette({
   const rankedItems = normalizedQuery
     ? [
       ...createItem,
-      ...rankCommandPaletteItems([...fileItems, ...staticItems], normalizedQuery),
+      ...rankCommandPaletteItems([...fileItems, ...contentItems, ...staticItems], normalizedQuery),
     ]
     : [...recentItems, ...defaultStaticItems, ...remainingFileItems];
   const items = rankedItems.slice(0, 12);
@@ -1758,7 +1777,22 @@ function paletteGroupLabel(group: PaletteItem["group"]) {
   if (group === "create") return "Create";
   if (group === "recent") return "Recent";
   if (group === "files") return "Files";
+  if (group === "matches") return "Matches";
   return "Actions";
+}
+
+function projectFileContentSnippet(markdown: string, query: string) {
+  const normalized = markdown.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+
+  const index = normalized.toLowerCase().indexOf(query);
+  if (index < 0) return "";
+
+  const start = Math.max(0, index - 34);
+  const end = Math.min(normalized.length, index + query.length + 58);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < normalized.length ? "..." : "";
+  return `${prefix}${normalized.slice(start, end)}${suffix}`;
 }
 
 function FileSwitcherButton({
