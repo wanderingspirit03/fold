@@ -56,6 +56,7 @@ interface RoomShellProps {
   ready: boolean;
   recordCount: number;
   pendingCount: number;
+  requestCount?: number;
   reviewCount: number;
   conflictCount?: number;
   selectedQuote?: string;
@@ -85,6 +86,7 @@ export function RoomShell({
   connected,
   ready,
   pendingCount,
+  requestCount = 0,
   reviewCount,
   conflictCount = 0,
   selectedQuote = "",
@@ -129,7 +131,7 @@ export function RoomShell({
   const reviewLabel = reviewCount > 0
     ? `Open review, ${reviewCount} ${reviewCount === 1 ? "item" : "items"}`
     : "Open review";
-  const commentCount = Math.max(0, reviewCount - pendingCount - conflictCount);
+  const commentCount = Math.max(0, reviewCount - requestCount - pendingCount - conflictCount);
   const securityLabel = !connected ? "E2EE offline" : !ready ? "E2EE replaying" : "E2EE";
   const humanInviteHasWarnings = Boolean(humanInvite?.warnings?.length);
   const humanInviteAriaLabel = projectLinkCopied
@@ -296,6 +298,7 @@ export function RoomShell({
                   <PresenceStack presences={activePresences} fallbackPersona={persona} />
                   <ReviewStatusControl
                     commentCount={commentCount}
+                    requestCount={requestCount}
                     pendingCount={pendingCount}
                     conflictCount={conflictCount}
                     reviewLabel={reviewLabel}
@@ -369,6 +372,7 @@ export function RoomShell({
                   <MobilePresenceHint presences={activePresences} />
                   <ReviewStatusControl
                     commentCount={commentCount}
+                    requestCount={requestCount}
                     pendingCount={pendingCount}
                     conflictCount={conflictCount}
                     reviewLabel={reviewLabel}
@@ -498,6 +502,8 @@ export function RoomShell({
             selectedFilePath={selectedFilePath}
             mode={mode}
             pendingCount={pendingCount}
+            requestCount={requestCount}
+            conflictCount={conflictCount}
             reviewCount={reviewCount}
             selectedQuote={selectedQuote}
             humanInviteHasWarnings={humanInviteHasWarnings}
@@ -570,6 +576,7 @@ interface ProjectFile {
   status?: string;
   updatedAt?: string;
   commentCount?: number;
+  requestCount?: number;
   pendingCount?: number;
   conflictCount?: number;
   activePresences?: CollaborationPresence[];
@@ -749,14 +756,14 @@ function ProjectFilesBody({
   const activeFiles = useMemo(
     () => files
       .filter((file) => uniquePresencesByPersona(file.activePresences || []).length > 1)
-      .filter((file) => (file.commentCount || 0) + (file.pendingCount || 0) + (file.conflictCount || 0) === 0)
+      .filter((file) => fileReviewTotal(file) === 0)
       .sort(compareProjectActivityFiles)
       .slice(0, 4),
     [files],
   );
   const reviewFiles = useMemo(
     () => files
-      .filter((file) => (file.commentCount || 0) + (file.pendingCount || 0) + (file.conflictCount || 0) > 0)
+      .filter((file) => fileReviewTotal(file) > 0)
       .sort(compareProjectReviewFiles)
       .slice(0, 4),
     [files],
@@ -1029,6 +1036,7 @@ function SidebarFolder({
   open,
   onToggle,
   commentCount = 0,
+  requestCount = 0,
   pendingCount = 0,
   conflictCount = 0,
   depth = 0,
@@ -1037,12 +1045,13 @@ function SidebarFolder({
   open: boolean;
   onToggle: () => void;
   commentCount?: number;
+  requestCount?: number;
   pendingCount?: number;
   conflictCount?: number;
   depth?: number;
 }) {
   const FolderIcon = open ? FolderOpen : FolderClosed;
-  const indicatorLabel = reviewIndicatorLabel(commentCount, pendingCount, conflictCount);
+  const indicatorLabel = reviewIndicatorLabel(commentCount, requestCount, pendingCount, conflictCount);
 
   return (
     <button
@@ -1056,7 +1065,7 @@ function SidebarFolder({
       <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open ? "rotate-0" : "-rotate-90")} />
       <FolderIcon className="h-3.5 w-3.5" />
       <span className="min-w-0 flex-1 truncate">{name}</span>
-      <FileReviewIndicators commentCount={commentCount} pendingCount={pendingCount} conflictCount={conflictCount} />
+      <FileReviewIndicators commentCount={commentCount} requestCount={requestCount} pendingCount={pendingCount} conflictCount={conflictCount} />
     </button>
   );
 }
@@ -1090,7 +1099,7 @@ function SidebarFile({
       <File className="h-3.5 w-3.5 shrink-0 text-ink-subtle group-hover:text-ink-muted" />
       <span className="min-w-0 flex-1 truncate">{file.name}</span>
       <FilePresenceIndicators presences={file.activePresences || []} />
-      <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />
+      <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />
       {showUpdatedAt && file.updatedAt && (
         <span className="hidden shrink-0 font-mono text-[10px] text-ink-subtle group-hover:text-ink-muted lg:inline">
           {formatRelativeTime(file.updatedAt)}
@@ -1142,18 +1151,20 @@ function FilePresenceIndicators({ presences }: { presences: CollaborationPresenc
 
 function FileReviewIndicators({
   commentCount,
+  requestCount,
   pendingCount,
   conflictCount,
 }: {
   commentCount: number;
+  requestCount?: number;
   pendingCount: number;
   conflictCount: number;
 }) {
-  const total = commentCount + pendingCount + conflictCount;
+  const total = commentCount + (requestCount || 0) + pendingCount + conflictCount;
   if (total === 0) return null;
 
-  const label = reviewIndicatorLabel(commentCount, pendingCount, conflictCount);
-  const Icon = conflictCount > 0 ? AlertTriangle : MessageSquare;
+  const label = reviewIndicatorLabel(commentCount, requestCount || 0, pendingCount, conflictCount);
+  const Icon = conflictCount > 0 ? AlertTriangle : requestCount ? Bot : MessageSquare;
 
   return (
     <span
@@ -1167,16 +1178,17 @@ function FileReviewIndicators({
   );
 }
 
-function reviewIndicatorLabel(commentCount: number, pendingCount: number, conflictCount = 0) {
+function reviewIndicatorLabel(commentCount: number, requestCount: number, pendingCount: number, conflictCount = 0) {
   return [
     commentCount ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}` : "",
+    requestCount ? `${requestCount} agent ${requestCount === 1 ? "request" : "requests"}` : "",
     pendingCount ? `${pendingCount} pending ${pendingCount === 1 ? "suggestion" : "suggestions"}` : "",
     conflictCount ? `${conflictCount} incoming ${conflictCount === 1 ? "edit" : "edits"}` : "",
   ].filter(Boolean).join(", ");
 }
 
 function reviewFileLabel(file: ProjectFile) {
-  const label = reviewIndicatorLabel(file.commentCount || 0, file.pendingCount || 0, file.conflictCount || 0);
+  const label = reviewIndicatorLabel(file.commentCount || 0, file.requestCount || 0, file.pendingCount || 0, file.conflictCount || 0);
   return label ? `Open review for ${file.path}, ${label}` : `Open review for ${file.path}`;
 }
 
@@ -1230,6 +1242,7 @@ function SidebarTreeFolder({
         open={open}
         depth={depth}
         commentCount={reviewCounts.commentCount}
+        requestCount={reviewCounts.requestCount}
         pendingCount={reviewCounts.pendingCount}
         conflictCount={reviewCounts.conflictCount}
         onToggle={() => onToggle(folder.path)}
@@ -1344,15 +1357,23 @@ function compareProjectReviewFiles(a: ProjectFile, b: ProjectFile) {
   const bConflict = b.conflictCount || 0;
   if (aConflict !== bConflict) return bConflict - aConflict;
 
+  const aRequests = a.requestCount || 0;
+  const bRequests = b.requestCount || 0;
+  if (aRequests !== bRequests) return bRequests - aRequests;
+
   const aPending = a.pendingCount || 0;
   const bPending = b.pendingCount || 0;
   if (aPending !== bPending) return bPending - aPending;
 
-  const aTotal = (a.commentCount || 0) + aPending;
-  const bTotal = (b.commentCount || 0) + bPending;
+  const aTotal = fileReviewTotal(a);
+  const bTotal = fileReviewTotal(b);
   if (aTotal !== bTotal) return bTotal - aTotal;
 
   return compareProjectFiles(a, b);
+}
+
+function fileReviewTotal(file: ProjectFile) {
+  return (file.commentCount || 0) + (file.requestCount || 0) + (file.pendingCount || 0) + (file.conflictCount || 0);
 }
 
 function defaultProjectFolderState(): Record<string, boolean> {
@@ -1393,12 +1414,14 @@ function folderReviewCounts(folder: ProjectTreeFolder) {
     (counts, child) => {
       const childCounts = folderReviewCounts(child);
       counts.commentCount += childCounts.commentCount;
+      counts.requestCount += childCounts.requestCount;
       counts.pendingCount += childCounts.pendingCount;
       counts.conflictCount += childCounts.conflictCount;
       return counts;
     },
     {
       commentCount: folder.files.reduce((count, file) => count + (file.commentCount || 0), 0),
+      requestCount: folder.files.reduce((count, file) => count + (file.requestCount || 0), 0),
       pendingCount: folder.files.reduce((count, file) => count + (file.pendingCount || 0), 0),
       conflictCount: folder.files.reduce((count, file) => count + (file.conflictCount || 0), 0),
     },
@@ -1424,6 +1447,8 @@ function ProjectCommandPalette({
   selectedFilePath,
   mode,
   pendingCount,
+  requestCount,
+  conflictCount,
   reviewCount,
   selectedQuote,
   humanInviteHasWarnings,
@@ -1444,6 +1469,8 @@ function ProjectCommandPalette({
   selectedFilePath: string;
   mode: RoomMode;
   pendingCount: number;
+  requestCount: number;
+  conflictCount: number;
   reviewCount: number;
   selectedQuote: string;
   humanInviteHasWarnings: boolean;
@@ -1466,7 +1493,7 @@ function ProjectCommandPalette({
   const normalizedQuery = query.trim().toLowerCase();
   const requestedPath = normalizePaletteFilePath(query);
   const matchingFile = requestedPath ? files.some((file) => file.path.toLowerCase() === requestedPath.toLowerCase()) : false;
-  const commentCount = Math.max(0, reviewCount - pendingCount);
+  const commentCount = Math.max(0, reviewCount - requestCount - pendingCount - conflictCount);
   const trimmedQuote = selectedQuote.trim();
 
   useEffect(() => {
@@ -1508,6 +1535,16 @@ function ProjectCommandPalette({
       searchText: "show comments unresolved review notes",
       showByDefault: commentCount > 0,
       icon: <MessageSquare className="h-4 w-4" />,
+      action: onOpenReview,
+    },
+    {
+      id: "show-requests",
+      label: "Show agent requests",
+      detail: `${requestCount} ${requestCount === 1 ? "request" : "requests"} in current file`,
+      group: "actions",
+      searchText: "show agent requests ask human request review",
+      showByDefault: requestCount > 0,
+      icon: <Bot className="h-4 w-4" />,
       action: onOpenReview,
     },
     {
@@ -1581,7 +1618,7 @@ function ProjectCommandPalette({
     group: "files",
     searchText: file.path,
     icon: file.path === selectedFilePath ? <Check className="h-4 w-4" /> : <File className="h-4 w-4" />,
-    meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
+    meta: <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
     action: () => onFileSelect(file.path),
   }));
   const contentItems: PaletteItem[] = normalizedQuery.length >= 2
@@ -1597,7 +1634,7 @@ function ProjectCommandPalette({
           group: "matches" as const,
           searchText: `${file.path} ${snippet}`,
           icon: <Search className="h-4 w-4" />,
-          meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
+          meta: <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
           action: () => onFileSelect(file.path),
         }];
       })
@@ -1610,7 +1647,7 @@ function ProjectCommandPalette({
     group: "recent",
     searchText: file.path,
     icon: file.path === selectedFilePath ? <Check className="h-4 w-4" /> : <File className="h-4 w-4" />,
-    meta: <FileReviewIndicators commentCount={file.commentCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
+    meta: <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />,
     action: () => onFileSelect(file.path),
   }));
   const remainingFileItems = fileItems.filter((item) => !recentPaths.has(item.searchText || item.label));
@@ -1903,6 +1940,7 @@ function FileSwitcherButton({
 
 function ReviewStatusControl({
   commentCount,
+  requestCount,
   pendingCount,
   conflictCount = 0,
   reviewLabel,
@@ -1911,6 +1949,7 @@ function ReviewStatusControl({
   mobile = false,
 }: {
   commentCount: number;
+  requestCount: number;
   pendingCount: number;
   conflictCount?: number;
   reviewLabel: string;
@@ -1918,8 +1957,9 @@ function ReviewStatusControl({
   onOpenReview: () => void;
   mobile?: boolean;
 }) {
-  const hasItems = commentCount + pendingCount + conflictCount > 0;
+  const hasItems = commentCount + requestCount + pendingCount + conflictCount > 0;
   const commentLabel = `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`;
+  const requestLabel = `${requestCount} agent ${requestCount === 1 ? "request" : "requests"}`;
   const suggestionLabel = `${pendingCount} pending ${pendingCount === 1 ? "suggestion" : "suggestions"}`;
   const conflictLabel = `${conflictCount} incoming ${conflictCount === 1 ? "edit" : "edits"}`;
 
@@ -1968,6 +2008,26 @@ function ReviewStatusControl({
             </button>
           </TooltipTrigger>
           <TooltipContent>{commentLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {requestCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Open review, ${requestLabel}`}
+              title={requestLabel}
+              onClick={onOpenReview}
+              className={cn(
+                "inline-flex items-center justify-center gap-1 rounded text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft hover:text-midnight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong",
+                mobile ? "h-11 min-w-11 px-2" : "h-8 min-w-8 px-2",
+              )}
+            >
+              <Bot className="h-3.5 w-3.5" />
+              <span>{requestCount}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{requestLabel}</TooltipContent>
         </Tooltip>
       )}
       {pendingCount > 0 && (

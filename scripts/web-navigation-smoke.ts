@@ -121,6 +121,11 @@ async function main() {
       { timeout: 8_000 },
     );
     await page.getByRole("button", { name: /close comment/i }).click();
+    await page.getByRole("button", { name: /open review, 1 agent request/i }).click({ timeout: 8_000 });
+    await page.getByRole("button", { name: "Close review", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
+    await page.getByText(/^requests$/i).waitFor({ state: "visible", timeout: 8_000 });
+    await page.getByText(AGENT_REQUEST_MARKER).waitFor({ state: "visible", timeout: 8_000 });
+    await page.getByRole("button", { name: "Close review", exact: true }).click();
 
     await page.getByRole("button", { name: /open command palette/i }).click();
     const firstPaletteInput = page.getByRole("combobox", { name: /search commands and files/i });

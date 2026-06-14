@@ -1214,6 +1214,8 @@ export default function RoomPage() {
   const defaultRecordFilePath = projectPrimaryPath || LIVE_FILE_PATH;
   const selectedFileComments = comments.filter((comment) => (comment.filePath || defaultRecordFilePath) === selectedFilePath);
   const selectedFileActiveComments = selectedFileComments.filter((comment) => !comment.resolvedAt);
+  const selectedFileActiveRequests = selectedFileActiveComments.filter((comment) => comment.type === "request");
+  const selectedFileActiveNotes = selectedFileActiveComments.filter((comment) => comment.type !== "request");
   const selectedFileProposals = proposals.filter((proposal) => (proposal.filePath || defaultRecordFilePath) === selectedFilePath);
   const selectedProposalIds = new Set(selectedFileProposals.map((proposal) => proposal.id));
   const selectedCommentIds = new Set(selectedFileComments.map((comment) => comment.id));
@@ -1282,8 +1284,9 @@ export default function RoomPage() {
         ready={syncProgress}
         recordCount={logRecords.length}
         pendingCount={selectedFilePendingCount}
+        requestCount={selectedFileActiveRequests.length}
         conflictCount={selectedFileConflict ? 1 : 0}
-        reviewCount={selectedFileActiveComments.length + selectedFilePendingCount + (selectedFileConflict ? 1 : 0)}
+        reviewCount={selectedFileActiveNotes.length + selectedFileActiveRequests.length + selectedFilePendingCount + (selectedFileConflict ? 1 : 0)}
         selectedQuote={editMode === "edit" ? "" : selectedQuote}
         persona={localMyPersona}
         activePresences={selectedFilePresences}
@@ -1656,7 +1659,9 @@ function createProjectFiles(
   defaultRecordFilePath = LIVE_FILE_PATH,
 ) {
   const filesByPath = new Map<string, { name: string; path: string; folder: string; status?: string; markdown?: string }>();
-  const commentCounts = countRecordsByFile(comments.filter((comment) => !comment.resolvedAt), defaultRecordFilePath);
+  const activeComments = comments.filter((comment) => !comment.resolvedAt);
+  const commentCounts = countRecordsByFile(activeComments.filter((comment) => comment.type !== "request"), defaultRecordFilePath);
+  const requestCounts = countRecordsByFile(activeComments.filter((comment) => comment.type === "request"), defaultRecordFilePath);
   const pendingProposalCounts = countRecordsByFile(proposals.filter((proposal) => proposal.status === "pending"), defaultRecordFilePath);
   const addFile = (path: string, status?: string, markdown = "") => {
     const normalized = normalizeProjectFilePath(path);
@@ -1694,6 +1699,7 @@ function createProjectFiles(
     status: file.status,
     updatedAt: updatedAtByPath[file.path],
     commentCount: commentCounts.get(file.path) || 0,
+    requestCount: requestCounts.get(file.path) || 0,
     pendingCount: pendingProposalCounts.get(file.path) || 0,
     conflictCount: conflictsByPath[file.path] ? 1 : 0,
     activePresences: presencesByPath.get(file.path) || [],

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2, X } from "lucide-react";
+import { AlertTriangle, Bot, Check, Clock3, FileText, ListChecks, MessageSquare, RotateCcw, Save, Undo2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RoomPersona } from "../../lib/personas";
 import { cn } from "../../lib/utils";
@@ -56,6 +56,8 @@ export function AgentBench({
   const [restoreCandidateId, setRestoreCandidateId] = useState<string | null>(null);
   const [incomingCandidateId, setIncomingCandidateId] = useState<string | null>(null);
   const activeComments = comments.filter((comment) => !comment.resolvedAt);
+  const activeRequests = activeComments.filter((comment) => comment.type === "request");
+  const activeNotes = activeComments.filter((comment) => comment.type !== "request");
   const resolvedComments = comments.filter((comment) => comment.resolvedAt);
   const pendingProposals = proposals.filter((proposal) => proposal.status === "pending");
   const detachedComments = activeComments.filter((comment) => isMissingTextAnchor(comment, markdown));
@@ -93,12 +95,21 @@ export function AgentBench({
           </div>
           {showReviewCounts && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {activeComments.length > 0 && (
+              {activeNotes.length > 0 && (
                 <ReviewCount
                   icon={<MessageSquare className="h-3.5 w-3.5" />}
-                  count={activeComments.length}
+                  count={activeNotes.length}
                   label="comments"
                   singularLabel="comment"
+                />
+              )}
+              {activeRequests.length > 0 && (
+                <ReviewCount
+                  icon={<Bot className="h-3.5 w-3.5" />}
+                  count={activeRequests.length}
+                  label="requests"
+                  singularLabel="agent request"
+                  pluralLabel="agent requests"
                 />
               )}
               {pendingProposals.length > 0 && (
@@ -203,9 +214,25 @@ export function AgentBench({
 
         {showCommentsSection && (
           <section className="space-y-1">
-            <RailHeading title="Comments" count={activeComments.length} />
+            {activeRequests.length > 0 && (
+              <>
+                <RailHeading title="Requests" count={activeRequests.length} />
+                {activeRequests.map((comment) => (
+                  <MarginThread
+                    key={comment.id}
+                    comment={comment}
+                    anchorState={isMissingTextAnchor(comment, markdown) ? "missing" : "found"}
+                    onResolveComment={onResolveComment}
+                    onReplyToComment={onReplyToComment}
+                  />
+                ))}
+              </>
+            )}
+            {(selectedQuote || activeNotes.length > 0) && (
+              <RailHeading title="Comments" count={activeNotes.length} />
+            )}
             {selectedQuote && <MarginThread selectedQuote={selectedQuote} />}
-            {activeComments.map((comment) => (
+            {activeNotes.map((comment) => (
               <MarginThread
                 key={comment.id}
                 comment={comment}
