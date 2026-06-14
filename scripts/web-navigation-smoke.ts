@@ -8,6 +8,7 @@ const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
 const EDIT_MODE_COMMENT_MARKER = `Edit mode source comment ${Date.now()}.`;
 const EDIT_MODE_CURSOR_COMMENT_MARKER = `Edit mode cursor comment ${Date.now()}.`;
 const AGENT_REQUEST_MARKER = `Agent request ${Date.now()}.`;
+const PROPERTY_COMMENT_MARKER = `Property anchor comment ${Date.now()}.`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -121,6 +122,22 @@ async function main() {
       { timeout: 8_000 },
     );
     await page.getByRole("button", { name: /close comment/i }).click();
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const detachedAnchorEditor = page.getByRole("textbox", { name: /markdown source/i });
+    const markdownBeforeDrift = await detachedAnchorEditor.inputValue();
+    if (!markdownBeforeDrift.includes(agentRequestAnchor)) {
+      throw new Error(`Could not find anchored phrase before drift edit: ${agentRequestAnchor}`);
+    }
+    await detachedAnchorEditor.fill(markdownBeforeDrift.replace(agentRequestAnchor, "Keep Markdown source canonical."));
+    await page.getByRole("button", { name: "Read", exact: true }).click();
+    await page.waitForSelector("[data-detached-anchor-notice]", { timeout: 8_000 });
+    await page.getByRole("button", { name: /^review$/i }).click();
+    await page.waitForFunction(
+      (marker) => document.body.innerText.includes(marker) && document.body.innerText.includes("Agent request"),
+      AGENT_REQUEST_MARKER,
+      { timeout: 8_000 },
+    );
+    await page.getByRole("button", { name: /close comment/i }).click();
     await page.getByRole("button", { name: /open review, 1 agent request/i }).click({ timeout: 8_000 });
     await page.getByRole("button", { name: "Close review", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
     await page.getByText(/^requests$/i).waitFor({ state: "visible", timeout: 8_000 });
@@ -141,6 +158,18 @@ async function main() {
     await contentSearchInput.fill("center of gravity");
     await page.getByRole("option", { name: /agent-handoff-review\.md.*center of gravity/i }).first().click();
     await page.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
+    await selectDocumentText(page, "draft");
+    await page.waitForSelector('[data-inline-comment-composer]', { timeout: 8_000 });
+    await page.getByRole("textbox", { name: /^inline comment$/i }).fill(PROPERTY_COMMENT_MARKER);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.waitForSelector("[data-detached-anchor-notice]", { timeout: 8_000 });
+    await page.getByRole("button", { name: /^review$/i }).click();
+    await page.waitForFunction(
+      (marker) => document.body.innerText.includes(marker) && document.body.innerText.includes("Comment thread"),
+      PROPERTY_COMMENT_MARKER,
+      { timeout: 8_000 },
+    );
+    await page.getByRole("button", { name: /close comment/i }).click();
     await page.getByRole("link", { name: /review flow/i }).click();
     await page.waitForFunction(() => document.body.innerText.includes("Review Flow"), null, { timeout: 8_000 });
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { Bot, Check, ListChecks, MessageSquare, MessageSquarePlus, Pencil, Send, X } from "lucide-react";
+import { AlertTriangle, Bot, Check, ListChecks, MessageSquare, MessageSquarePlus, Pencil, Send, X } from "lucide-react";
 import MarkdownRenderer from "../MarkdownRenderer";
 import MarkdownSourceEditor from "../MarkdownSourceEditor";
 import { extractMarkdownProperties } from "../../lib/markdown-properties";
@@ -85,6 +85,15 @@ export function DocumentSurface({
     () => proposals.filter((proposal) => proposal.status === "pending"),
     [proposals],
   );
+  const detachedComments = useMemo(
+    () => activeComments.filter((comment) => isMissingTextAnchor(comment, parsedMarkdown.content)),
+    [activeComments, parsedMarkdown.content],
+  );
+  const detachedProposals = useMemo(
+    () => proposals.filter((proposal) => isMissingTextAnchor(proposal, parsedMarkdown.content)),
+    [parsedMarkdown.content, proposals],
+  );
+  const detachedAnchorCount = detachedComments.length + detachedProposals.length;
   const insertionPreview = useMemo(
     () => selectedInsertionOffset === null ? null : createInsertionPreview(markdown, selectedInsertionOffset),
     [markdown, selectedInsertionOffset],
@@ -510,6 +519,37 @@ export function DocumentSurface({
                 </div>
               </div>
             )}
+            {detachedAnchorCount > 0 && (
+              <div
+                data-detached-anchor-notice
+                className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-md border border-midnight/25 bg-midnight-mark px-3 py-2 text-sm text-document-muted"
+              >
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-midnight-strong" aria-hidden />
+                  <span className="truncate">
+                    {detachedAnchorCount} {detachedAnchorCount === 1 ? "anchor needs" : "anchors need"} review
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-9 shrink-0 items-center rounded px-2 text-xs font-medium text-midnight-strong transition-colors hover:bg-midnight-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+                  onClick={() => {
+                    const firstComment = detachedComments[0];
+                    if (firstComment) {
+                      setActiveCommentCard({ commentId: firstComment.id, top: 18, left: 16 });
+                      setInlineComposerOpen(false);
+                      setAnchorPoint(null);
+                      clearSelectedAnchor();
+                      return;
+                    }
+                    const firstProposal = detachedProposals[0];
+                    if (firstProposal) onOpenProposal(firstProposal);
+                  }}
+                >
+                  Review
+                </button>
+              </div>
+            )}
             <MarkdownRenderer
               content={parsedMarkdown.content}
               currentFilePath={currentFilePath}
@@ -734,6 +774,16 @@ function createInsertionPreview(markdown: string, offset: number) {
   const after = markdown.slice(safeOffset, safeOffset + 80).trim();
   if (before && after) return `${before} | ${after}`;
   return before || after || "Start of file";
+}
+
+function isMissingTextAnchor(record: Pick<ChatComment | Proposal, "anchorType" | "selectedQuote">, markdown: string) {
+  const quote = record.selectedQuote?.trim();
+  if (record.anchorType !== "text-range" || !quote) return false;
+  return !normalizeWhitespace(markdown).includes(normalizeWhitespace(quote));
+}
+
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function getCommentAnchorLabel(comment: ChatComment) {
