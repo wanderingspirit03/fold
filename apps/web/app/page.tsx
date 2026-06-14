@@ -23,6 +23,7 @@ interface RecentRoom {
   archivedAt?: string;
   pendingCount?: number;
   unresolvedCount?: number;
+  requestCount?: number;
 }
 
 type WorkspaceView = "recent" | "shared" | "agents" | "review" | "archive";
@@ -342,10 +343,18 @@ function projectDisplayName(room: RecentRoom) {
 function recentProjectDetail(room: RecentRoom) {
   const date = new Date(room.visitedAt);
   const source = roomSourceLabel(inferRoomSource(room));
-  const reviewCount = (room.pendingCount || 0) + (room.unresolvedCount || 0);
-  const reviewText = reviewCount > 0 ? ` · ${reviewCount} review` : "";
+  const reviewText = roomReviewSummary(room);
   if (Number.isNaN(date.getTime())) return `${source}${reviewText}`;
   return `${source} · ${date.toLocaleDateString([], { month: "short", day: "numeric" })}${reviewText}`;
+}
+
+function roomReviewSummary(room: RecentRoom) {
+  const parts = [
+    room.requestCount ? `${room.requestCount} ${room.requestCount === 1 ? "request" : "requests"}` : "",
+    room.pendingCount ? `${room.pendingCount} ${room.pendingCount === 1 ? "suggestion" : "suggestions"}` : "",
+    room.unresolvedCount ? `${room.unresolvedCount} ${room.unresolvedCount === 1 ? "comment" : "comments"}` : "",
+  ].filter(Boolean);
+  return parts.length > 0 ? ` · ${parts.join(" · ")}` : "";
 }
 
 function workspaceViewItems(rooms: RecentRoom[]) {
@@ -411,6 +420,7 @@ function normalizeRecentRooms(value: unknown): RecentRoom[] {
       archivedAt: typeof room.archivedAt === "string" ? room.archivedAt : undefined,
       pendingCount: typeof room.pendingCount === "number" ? room.pendingCount : undefined,
       unresolvedCount: typeof room.unresolvedCount === "number" ? room.unresolvedCount : undefined,
+      requestCount: typeof room.requestCount === "number" ? room.requestCount : undefined,
     }));
 }
 
@@ -432,7 +442,7 @@ function roomSourceLabel(source: NonNullable<RecentRoom["source"]>) {
 }
 
 function roomNeedsReview(room: RecentRoom) {
-  return (room.pendingCount || 0) + (room.unresolvedCount || 0) > 0;
+  return (room.pendingCount || 0) + (room.unresolvedCount || 0) + (room.requestCount || 0) > 0;
 }
 
 function emptyViewLabel(view: WorkspaceView, activeCount: number) {

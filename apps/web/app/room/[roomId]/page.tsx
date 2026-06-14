@@ -49,6 +49,18 @@ interface ProjectSnapshot {
   updatedAt: string;
 }
 
+interface LocalRecentRoom {
+  roomId: string;
+  key: string;
+  name: string;
+  visitedAt: string;
+  source?: "created" | "joined" | "agent";
+  archivedAt?: string;
+  pendingCount?: number;
+  unresolvedCount?: number;
+  requestCount?: number;
+}
+
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
@@ -1230,6 +1242,17 @@ export default function RoomPage() {
   const selectedFileConflict = fileConflicts[selectedFilePath] || null;
   const selectedFilePresences = activePresencesForFile(presenceByClientId, selectedFilePath, presenceClock);
   const selectedFileParticipants = uniquePersonas(selectedFileProposals, selectedFileComments, selectedFileVersions, selectedFilePresences, localMyPersona);
+  useEffect(() => {
+    if (!roomId || !roomSecret || !isKeyConfigured) return;
+    persistLocalRecentRoom({
+      roomId,
+      key: roomSecret,
+      name: projectName,
+      pendingCount: proposals.filter((proposal) => proposal.status === "pending").length,
+      unresolvedCount: comments.filter((comment) => !comment.resolvedAt && comment.type !== "request").length,
+      requestCount: comments.filter((comment) => !comment.resolvedAt && comment.type === "request").length,
+    });
+  }, [comments, isKeyConfigured, projectName, proposals, roomId, roomSecret]);
   const activeSelectedProposal = selectedProposal
     ? proposals.find((proposal) => proposal.id === selectedProposal.id) || selectedProposal
     : null;
@@ -1484,6 +1507,62 @@ function getOrCreateParticipantFingerprint(fallback: string) {
   } catch {
     return fallback;
   }
+}
+
+function persistLocalRecentRoom(next: {
+  roomId: string;
+  key: string;
+  name: string;
+  pendingCount: number;
+  unresolvedCount: number;
+  requestCount: number;
+}) {
+  try {
+    const storageKey = "fold:recent-rooms";
+    const existing = normalizeLocalRecentRooms(JSON.parse(window.localStorage.getItem(storageKey) || "[]"));
+    const current = existing.find((room) => room.roomId === next.roomId);
+    const nextRoom: LocalRecentRoom = {
+      ...current,
+      roomId: next.roomId,
+      key: next.key,
+      name: next.name || current?.name || "Fold project",
+      source: current?.source || "joined",
+      visitedAt: new Date().toISOString(),
+      archivedAt: current?.archivedAt,
+      pendingCount: next.pendingCount,
+      unresolvedCount: next.unresolvedCount,
+      requestCount: next.requestCount,
+    };
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify([
+        nextRoom,
+        ...existing.filter((room) => room.roomId !== next.roomId),
+      ].slice(0, 10)),
+    );
+  } catch {
+    // The recent-room index is local convenience state; room access should not depend on it.
+  }
+}
+
+function normalizeLocalRecentRooms(value: unknown): LocalRecentRoom[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((room): room is LocalRecentRoom => (
+    Boolean(room) &&
+    typeof room === "object" &&
+    typeof (room as LocalRecentRoom).roomId === "string" &&
+    typeof (room as LocalRecentRoom).key === "string"
+  )).map((room) => ({
+    roomId: room.roomId,
+    key: room.key,
+    name: typeof room.name === "string" ? room.name : "Fold project",
+    visitedAt: typeof room.visitedAt === "string" ? room.visitedAt : new Date(0).toISOString(),
+    source: room.source === "created" || room.source === "joined" || room.source === "agent" ? room.source : undefined,
+    archivedAt: typeof room.archivedAt === "string" ? room.archivedAt : undefined,
+    pendingCount: typeof room.pendingCount === "number" ? room.pendingCount : undefined,
+    unresolvedCount: typeof room.unresolvedCount === "number" ? room.unresolvedCount : undefined,
+    requestCount: typeof room.requestCount === "number" ? room.requestCount : undefined,
+  }));
 }
 
 function upsertPresence(

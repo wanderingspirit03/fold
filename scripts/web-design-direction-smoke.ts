@@ -190,6 +190,7 @@ async function assertLauncherWorkspace(page: Page) {
   await page.waitForFunction(() => document.body.innerText.includes("Agent-created handoff"), null, { timeout: 8_000 });
   await page.getByRole("button", { name: /^Review\s+1$/i }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Needs review sample"), null, { timeout: 8_000 });
+  await page.waitForFunction(() => document.body.innerText.includes("1 request"), null, { timeout: 8_000 });
   await page.getByRole("button", { name: /^Archive\s+1$/i }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Archived launch notes"), null, { timeout: 8_000 });
   await page.getByRole("button", { name: /restore archived launch notes/i }).click();
@@ -352,6 +353,7 @@ function seededRecentRooms() {
       source: "joined",
       pendingCount: 1,
       unresolvedCount: 1,
+      requestCount: 1,
       visitedAt: "2026-06-12T08:00:00.000Z",
     },
     {
