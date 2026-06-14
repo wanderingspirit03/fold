@@ -2,39 +2,11 @@
 
 ## Decision
 
-Move the web product toward an Obsidian-inspired collaborative project workspace for encrypted Markdown files.
+Move the web product toward a Fold-native collaborative project workspace for encrypted Markdown files.
 
 The product should no longer feel like a single-document SaaS review room with a heavy side panel. It should feel like a calm Markdown workspace for a full project: users can browse many `.md` files, open one file, edit or read it, and collaborate directly inside the document with other humans and coding agents.
 
-Borrow from Obsidian's file-first product feel, not its personal-knowledge framing, brand, or exact UI. The durable product identity is Fold: E2EE project rooms, human-and-agent collaboration, agent-friendly Markdown workflows, reviewable suggestions, and portable exports.
-
-## Reference Pack
-
-High-quality reference screenshots were captured at:
-
-```text
-/tmp/agent-md-obsidian-reference
-```
-
-Most useful files:
-
-- `obsidian-home-viewport-1600x1100@2x.png`
-- `obsidian-home-full-1600x1100@2x.png`
-- `obsidian-home-mobile-390x844@2x.png`
-- `obsidian-help-file-explorer-1600x1100@2x.png`
-- `obsidian-help-views-editing-mode-1600x1100@2x.png`
-- `obsidian-help-properties-1600x1100@2x.png`
-- `obsidian-help-links-1600x1100@2x.png`
-- `agent-md-current-room-compare-1600x1100@2x.png`
-- `agent-md-current-home-compare-1600x1100@2x.png`
-
-Public references:
-
-- Obsidian home: https://obsidian.md/
-- File explorer: https://help.obsidian.md/Plugins/File+explorer
-- Views and editing mode: https://help.obsidian.md/edit-and-read
-- Properties: https://help.obsidian.md/properties
-- Internal links: https://help.obsidian.md/links
+The durable product identity is Fold: E2EE project rooms, human-and-agent collaboration, agent-friendly Markdown workflows, reviewable suggestions, and portable exports.
 
 ## Product Shape
 
@@ -86,7 +58,7 @@ The center surface should feel like opening and shaping a real `.md` file.
 
 ### 2. Project Navigation Comes First
 
-Use an Obsidian-like file explorer as the main navigation pattern.
+Use a file tree as the main navigation pattern.
 
 Expected V1 surfaces:
 
@@ -152,7 +124,7 @@ Prefer:
 
 ### Theme Direction
 
-Start with dark-first or dark-capable styling, borrowing Obsidian's quiet layered chrome:
+Start with dark-first or dark-capable styling using Fold's own quiet layered chrome:
 
 - near-black app background
 - slightly lighter sidebar panels
@@ -306,7 +278,7 @@ V1 UI refactor target:
 4. Remove the permanent margin thread rail as the default layout.
 5. Add selected-text inline comment composer.
 6. Move proposals/activity into a compact drawer or popover.
-7. Add Obsidian-like dark layered tokens with midnight blue accents.
+7. Add Fold-native dark layered tokens with midnight blue accents.
 8. Treat frontmatter as properties metadata.
 9. Verify with desktop and mobile screenshots against the reference pack.
 
@@ -329,5 +301,5 @@ Suggested component names:
 1. Should V1 show a real folder tree from encrypted project metadata, or a simpler recent-file list?
 2. Should the first selected file be last-opened, `PLAN.md`, `README.md`, or a project overview?
 3. Should the default app theme be dark-first, light-first, or remember the user's system setting?
-4. Should comments feel closer to Google Docs comment bubbles or Obsidian-style inline annotations?
+4. Should comments appear as margin bubbles, inline annotations, or a hybrid of both?
 5. Should agents make one-file suggestions first, or should project-wide multi-file suggestions be visible in V1?

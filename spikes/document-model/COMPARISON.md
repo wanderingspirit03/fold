@@ -479,9 +479,9 @@ Block math:
 
 Milkdown semantics: 2 checked / 2 unchecked task items; 4 cols x 5 rows (20 total cells)
 
-Milkdown candidate normalization: frontmatterLoss, taskListMarkerStyle, tableFormatting, other; 29 lines changed; 9 lines uncategorized
+Milkdown candidate normalization: frontmatterLoss, taskListMarkerStyle, tableFormatting, other; 28 lines changed; 8 lines uncategorized
 
-Milkdown with Fold properties normalization: taskListMarkerStyle, tableFormatting, blankLineSpacing; 24 lines changed
+Milkdown with Fold properties normalization: taskListMarkerStyle, tableFormatting, blankLineSpacing; 23 lines changed
 
 ### Original Markdown
 
@@ -562,7 +562,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold)
 and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)
@@ -573,7 +573,6 @@ and keep image syntax portable:
 2. Confirm that pending suggestions are visible without a permanent rail.
 3. Confirm that bright mode preserves annotation contrast.
 4. Confirm that editor candidate export does not rewrite this file.
-
 
 ````
 
@@ -656,7 +655,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold)
 and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)
@@ -667,7 +666,6 @@ and keep image syntax portable:
 2. Confirm that pending suggestions are visible without a permanent rail.
 3. Confirm that bright mode preserves annotation contrast.
 4. Confirm that editor candidate export does not rewrite this file.
-
 
 ````
 
@@ -735,7 +733,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms) and keep image syntax portable:
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold) and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)
 
@@ -830,7 +828,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold)
 and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)
@@ -926,7 +924,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold)
 and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)

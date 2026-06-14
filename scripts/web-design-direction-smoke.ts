@@ -1,20 +1,10 @@
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 
 const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
-const REFERENCE_DIR = "/tmp/agent-md-obsidian-reference";
-const REQUIRED_REFERENCE_FILES = [
-  "obsidian-home-viewport-1600x1100@2x.png",
-  "obsidian-home-mobile-390x844@2x.png",
-  "obsidian-help-file-explorer-1600x1100@2x.png",
-  "obsidian-help-views-editing-mode-1600x1100@2x.png",
-  "obsidian-help-properties-1600x1100@2x.png",
-  "obsidian-help-links-1600x1100@2x.png",
-] as const;
-
 async function main() {
   const baseUrl = await resolveBaseUrl();
   await assertSyncServerReady(DEFAULT_SYNC_URL);
@@ -64,13 +54,10 @@ async function main() {
     const mobileDrawerScreenshotPath = join(screenshotDir, "mobile-project-drawer.png");
     await mobile.screenshot({ path: mobileDrawerScreenshotPath, caret: "initial" });
     await assertNoHorizontalOverflow(mobile, "mobile project drawer");
-    const referenceFiles = await assertReferencePack();
     const audit = {
       schema: "fold.design-audit.v1",
       generatedAt: new Date().toISOString(),
       designDocument: "DESIGN.md",
-      referenceDir: REFERENCE_DIR,
-      referenceFiles,
       currentScreenshots: {
         launcher: launcherScreenshotPath,
         desktopProjectWorkspace: desktopScreenshotPath,
@@ -129,35 +116,10 @@ function safeRoomLogFields(roomUrl: string) {
   };
 }
 
-async function assertReferencePack() {
-  const files = await Promise.all(REQUIRED_REFERENCE_FILES.map(async (file) => {
-    const path = join(REFERENCE_DIR, file);
-    try {
-      const info = await stat(path);
-      return { file, path, bytes: info.size, present: info.isFile() && info.size > 0 };
-    } catch {
-      return { file, path, bytes: 0, present: false };
-    }
-  }));
-
-  const missing = files.filter((file) => !file.present);
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing Obsidian reference screenshots in ${REFERENCE_DIR}:\n`
-      + missing.map((file) => `- ${file.file}`).join("\n")
-      + `\nRefresh them with: npm run web:reference:capture`,
-    );
-  }
-
-  return files;
-}
-
 function renderAuditMarkdown(audit: {
   schema: string;
   generatedAt: string;
   designDocument: string;
-  referenceDir: string;
-  referenceFiles: Array<{ file: string; path: string; bytes: number; present: boolean }>;
   currentScreenshots: Record<string, string>;
   checks: string[];
 }) {
@@ -167,15 +129,10 @@ function renderAuditMarkdown(audit: {
     `Generated: ${audit.generatedAt}`,
     "",
     `Design document: \`${audit.designDocument}\``,
-    `Reference pack: \`${audit.referenceDir}\``,
     "",
     "## Current Screenshots",
     "",
     ...Object.entries(audit.currentScreenshots).map(([label, path]) => `- ${label}: \`${path}\``),
-    "",
-    "## Obsidian References",
-    "",
-    ...audit.referenceFiles.map((file) => `- ${file.present ? "present" : "missing"} \`${file.file}\` (${file.bytes} bytes)`),
     "",
     "## Verified Gates",
     "",

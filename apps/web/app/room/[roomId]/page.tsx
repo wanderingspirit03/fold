@@ -2172,7 +2172,7 @@ function createInitialVirtualFiles(): Record<string, string> {
     "docs/DESIGN.md": [
       "# Design Direction",
       "",
-      "Borrow Obsidian's calm file-first feel without cloning its brand.",
+      "Keep the room calm, file-first, and recognizably Fold.",
       "",
       "## Tokens",
       "",

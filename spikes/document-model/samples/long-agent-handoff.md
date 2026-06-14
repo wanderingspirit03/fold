@@ -74,7 +74,7 @@ Inline scoring can stay simple: $score = preserved / detected$.
 \text{fidelity} = \frac{\text{preserved Markdown features}}{\text{detected Markdown features}}
 ```
 
-Reference the [Fold repository](https://github.com/wanderingspirit03/agent-md-rooms)
+Reference the [Fold repository](https://github.com/wanderingspirit03/fold)
 and keep image syntax portable:
 
 ![Review drawer sketch](./assets/review-drawer.png)
@@ -85,4 +85,3 @@ and keep image syntax portable:
 2. Confirm that pending suggestions are visible without a permanent rail.
 3. Confirm that bright mode preserves annotation contrast.
 4. Confirm that editor candidate export does not rewrite this file.
-

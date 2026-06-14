@@ -197,7 +197,7 @@ fold patch <file.md> --room <alias-or-url-or-token> [--path <room-path>] [--summ
 
 ## Security Model
 
-Fold uses an Excalidraw-style room-link model:
+Fold uses a private room-link model:
 
 ```text
 /room/:roomId#key=...

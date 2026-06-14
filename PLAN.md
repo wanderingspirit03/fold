@@ -2,7 +2,7 @@
 
 ## Summary
 
-Build an OSS, self-hostable collaboration platform for `.md` files created by humans and agents. The first product should feel like an Excalidraw-style private room plus a Notion-leaning Markdown workspace: instant encrypted sharing links, polished reading and editing, distinct human and agent personas, reviewable agent changes, inline comments, agent-friendly CLI workflows, and durable Markdown export.
+Build an OSS, self-hostable collaboration platform for `.md` files created by humans and agents. The first product should feel like a private encrypted Markdown project room: instant share links, polished reading and editing, distinct human and agent personas, reviewable agent changes, inline comments, agent-friendly CLI workflows, and durable Markdown export.
 
 The core collaboration unit is a Markdown project room: one or more Markdown files addressed by project-relative paths. A lightweight personal workspace helps each user find their rooms, agents, pending reviews, and recent Markdown artifacts. Heavy team workspaces, full agent-run archives, billing, and enterprise account systems are intentionally deferred.
 
@@ -80,7 +80,7 @@ Spike result: a minimal custom encrypted Yjs append-log provider in `spikes/e2ee
 - Losing the room key means losing access unless the user has exported or backed up the document.
 - Link revocation is not available in the simple room-link model. Revocation would require rotating the room key and re-encrypting room state.
 
-This is deliberately closer to Excalidraw-style trust than classic SaaS document storage.
+This is deliberately a private-link trust model rather than classic account-gated document storage.
 
 The first technical spike proved the basic Yjs encryption shape for a single Markdown text document: all document semantics remain client-side, and the sync server persists opaque encrypted Yjs payloads without inspecting Markdown, comments, or patch content. It also validates WebSocket backlog replay for joining clients, AES-GCM authentication of client-known metadata, client-side sequence validation for delivered records, and basic file-backed restart/replay. That spike alone did not prove production-grade durability, compaction, awareness encryption, editor integration, comments, suggestions, or named versions; later alpha implementation covers some collaboration surfaces, while the production hardening items remain open.
 

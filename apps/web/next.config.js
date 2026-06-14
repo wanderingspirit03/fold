@@ -18,7 +18,7 @@ const contentSecurityPolicy = [
   `script-src 'self' 'sha256-${themeInitScriptHash}'`,
   "style-src 'self' 'unsafe-inline'",
   "style-src-attr 'unsafe-inline'",
-  "img-src 'self' data: blob: https://cdn.shadcnstudio.com",
+  "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* http://localhost:* ws://localhost:* https: wss:",
   "worker-src 'self' blob:",

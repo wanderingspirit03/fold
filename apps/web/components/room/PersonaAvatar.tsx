@@ -2,7 +2,7 @@
 
 import type { RoomPersona } from "../../lib/personas";
 import { cn } from "../../lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 interface PersonaAvatarProps {
   persona?: RoomPersona | null;
@@ -10,30 +10,26 @@ interface PersonaAvatarProps {
   className?: string;
 }
 
-const STUDIO_AVATARS = [
-  "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-3.png",
-  "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-6.png",
-  "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-5.png",
-  "https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-16.png",
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg, #4768ff 0%, #8dd7c6 100%)",
+  "linear-gradient(135deg, #0f766e 0%, #f2c572 100%)",
+  "linear-gradient(135deg, #7c3aed 0%, #f472b6 100%)",
+  "linear-gradient(135deg, #1d4ed8 0%, #93c5fd 100%)",
 ] as const;
 
 export function PersonaAvatar({ persona, compact = false, className }: PersonaAvatarProps) {
   const seed = persona ? hashString(`${persona.id}:${persona.kind}:${persona.name}`) : 0;
   const sizeClass = compact ? "h-5 w-5" : "h-7 w-7";
-  const avatarSrc = STUDIO_AVATARS[seed % STUDIO_AVATARS.length];
+  const gradient = AVATAR_GRADIENTS[seed % AVATAR_GRADIENTS.length];
   const fallback = personaInitials(persona);
 
   return (
     <Avatar
-      className={cn(
-        "bg-transparent shadow-none",
-        sizeClass,
-        className,
-      )}
+      className={cn("shadow-none", sizeClass, className)}
       aria-hidden="true"
+      style={{ background: gradient }}
     >
-      <AvatarImage src={avatarSrc} alt="" className="scale-[1.72] rounded-full object-cover" />
-      <AvatarFallback className="text-[10px] uppercase text-ink-muted">{fallback}</AvatarFallback>
+      <AvatarFallback className="bg-transparent text-[10px] font-semibold uppercase text-white">{fallback}</AvatarFallback>
     </Avatar>
   );
 }

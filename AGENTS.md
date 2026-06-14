@@ -2,9 +2,9 @@
 
 ## Project Scope
 
-Fold is an OSS, self-hostable collaboration platform for Markdown files created and edited by humans and coding agents. The target product is a collaborative encrypted project workspace with Obsidian-like file navigation, Notion-leaning document collaboration, Excalidraw-style sharing, strict E2EE constraints, real-time editing, inline comments, reviewable suggestions, and a machine-friendly CLI.
+Fold is an OSS, self-hostable collaboration platform for Markdown files created and edited by humans and coding agents. The target product is a collaborative encrypted project workspace with file-first navigation, calm document collaboration, private share links, strict E2EE constraints, real-time editing, inline comments, reviewable suggestions, and a machine-friendly CLI.
 
-The product language should emphasize projects, files, humans, and agents. Borrow Obsidian's calm file-first feel, but do not frame the product as a personal vault or personal knowledge base.
+The product language should emphasize projects, files, humans, and agents. Describe Fold in its own terms; avoid positioning it as a clone or blend of other products.
 
 Start with `PLAN.md` before making product or architecture changes.
 

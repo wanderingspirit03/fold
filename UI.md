@@ -2,7 +2,7 @@
 
 ## Decision
 
-Use a Markdown-canonical web stack that can feel close to Notion without making editor-native block JSON the durable source of truth.
+Use a Markdown-canonical web stack that feels calm, fast, and document-native without making editor-owned block JSON the durable source of truth.
 
 Recommended stack:
 
@@ -20,9 +20,9 @@ The product goal is not just a nice rich editor. The product goal is a private r
 
 That means raw Markdown in `Y.Text("markdown")` remains the durable document model for v1. Editor-native structures may help the UI, but they should not become the canonical room state unless they prove lossless Markdown fidelity.
 
-Block-doc-first tools can feel closer to Notion out of the box, but they create exactly the wrong risk for this product: lossy Markdown import/export. Milkdown is the better first candidate because it is Markdown-native, ProseMirror-based, and closer to the existing Markdown-canonical plan. Crepe may become a UX candidate later, but it should not be the first fidelity proof.
+Block-doc-first tools can feel polished out of the box, but they create exactly the wrong risk for this product: lossy Markdown import/export. Milkdown is the better first candidate because it is Markdown-native, ProseMirror-based, and closer to the existing Markdown-canonical plan. Crepe may become a UX candidate later, but it should not be the first fidelity proof.
 
-shadcn/ui and Radix should provide the quiet polished application shell: dialogs, menus, command palette, tabs, side panels, tooltips, dropdowns, and accessible primitives. The Notion-like feel should come from composition, spacing, keyboard flow, and review ergonomics rather than from replacing the document model.
+The UI primitive layer should provide a quiet polished application shell: dialogs, menus, command palette, tabs, side panels, tooltips, dropdowns, and accessible primitives. Fold's feel should come from its own composition, spacing, keyboard flow, and review ergonomics rather than from replacing the document model.
 
 ## First Web Room Shape
 
