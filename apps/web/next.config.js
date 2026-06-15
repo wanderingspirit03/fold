@@ -44,6 +44,11 @@ const securityHeaders = [
   },
 ];
 
+const headersForEnvironment =
+  process.env.NODE_ENV === "development"
+    ? securityHeaders.filter((header) => header.key !== "Content-Security-Policy")
+    : securityHeaders;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
@@ -52,7 +57,7 @@ const nextConfig = {
     return [
       {
         source: "/:path*",
-        headers: securityHeaders,
+        headers: headersForEnvironment,
       },
     ];
   },

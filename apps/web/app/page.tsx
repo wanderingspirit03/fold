@@ -94,9 +94,15 @@ export default function HomePage() {
       const roomSecret = toBase64Url(secretBytes);
       const roomBytes = window.crypto.getRandomValues(new Uint8Array(16));
       const roomId = toBase64Url(roomBytes);
+      const currentParams = new URLSearchParams(window.location.search);
+      const roomParams = new URLSearchParams();
+      if (currentParams.get("template") === "demo") roomParams.set("template", "demo");
+      const onboarding = currentParams.get("onboarding");
+      if (onboarding) roomParams.set("onboarding", onboarding);
+      const roomQuery = roomParams.toString() ? `?${roomParams.toString()}` : "";
 
       saveRoomToRecent(roomId, "Untitled project", "created");
-      router.push(`/room/${roomId}#key=${roomSecret}`);
+      router.push(`/room/${roomId}${roomQuery}#key=${roomSecret}`);
     } catch (err) {
       window.alert(`Could not create project: ${String(err)}`);
     } finally {

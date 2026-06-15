@@ -6,6 +6,8 @@ Fold is an early working OSS alpha for private Markdown project rooms. Publish a
 
 Fold is not production-hardened yet, but it is no longer just a spike: this repo includes a functional TypeScript CLI, a file-backed encrypted append-log server, and an early web room app.
 
+![Fold web room showing a Markdown project, file sidebar, E2EE status, and agent review document.](docs/assets/fold-project-room.png)
+
 Start with [PLAN.md](PLAN.md) for the product and architecture direction.
 
 ## Fastest Hosted Path

@@ -18,7 +18,7 @@ async function main() {
   try {
     const desktop = await browser.newPage({ viewport: { width: 1440, height: 960 } });
     await preparePage(desktop, "desktop", logs);
-    await desktop.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
+    await desktop.goto(withDemoTemplate(baseUrl), { waitUntil: "networkidle", timeout: 20_000 });
     await assertLauncherWorkspace(desktop);
     const launcherScreenshotPath = join(screenshotDir, "desktop-local-workspace.png");
     await desktop.screenshot({ path: launcherScreenshotPath, fullPage: true, caret: "initial" });
@@ -26,7 +26,7 @@ async function main() {
     await desktop.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
     await desktop.getByRole("button", { name: /^agent-handoff-review\.md/i }).click();
     await desktop.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
-    await assertMermaidRendered(desktop, "desktop");
+    await assertMermaidPlaceholder(desktop, "desktop");
     await assertDesktopDesign(desktop);
     const desktopScreenshotPath = join(screenshotDir, "desktop-project-workspace.png");
     await desktop.screenshot({ path: desktopScreenshotPath, fullPage: true, caret: "initial" });
@@ -39,7 +39,7 @@ async function main() {
     await mobile.getByRole("textbox", { name: /search project files/i }).fill("reports/agent-handoff-review.md");
     await mobile.getByRole("button", { name: /^agent-handoff-review\.md/i }).click();
     await mobile.waitForFunction(() => document.body.innerText.includes("Agent Handoff Review"), null, { timeout: 8_000 });
-    await assertMermaidRendered(mobile, "mobile");
+    await assertMermaidPlaceholder(mobile, "mobile");
     await assertMobileDesign(mobile);
     const mobileScreenshotPath = join(screenshotDir, "mobile-document-first.png");
     await mobile.screenshot({ path: mobileScreenshotPath, fullPage: true, caret: "initial" });
@@ -70,7 +70,7 @@ async function main() {
         "Desktop review drawer is closed by default.",
         "Mobile starts document-first with the file tree in a drawer.",
         "Mobile project drawer search is focused and opens nested Markdown files.",
-        "Mermaid renders as a diagram on desktop and mobile.",
+        "Mermaid fences render as disabled shared-room placeholders on desktop and mobile.",
         "Project title is derived from encrypted project content.",
         "No horizontal page overflow in captured desktop or mobile surfaces.",
       ],
@@ -114,6 +114,12 @@ function safeRoomLogFields(roomUrl: string) {
     roomId: parsed.pathname.split('/').filter(Boolean).at(-1) ?? '',
     serverRoomUrl: `${parsed.origin}${parsed.pathname}`,
   };
+}
+
+function withDemoTemplate(baseUrl: string) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("template", "demo");
+  return url.toString();
 }
 
 function renderAuditMarkdown(audit: {
@@ -236,22 +242,25 @@ async function assertMobileDesign(page: Page) {
   if (metrics.scrollWidth > metrics.viewportWidth) throw new Error("Mobile design smoke created horizontal overflow.");
 }
 
-async function assertMermaidRendered(page: Page, label: string) {
-  await page.waitForSelector('[data-mermaid-diagram="rendered"] svg', { timeout: 12_000 });
+async function assertMermaidPlaceholder(page: Page, label: string) {
+  await page.waitForSelector('[data-mermaid-diagram]', { timeout: 12_000 });
   const metrics = await page.evaluate(() => {
-    const diagram = document.querySelector('[data-mermaid-diagram="rendered"]');
-    const svg = diagram?.querySelector("svg");
-    const rect = svg?.getBoundingClientRect();
+    const diagram = document.querySelector('[data-mermaid-diagram]');
+    const rect = diagram?.getBoundingClientRect();
     return {
+      state: diagram?.getAttribute("data-mermaid-diagram") || "",
       label: diagram?.querySelector("figcaption")?.textContent || "",
       width: rect?.width || 0,
       height: rect?.height || 0,
+      text: diagram?.textContent || "",
     };
   });
 
-  if (metrics.label.includes("Source")) throw new Error(`${label} Mermaid block is still shown as source instead of a diagram.`);
+  if (metrics.state !== "placeholder") throw new Error(`${label} Mermaid block should render as a placeholder, saw ${metrics.state}.`);
+  if (!/preview is disabled/i.test(metrics.text)) throw new Error(`${label} Mermaid placeholder did not explain that preview is disabled.`);
+  if (!metrics.label.includes("Mermaid")) throw new Error(`${label} Mermaid placeholder is missing its caption.`);
   if (metrics.width < 180 || metrics.height < 32) {
-    throw new Error(`${label} Mermaid diagram rendered too small: ${metrics.width}x${metrics.height}.`);
+    throw new Error(`${label} Mermaid placeholder rendered too small: ${metrics.width}x${metrics.height}.`);
   }
 }
 
@@ -284,6 +293,7 @@ async function preparePage(page: Page, label: string, logs: string[]) {
   page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
   await page.addInitScript((rooms) => {
     localStorage.setItem("fold:theme", "dark");
+    localStorage.setItem("fold:onboarding:web-room:v1", JSON.stringify({ version: 1, completedAt: "smoke" }));
     localStorage.setItem("fold:recent-rooms", JSON.stringify(rooms));
   }, seededRecentRooms());
 }

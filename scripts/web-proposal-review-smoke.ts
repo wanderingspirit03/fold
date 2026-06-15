@@ -328,7 +328,10 @@ async function preparePage(page: Page, label: string, logs: string[]) {
     logs.push(`${label} console:${message.type()}: ${message.text()}`);
   });
   page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
-  await page.addInitScript(() => localStorage.setItem("fold:theme", "dark"));
+  await page.addInitScript(() => {
+    localStorage.setItem("fold:theme", "dark");
+    localStorage.setItem("fold:onboarding:web-room:v1", JSON.stringify({ version: 1, completedAt: "smoke" }));
+  });
 }
 
 async function resolveBaseUrl() {

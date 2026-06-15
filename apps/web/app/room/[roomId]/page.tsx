@@ -33,11 +33,13 @@ const COMMENT_EVENT_SENDER_ID = "web-client:comment-event";
 const CLI_COMMENT_EVENT_SENDER_ID = "fold-cli:comment-event";
 const PRESENCE_SENDER_ID = "web-client:presence";
 const FILE_VERSION_SENDER_ID = "web-client:version";
+const ROOM_PROFILE_SENDER_ID = "web-client:room-profile";
 const LIVE_FILE_PATH = "reports/launch-review.md";
-const DEFAULT_PROJECT_FILE_PATH = "docs/PLAN.md";
+const DEFAULT_PROJECT_FILE_PATH = "README.md";
 const PRESENCE_TTL_MS = 75_000;
 const PRESENCE_ACTIVITY_IDLE_DELAY_MS = 4_000;
 type PresenceActivity = NonNullable<CollaborationPresence["activity"]>;
+type InitialProjectTemplate = "blank" | "demo";
 
 interface ProjectFileSnapshot {
   type: "project_file_snapshot";
@@ -53,6 +55,14 @@ interface ProjectSnapshot {
   primaryPath: string;
   files: Array<{ path: string; markdown: string }>;
   updatedAt: string;
+}
+
+interface RoomProfileRecord {
+  schema: "fold.room-profile.v1";
+  name: string;
+  updatedAt: string;
+  authorPersonaId?: string;
+  persona?: RoomPersona;
 }
 
 interface LocalRecentRoom {
@@ -78,10 +88,11 @@ export default function RoomPage() {
 
   const [markdown, setMarkdown] = useState("");
   const [selectedFilePath, setSelectedFilePath] = useState(DEFAULT_PROJECT_FILE_PATH);
-  const [virtualFiles, setVirtualFiles] = useState<Record<string, string>>(() => createInitialVirtualFiles());
+  const [virtualFiles, setVirtualFiles] = useState<Record<string, string>>(() => createInitialVirtualFiles(initialProjectTemplate()));
   const [projectFileUpdatedAt, setProjectFileUpdatedAt] = useState<Record<string, string>>({});
   const [hasRemoteProjectState, setHasRemoteProjectState] = useState(false);
   const [projectPrimaryPath, setProjectPrimaryPath] = useState("");
+  const [roomProfile, setRoomProfile] = useState<RoomProfileRecord | null>(null);
   const [editMode, setEditMode] = useState<"read" | "edit">("read");
   const [hasLoadedPreferredFile, setHasLoadedPreferredFile] = useState(false);
   const [pendingPreferredFilePath, setPendingPreferredFilePath] = useState("");
@@ -249,6 +260,7 @@ export default function RoomPage() {
         projectFileAppliedSeqRef.current = {};
         setHasRemoteProjectState(false);
         setProjectPrimaryPath("");
+        setRoomProfile(null);
         hasRemoteProjectStateRef.current = false;
         projectPrimaryPathRef.current = "";
         bootstrappedInitialProjectRef.current = false;
@@ -438,6 +450,14 @@ export default function RoomPage() {
       const parsed = await decryptJson<FileVersion>(payload, cryptKey, rec);
       if (isFileVersion(parsed)) {
         setFileVersions((prev) => upsertFileVersion(prev, parsed));
+      }
+      return;
+    }
+
+    if (rec.senderId.startsWith(ROOM_PROFILE_SENDER_ID)) {
+      const parsed = await decryptJson<RoomProfileRecord>(payload, cryptKey, rec);
+      if (isRoomProfileRecord(parsed)) {
+        setRoomProfile((current) => isNewerRoomProfile(current, parsed) ? parsed : current);
       }
       return;
     }
@@ -664,9 +684,10 @@ export default function RoomPage() {
     if (replayedRecordCountRef.current > 0 || (yTextRef.current?.toString() ?? "")) return;
     bootstrappedInitialProjectRef.current = true;
 
+    const template = initialProjectTemplate();
     const snapshot = normalizeProjectSnapshot({
       schema: PROJECT_SCHEMA,
-      primaryPath: DEFAULT_PROJECT_FILE_PATH,
+      primaryPath: initialProjectPrimaryPath(template),
       files: Object.entries(virtualFilesRef.current).map(([path, markdown]) => ({ path, markdown })),
       updatedAt: new Date().toISOString(),
     });
@@ -1058,6 +1079,31 @@ export default function RoomPage() {
     };
   };
 
+  const persistRoomProfile = async (name: string) => {
+    if (!keyRef.current) return;
+    const normalizedName = normalizeProjectName(name);
+    const now = new Date().toISOString();
+    const record: RoomProfileRecord = {
+      schema: "fold.room-profile.v1",
+      name: normalizedName,
+      updatedAt: now,
+      authorPersonaId: localMyPersonaRef.current?.id,
+      persona: localMyPersonaRef.current ?? undefined,
+    };
+    setRoomProfile(record);
+    try {
+      const senderId = `${ROOM_PROFILE_SENDER_ID}:${Date.now()}`;
+      const encrypted = await encryptUpdate(encoder.encode(JSON.stringify(record)), keyRef.current, {
+        roomId,
+        senderId,
+      });
+      const response = await postEncryptedRecord(senderId, encrypted);
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
+    } catch (err) {
+      setSyncError(`Could not rename project: ${String(err)}`);
+    }
+  };
+
   const postEncryptedRecord = (senderId: string, encrypted: EncryptedPayload) => {
     return fetch(`${serverUrl.replace(/\/$/, "")}/rooms/${encodeURIComponent(roomId)}/updates`, {
       method: "POST",
@@ -1274,9 +1320,13 @@ export default function RoomPage() {
     [selectedFilePath, virtualFiles, comments, proposals, projectFileUpdatedAt, presenceByClientId, presenceClock, fileConflicts, hasRemoteProjectState, projectPrimaryPath],
   );
   const projectName = useMemo(
-    () => deriveProjectName(virtualFiles, projectPrimaryPath || DEFAULT_PROJECT_FILE_PATH),
-    [projectPrimaryPath, virtualFiles],
+    () => roomProfile?.name || deriveProjectName(virtualFiles, projectPrimaryPath || DEFAULT_PROJECT_FILE_PATH),
+    [projectPrimaryPath, roomProfile, virtualFiles],
   );
+  useEffect(() => {
+    if (!projectName || typeof document === "undefined") return;
+    document.title = `${projectName} · Fold`;
+  }, [projectName]);
   useEffect(() => {
     if (!pendingPreferredFilePath) return;
     if (projectFiles.some((file) => file.path === pendingPreferredFilePath)) {
@@ -1387,6 +1437,7 @@ export default function RoomPage() {
         agentInvite={agentInvite}
         onCreateFile={handleCreateProjectFile}
         onImportFile={handleImportProjectFile}
+        onRenameProject={persistRoomProfile}
         onFocusCommentComposer={() => setComposerFocusToken((token) => token + 1)}
         onModeChange={(nextMode) => {
           if (editMode === "edit" && nextMode !== "edit") flushProjectFileSnapshot(selectedFilePath);
@@ -1815,6 +1866,26 @@ function isProjectSnapshot(value: unknown): value is ProjectSnapshot {
   );
 }
 
+function isRoomProfileRecord(value: unknown): value is RoomProfileRecord {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<RoomProfileRecord>;
+  return (
+    candidate.schema === "fold.room-profile.v1" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.updatedAt === "string"
+  );
+}
+
+function isNewerRoomProfile(current: RoomProfileRecord | null, next: RoomProfileRecord) {
+  if (!current) return true;
+  return next.updatedAt >= current.updatedAt;
+}
+
+function normalizeProjectName(value: string) {
+  const collapsed = value.replace(/\s+/g, " ").trim();
+  return collapsed ? collapsed.slice(0, 80) : "Untitled project";
+}
+
 function createProjectFiles(
   selectedFilePath: string,
   virtualFiles: Record<string, string>,
@@ -1951,6 +2022,7 @@ function chooseInitialProjectFile(
     DEFAULT_PROJECT_FILE_PATH,
     "README.md",
     "docs/README.md",
+    "docs/PLAN.md",
     LIVE_FILE_PATH,
     files[0]?.path || "",
   ];
@@ -2081,25 +2153,27 @@ function createHumanInvite({
     appUrl: normalizedAppUrl,
     syncUrl: normalizedSyncUrl,
   });
-  const warningLines = warnings.length
-    ? ["", "Reachability warning:", ...warnings.map((warning) => `- ${warning}`)]
-    : [];
+  const isSameOriginSync = normalizedSyncUrl === normalizedAppUrl;
+  const syncLines = isSameOriginSync
+    ? []
+    : [
+        "",
+        warnings.length
+          ? "This link uses a local or custom sync server. If it does not connect, open it from the same machine or network."
+          : "This link uses a custom sync server. Fold should detect it automatically.",
+        `Sync server: ${normalizedSyncUrl}`,
+      ];
 
   return {
     url,
     warnings,
     text: [
-      `Join this Fold project room: ${projectName || "Fold project"}`,
-      ...warningLines,
+      `Join my Fold project${projectName ? `: ${projectName}` : ""}`,
       "",
-      "1. Open the encrypted project link:",
-      `   ${url}`,
+      url,
       "",
-      "2. Keep the #key=... fragment in the URL. It is the room key and is not sent to the server.",
-      "",
-      `3. Use this sync server if the app asks or if the room does not connect: ${normalizedSyncUrl}`,
-      "",
-      "4. Review Markdown, comment inline, and accept or reject suggestions from the room.",
+      "This is an encrypted room link. Keep the #key=... part in the URL; it is the room key and Fold's server does not receive it.",
+      ...syncLines,
     ].join("\n"),
   };
 }
@@ -2136,7 +2210,22 @@ function safeUrl(value: string) {
   }
 }
 
-function createInitialVirtualFiles(): Record<string, string> {
+function initialProjectTemplate(): InitialProjectTemplate {
+  if (typeof window === "undefined") return "blank";
+  return new URLSearchParams(window.location.search).get("template") === "demo" ? "demo" : "blank";
+}
+
+function initialProjectPrimaryPath(template: InitialProjectTemplate) {
+  return template === "demo" ? "docs/PLAN.md" : DEFAULT_PROJECT_FILE_PATH;
+}
+
+function createInitialVirtualFiles(template: InitialProjectTemplate): Record<string, string> {
+  if (template !== "demo") {
+    return {
+      "README.md": "# Untitled project\n\n",
+    };
+  }
+
   return {
     "docs/PLAN.md": [
       "# Project Plan",

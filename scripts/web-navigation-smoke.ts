@@ -9,6 +9,7 @@ const EDIT_MODE_COMMENT_MARKER = `Edit mode source comment ${Date.now()}.`;
 const EDIT_MODE_CURSOR_COMMENT_MARKER = `Edit mode cursor comment ${Date.now()}.`;
 const AGENT_REQUEST_MARKER = `Agent request ${Date.now()}.`;
 const PROPERTY_COMMENT_MARKER = `Property anchor comment ${Date.now()}.`;
+const PROJECT_RENAME_MARKER = `Smoke Project ${Date.now()}`;
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -23,21 +24,28 @@ async function main() {
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
     await preparePage(page, "desktop", logs);
-    await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
+    await page.goto(withDemoTemplate(baseUrl), { waitUntil: "networkidle", timeout: 20_000 });
     await page.getByRole("button", { name: /create project/i }).click();
     await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+    await page.getByRole("button", { name: /rename project/i }).click();
+    await page.getByRole("textbox", { name: /project name/i }).fill(PROJECT_RENAME_MARKER);
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: new RegExp(`rename project ${escapeRegExp(PROJECT_RENAME_MARKER)}`, "i") }).waitFor({ state: "visible", timeout: 8_000 });
     await installClipboardProbe(page);
-    await page.getByRole("button", { name: /invite human/i }).first().click();
+    await page.getByRole("button", { name: /copy invite link/i }).first().click();
     await page.waitForFunction(() => Boolean((window as typeof window & { __foldClipboardText?: string }).__foldClipboardText), null, { timeout: 8_000 });
     const humanInviteText = await page.evaluate(() => (window as typeof window & { __foldClipboardText?: string }).__foldClipboardText || "");
-    if (!humanInviteText.includes("Join this Fold project room")) {
+    if (!humanInviteText.includes("Join my Fold project")) {
       throw new Error("Human invite copy did not include project join instructions.");
     }
-    if (!humanInviteText.includes("#key=") || !humanInviteText.includes("Keep the #key=... fragment")) {
+    if (!humanInviteText.includes(PROJECT_RENAME_MARKER)) {
+      throw new Error("Human invite copy did not include the renamed project title.");
+    }
+    if (!humanInviteText.includes("#key=") || !humanInviteText.includes("Keep the #key=... part")) {
       throw new Error("Human invite copy did not explain the encrypted room key fragment.");
     }
-    if (!humanInviteText.includes("Use this sync server") || !humanInviteText.includes("Reachability warning")) {
-      throw new Error("Human invite copy did not include sync-server and reachability guidance.");
+    if (!humanInviteText.includes("Sync server:") || !humanInviteText.includes("local or custom sync server")) {
+      throw new Error("Human invite copy did not include concise sync-server guidance.");
     }
 
     await page.getByRole("button", { name: "Edit", exact: true }).click();
@@ -250,6 +258,12 @@ function safeRoomLogFields(roomUrl: string) {
   };
 }
 
+function withDemoTemplate(baseUrl: string) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("template", "demo");
+  return url.toString();
+}
+
 async function preparePage(page: Page, label: string, logs: string[]) {
   page.on("console", (message) => {
     if (message.type() === "info" && message.text().includes("React DevTools")) return;
@@ -259,6 +273,7 @@ async function preparePage(page: Page, label: string, logs: string[]) {
   page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
   await page.addInitScript(() => {
     localStorage.setItem("fold:theme", "dark");
+    localStorage.setItem("fold:onboarding:web-room:v1", JSON.stringify({ version: 1, completedAt: "smoke" }));
   });
 }
 

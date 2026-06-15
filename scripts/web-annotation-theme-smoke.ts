@@ -183,7 +183,10 @@ async function preparePage(page: Page, label: string, theme: "dark" | "light", l
     logs.push(`${label} console:${message.type()}: ${message.text()}`);
   });
   page.on("pageerror", (error) => logs.push(`${label} pageerror: ${error.message}`));
-  await page.addInitScript((nextTheme) => localStorage.setItem("fold:theme", nextTheme), theme);
+  await page.addInitScript((nextTheme) => {
+    localStorage.setItem("fold:theme", nextTheme);
+    localStorage.setItem("fold:onboarding:web-room:v1", JSON.stringify({ version: 1, completedAt: "smoke" }));
+  }, theme);
 }
 
 async function resolveBaseUrl() {

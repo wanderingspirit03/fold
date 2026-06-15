@@ -36,11 +36,11 @@ describe("command palette keyboard navigation", () => {
     const ranked = rankCommandPaletteItems(
       [
         { label: "agent-handoff-review.md", searchText: "reports/agent-handoff-review.md" },
-        { label: "Invite human", searchText: "copy project link share invite human encrypted room url" },
+        { label: "Copy invite link", searchText: "copy project link share invite human encrypted room url" },
       ],
       "invite",
     );
 
-    expect(ranked[0]?.label).toBe("Invite human");
+    expect(ranked[0]?.label).toBe("Copy invite link");
   });
 });

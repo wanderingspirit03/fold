@@ -72,6 +72,7 @@ interface RoomShellProps {
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
   onImportFile: (file: File) => void;
+  onRenameProject: (name: string) => void;
   onCopyProjectLink?: () => void;
   onFocusCommentComposer?: () => void;
   document: ReactNode;
@@ -102,6 +103,7 @@ export function RoomShell({
   onFileSelect,
   onCreateFile,
   onImportFile,
+  onRenameProject,
   onCopyProjectLink,
   onFocusCommentComposer,
   document,
@@ -113,6 +115,7 @@ export function RoomShell({
   const [projectLinkCopied, setProjectLinkCopied] = useState(false);
   const [agentInviteCopied, setAgentInviteCopied] = useState(false);
   const [recentFilePaths, setRecentFilePaths] = useState<string[]>([]);
+  const [tourReplayToken, setTourReplayToken] = useState(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const selectedFile = useMemo(
     () => files.find((file) => file.path === selectedFilePath) ?? files[0],
@@ -135,15 +138,15 @@ export function RoomShell({
   const securityLabel = !connected ? "E2EE offline" : !ready ? "E2EE replaying" : "E2EE";
   const humanInviteHasWarnings = Boolean(humanInvite?.warnings?.length);
   const humanInviteAriaLabel = projectLinkCopied
-    ? "Human invite copied"
+    ? "Invite link copied"
     : humanInviteHasWarnings
-      ? "Invite human with local network warning"
-      : "Invite human";
+      ? "Copy invite link with local network warning"
+      : "Copy invite link";
   const humanInviteTooltip = projectLinkCopied
     ? "Copied"
     : humanInviteHasWarnings
-      ? "Invite human, local URLs"
-      : "Invite human";
+      ? "Copy invite link, local URLs"
+      : "Copy invite link";
   const agentInviteHasWarnings = Boolean(agentInvite?.warnings?.length);
   const agentInviteAriaLabel = agentInviteCopied
     ? "Agent handoff copied"
@@ -243,6 +246,7 @@ export function RoomShell({
             recentFiles={recentFiles}
             onBack={onBack}
             onCopyProjectLink={copyProjectLink}
+            onRenameProject={onRenameProject}
             projectLinkCopied={projectLinkCopied}
             humanInviteHasWarnings={humanInviteHasWarnings}
             humanInviteAriaLabel={humanInviteAriaLabel}
@@ -285,7 +289,7 @@ export function RoomShell({
                     <TooltipContent>Command palette</TooltipContent>
                   </Tooltip>
                   <ThemeToggle />
-                  <div className="hidden rounded-md border border-studio-line bg-studio-sunken p-0.5 md:flex">
+                  <div data-onboarding-target="read-edit" className="hidden rounded-md border border-studio-line bg-studio-sunken p-0.5 md:flex">
                     <ModeButton active={mode === "read"} onClick={() => onModeChange("read")}>
                       <FileText className="h-3.5 w-3.5" />
                       Read
@@ -310,25 +314,10 @@ export function RoomShell({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={copyProjectLink}
-                        aria-label={humanInviteAriaLabel}
-                      >
-                        {projectLinkCopied ? <Check className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
-                        <span className="sr-only" aria-live="polite">
-                          {projectLinkCopied ? "Human invite copied" : ""}
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{humanInviteTooltip}</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
                         onClick={() => void copyAgentInvite()}
                         aria-label={agentInviteAriaLabel}
                         disabled={!agentInvite}
+                        data-onboarding-target="agent-handoff"
                       >
                         {agentInviteCopied ? <Check className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                         <span className="sr-only" aria-live="polite">
@@ -356,6 +345,7 @@ export function RoomShell({
                     onClick={() => setProjectFilesOpen(true)}
                     aria-label="Open project files"
                     className="h-11 w-11 shrink-0"
+                    data-onboarding-target="project-files-toggle"
                   >
                     <FolderClosed className="h-4 w-4" />
                   </Button>
@@ -400,7 +390,7 @@ export function RoomShell({
                   </Tooltip>
                 </div>
                 <div className="flex h-12 items-center justify-between gap-2 border-t border-studio-line px-2">
-                  <div className="flex rounded-md border border-studio-line bg-studio-sunken p-0.5">
+                  <div data-onboarding-target="read-edit" className="flex rounded-md border border-studio-line bg-studio-sunken p-0.5">
                     <ModeIconButton active={mode === "read"} label="Read mode" onClick={() => onModeChange("read")}>
                       <FileText className="h-3.5 w-3.5" />
                     </ModeIconButton>
@@ -430,6 +420,7 @@ export function RoomShell({
                 projectName={projectName}
                 onBack={onBack}
                 onCopyProjectLink={copyProjectLink}
+                onRenameProject={onRenameProject}
                 projectLinkCopied={projectLinkCopied}
                 humanInviteHasWarnings={humanInviteHasWarnings}
                 humanInviteAriaLabel={humanInviteAriaLabel}
@@ -547,8 +538,13 @@ export function RoomShell({
               void copyAgentInvite();
               setCommandOpen(false);
             }}
+            onOpenProjectSetup={() => {
+              setTourReplayToken((token) => token + 1);
+              setCommandOpen(false);
+            }}
           />
         )}
+        <RoomOnboardingTour replayToken={tourReplayToken} onOpenProjectFiles={() => setProjectFilesOpen(true)} />
       </div>
     </TooltipProvider>
   );
@@ -582,6 +578,317 @@ interface ProjectFile {
   activePresences?: CollaborationPresence[];
 }
 
+const ROOM_ONBOARDING_STORAGE_KEY = "fold:onboarding:web-room:v1";
+
+type OnboardingSurface = "welcome" | "checklist";
+
+function RoomOnboardingTour({
+  replayToken,
+  onOpenProjectFiles,
+}: {
+  replayToken: number;
+  onOpenProjectFiles: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [surface, setSurface] = useState<OnboardingSurface>("welcome");
+  const welcomeRef = useRef<HTMLElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const previewSurface = readOnboardingPreviewSurface();
+    if (previewSurface) {
+      setSurface(previewSurface);
+      setIsOpen(true);
+      return;
+    }
+
+    const stored = readOnboardingState();
+    if (stored.completedAt || stored.skippedAt) return;
+    const timer = window.setTimeout(() => {
+      setSurface("welcome");
+      setIsOpen(true);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (replayToken <= 0) return;
+    setSurface("checklist");
+    setIsOpen(true);
+  }, [replayToken]);
+
+  useEffect(() => {
+    if (!isOpen || surface !== "welcome") return;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => welcomeRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      previousFocusRef.current?.focus();
+    };
+  }, [isOpen, surface]);
+
+  useEffect(() => {
+    if (!isOpen || surface !== "welcome") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeOnboarding("skipped");
+      }
+      if (event.key === "Tab") {
+        trapOnboardingFocus(event, welcomeRef.current);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, surface]);
+
+  if (!isOpen) return null;
+
+  if (surface === "welcome") {
+    return (
+      <RoomWelcomeOnboarding
+        dialogRef={welcomeRef}
+        onClose={() => closeOnboarding("skipped")}
+        onStartChecklist={() => setSurface("checklist")}
+        onOpenProjectFiles={onOpenProjectFiles}
+      />
+    );
+  }
+
+  return (
+    <RoomOnboardingChecklist
+      onClose={() => closeOnboarding("skipped")}
+      onComplete={() => closeOnboarding("completed")}
+      onOpenProjectFiles={onOpenProjectFiles}
+    />
+  );
+
+  function closeOnboarding(status: "completed" | "skipped") {
+    writeOnboardingState({
+      version: 1,
+      ...(status === "completed"
+        ? { completedAt: new Date().toISOString() }
+        : { skippedAt: new Date().toISOString() }),
+    });
+    setIsOpen(false);
+  }
+}
+
+function RoomWelcomeOnboarding({
+  dialogRef,
+  onClose,
+  onStartChecklist,
+  onOpenProjectFiles,
+}: {
+  dialogRef: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  onStartChecklist: () => void;
+  onOpenProjectFiles: () => void;
+}) {
+  return (
+    <div data-onboarding-tour className="fixed inset-0 z-[80] flex items-end justify-center bg-[rgba(20,24,34,0.38)] p-3 sm:items-center">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-welcome-onboarding-title"
+        tabIndex={-1}
+        className="w-full max-w-[420px] rounded-md border border-studio-line bg-studio-paper text-ink shadow-[0_18px_54px_rgba(20,24,34,0.28)]"
+      >
+        <div className="border-b border-studio-line px-4 py-3">
+          <p className="font-mono text-[11px] uppercase text-ink-subtle">Project ready</p>
+          <h2 id="room-welcome-onboarding-title" className="mt-1 text-base font-semibold">Start with the room essentials</h2>
+          <p className="mt-1 text-sm leading-6 text-ink-muted">
+            Fold keeps the room simple: files, people, comments, and agent handoff.
+          </p>
+        </div>
+        <div className="grid gap-0 border-b border-studio-line">
+          <WelcomeOnboardingRow icon={<FileText className="h-4 w-4" />} title="Project files" body="Create or import Markdown files from the rail." />
+          <WelcomeOnboardingRow icon={<UsersRound className="h-4 w-4" />} title="Private invite" body="Copy the encrypted room link for a person." />
+          <WelcomeOnboardingRow icon={<Bot className="h-4 w-4" />} title="Agent handoff" body="Copy CLI instructions when an agent should join." />
+        </div>
+        <div className="flex flex-col-reverse gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 rounded px-2 text-xs font-medium text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+          >
+            Not now
+          </button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onOpenProjectFiles();
+                onClose();
+              }}
+            >
+              Open files
+            </Button>
+            <Button type="button" onClick={onStartChecklist}>Show checklist</Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RoomOnboardingChecklist({
+  onClose,
+  onComplete,
+  onOpenProjectFiles,
+}: {
+  onClose: () => void;
+  onComplete: () => void;
+  onOpenProjectFiles: () => void;
+}) {
+  const items = [
+    { title: "Name the project", body: "Use a name that will make sense in the local index.", action: "Title is in the rail" },
+    { title: "Add Markdown files", body: "Create a clean README or import existing notes.", action: "Open files", onAction: onOpenProjectFiles },
+    { title: "Invite a person", body: "Copy the encrypted invite link from the left rail.", action: "Copy from rail" },
+    { title: "Review together", body: "Use comments and suggestions while the Markdown stays canonical.", action: "Review button" },
+    { title: "Bring in an agent", body: "Copy the agent handoff when CLI help is useful.", action: "Toolbar handoff" },
+  ];
+
+  return (
+    <aside
+      data-onboarding-tour
+      aria-label="Project setup checklist"
+      className="fixed inset-x-3 bottom-3 z-[80] max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-md border border-studio-line bg-studio-paper text-ink shadow-[0_18px_54px_rgba(20,24,34,0.28)] sm:left-4 sm:right-auto sm:w-[360px]"
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-studio-line px-3 py-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-ink-muted" />
+            <h2 className="text-sm font-semibold">Project setup</h2>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-ink-muted">A quiet checklist for the first few room actions.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close checklist"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="max-h-[52dvh] overflow-y-auto p-2">
+        {items.map((item, index) => (
+          <div key={item.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 rounded px-2 py-2">
+            <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-studio-line font-mono text-[10px] text-ink-subtle">
+              {index + 1}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-ink">{item.title}</span>
+              <span className="mt-0.5 block text-xs leading-5 text-ink-muted">{item.body}</span>
+              <button
+                type="button"
+                onClick={item.onAction}
+                disabled={!item.onAction}
+                className="mt-2 h-7 rounded border border-studio-line px-2 text-[11px] font-medium text-ink-muted transition-colors enabled:hover:bg-studio-sunken enabled:hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong disabled:cursor-default disabled:opacity-60"
+              >
+                {item.action}
+              </button>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-studio-line px-3 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-9 rounded px-2 text-xs font-medium text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+        >
+          Hide
+        </button>
+        <Button type="button" onClick={onComplete}>Done</Button>
+      </div>
+    </aside>
+  );
+}
+
+function WelcomeOnboardingRow({
+  icon,
+  title,
+  body,
+}: {
+  icon: ReactNode;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-t border-studio-line px-4 py-3 first:border-t-0">
+      <span className="flex h-8 w-8 items-center justify-center rounded bg-studio-sunken text-ink-muted">{icon}</span>
+      <span>
+        <span className="block text-sm font-medium text-ink">{title}</span>
+        <span className="mt-0.5 block text-xs leading-5 text-ink-muted">{body}</span>
+      </span>
+    </div>
+  );
+}
+
+function readOnboardingPreviewSurface(): OnboardingSurface | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const rawSurface = params.get("onboarding") || params.get("tour");
+    if (rawSurface === "welcome" || rawSurface === "sheet" || rawSurface === "1") return "welcome";
+    if (rawSurface === "checklist" || rawSurface === "setup") return "checklist";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function readOnboardingState(): {
+  version?: number;
+  completedAt?: string;
+  skippedAt?: string;
+} {
+  try {
+    const stored = window.localStorage.getItem(ROOM_ONBOARDING_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOnboardingState(state: {
+  version: number;
+  completedAt?: string;
+  skippedAt?: string;
+}) {
+  try {
+    window.localStorage.setItem(ROOM_ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Tour state is a local convenience; failing to persist should not block the room.
+  }
+}
+
+function trapOnboardingFocus(event: KeyboardEvent, panel: HTMLElement | null) {
+  if (!panel) return;
+  const focusable = Array.from(panel.querySelectorAll<HTMLElement>(
+    "button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex='-1'])",
+  )).filter((element) => element.offsetParent !== null);
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+
+  if (event.shiftKey && active === first) {
+    event.preventDefault();
+    last.focus();
+    return;
+  }
+
+  if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function ProjectFileSidebar({
   roomId,
   projectName,
@@ -589,6 +896,7 @@ function ProjectFileSidebar({
   recentFiles,
   onBack,
   onCopyProjectLink,
+  onRenameProject,
   projectLinkCopied = false,
   humanInviteHasWarnings = false,
   humanInviteAriaLabel,
@@ -604,6 +912,7 @@ function ProjectFileSidebar({
   recentFiles: ProjectFile[];
   onBack: () => void;
   onCopyProjectLink: () => void;
+  onRenameProject: (name: string) => void;
   projectLinkCopied?: boolean;
   humanInviteHasWarnings?: boolean;
   humanInviteAriaLabel?: string;
@@ -620,6 +929,7 @@ function ProjectFileSidebar({
         projectName={projectName}
         onBack={onBack}
         onCopyProjectLink={onCopyProjectLink}
+        onRenameProject={onRenameProject}
         projectLinkCopied={projectLinkCopied}
         humanInviteHasWarnings={humanInviteHasWarnings}
         humanInviteAriaLabel={humanInviteAriaLabel}
@@ -644,6 +954,7 @@ function ProjectFilesHeader({
   projectName,
   onBack,
   onCopyProjectLink,
+  onRenameProject,
   projectLinkCopied = false,
   humanInviteHasWarnings = false,
   humanInviteAriaLabel,
@@ -654,6 +965,7 @@ function ProjectFilesHeader({
   projectName: string;
   onBack: () => void;
   onCopyProjectLink: () => void;
+  onRenameProject: (name: string) => void;
   projectLinkCopied?: boolean;
   humanInviteHasWarnings?: boolean;
   humanInviteAriaLabel?: string;
@@ -665,10 +977,10 @@ function ProjectFilesHeader({
       <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back" className="h-11 w-11">
         <ArrowLeft className="h-4 w-4" />
       </Button>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+      <div data-onboarding-target="project-title" className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
           <span aria-hidden className="fold-logo-mark h-5 w-5 shrink-0" />
-          <h2 data-project-title className="truncate text-sm font-semibold" title={projectName}>{projectName}</h2>
+          <ProjectTitleEditor projectName={projectName} onRenameProject={onRenameProject} />
         </div>
         <p className="truncate text-[11px] font-medium text-ink-subtle" title={roomId ? `Project id ${roomId}` : undefined}>
           Fold project · Private workspace
@@ -680,7 +992,8 @@ function ProjectFilesHeader({
             variant="ghost"
             size="icon"
             onClick={onCopyProjectLink}
-            aria-label={humanInviteAriaLabel || (projectLinkCopied ? "Human invite copied" : humanInviteHasWarnings ? "Invite human with local network warning" : "Invite human")}
+            aria-label={humanInviteAriaLabel || (projectLinkCopied ? "Invite link copied" : humanInviteHasWarnings ? "Copy invite link with local network warning" : "Copy invite link")}
+            data-onboarding-target="copy-invite"
             className={cn(
               "copy-project-link-button relative h-11 w-11 overflow-hidden transition-all duration-200 active:scale-[0.96]",
               projectLinkCopied &&
@@ -697,11 +1010,11 @@ function ProjectFilesHeader({
               {projectLinkCopied ? <Check className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
             </span>
             <span className="sr-only" aria-live="polite">
-              {projectLinkCopied ? "Human invite copied" : ""}
+              {projectLinkCopied ? "Invite link copied" : ""}
             </span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{humanInviteTooltip || (projectLinkCopied ? "Copied" : humanInviteHasWarnings ? "Invite human, local URLs" : "Invite human")}</TooltipContent>
+        <TooltipContent>{humanInviteTooltip || (projectLinkCopied ? "Copied" : humanInviteHasWarnings ? "Copy invite link, local URLs" : "Copy invite link")}</TooltipContent>
       </Tooltip>
       {onClose && (
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close project files" className="h-11 w-11">
@@ -709,6 +1022,91 @@ function ProjectFilesHeader({
         </Button>
       )}
     </div>
+  );
+}
+
+function ProjectTitleEditor({
+  projectName,
+  onRenameProject,
+}: {
+  projectName: string;
+  onRenameProject: (name: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftName, setDraftName] = useState(projectName);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const cancelBlurRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEditing) setDraftName(projectName);
+  }, [isEditing, projectName]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+  }, [isEditing]);
+
+  const commit = () => {
+    const nextName = draftName.replace(/\s+/g, " ").trim() || "Untitled project";
+    setDraftName(nextName);
+    setIsEditing(false);
+    if (nextName !== projectName) onRenameProject(nextName);
+  };
+
+  const cancel = () => {
+    cancelBlurRef.current = true;
+    setDraftName(projectName);
+    setIsEditing(false);
+    requestAnimationFrame(() => {
+      cancelBlurRef.current = false;
+    });
+  };
+
+  if (isEditing) {
+    return (
+      <form
+        className="min-w-0 flex-1"
+        onSubmit={(event) => {
+          event.preventDefault();
+          commit();
+        }}
+      >
+        <input
+          ref={inputRef}
+          value={draftName}
+          onChange={(event) => setDraftName(event.currentTarget.value)}
+          onBlur={() => {
+            if (!cancelBlurRef.current) commit();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              cancel();
+            }
+          }}
+          aria-label="Project name"
+          maxLength={80}
+          className="h-7 w-full min-w-0 rounded border border-midnight/35 bg-studio-sunken px-1.5 text-sm font-semibold text-ink outline-none selection:bg-midnight-soft focus:border-midnight-strong focus:ring-2 focus:ring-midnight-soft"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      data-project-title
+      onClick={() => setIsEditing(true)}
+      className="group/title flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-sm font-semibold text-ink transition-colors hover:bg-studio-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
+      title={projectName}
+      aria-label={`Rename project ${projectName}`}
+    >
+      <span className="truncate">{projectName}</span>
+      <Pencil className="h-3 w-3 shrink-0 text-ink-subtle opacity-0 transition-opacity group-hover/title:opacity-100 group-focus-visible/title:opacity-100" aria-hidden />
+    </button>
   );
 }
 
@@ -1088,6 +1486,7 @@ function SidebarFile({
       type="button"
       aria-label={ariaLabel}
       onClick={() => onFileSelect(file.path)}
+      data-onboarding-target={file.active ? "project-file-active" : undefined}
       style={{ paddingLeft: `${0.5 + depth * 0.85}rem` }}
       className={cn(
         "group flex h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors md:h-8",
@@ -1463,6 +1862,7 @@ function ProjectCommandPalette({
   onOpenReview,
   onFocusCommentComposer,
   onCopyAgentInvite,
+  onOpenProjectSetup,
 }: {
   files: ProjectFile[];
   recentFiles: ProjectFile[];
@@ -1485,6 +1885,7 @@ function ProjectCommandPalette({
   onOpenReview: () => void;
   onFocusCommentComposer: () => void;
   onCopyAgentInvite: () => void;
+  onOpenProjectSetup: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1567,8 +1968,8 @@ function ProjectCommandPalette({
     },
     {
       id: "copy-link",
-      label: "Invite human",
-      detail: humanInviteHasWarnings ? "Copy join handoff with local URL warning" : "Copy browser join handoff",
+      label: "Copy invite link",
+      detail: humanInviteHasWarnings ? "Copy link message with local URL warning" : "Copy encrypted room link message",
       group: "actions",
       searchText: "copy project link share invite human encrypted room url",
       icon: <UsersRound className="h-4 w-4" />,
@@ -1581,6 +1982,15 @@ function ProjectCommandPalette({
       group: "actions",
       icon: <Bot className="h-4 w-4" />,
       action: onCopyAgentInvite,
+    },
+    {
+      id: "show-project-setup",
+      label: "Show project setup",
+      detail: "Open the first-run checklist",
+      group: "actions",
+      searchText: "help onboarding project setup first time checklist guide",
+      icon: <PanelRightOpen className="h-4 w-4" />,
+      action: onOpenProjectSetup,
     },
     {
       id: "export",
@@ -1973,6 +2383,7 @@ function ReviewStatusControl({
             onClick={onAddComment || onOpenReview}
             aria-label={onAddComment ? "Add file comment" : reviewLabel}
             title={onAddComment ? "Add file comment" : reviewLabel}
+            data-onboarding-target="review"
             className={cn(mobile && "h-11 w-11 shrink-0")}
           >
             <MessageSquarePlus className="h-4 w-4" />
@@ -1985,6 +2396,7 @@ function ReviewStatusControl({
 
   return (
     <div
+      data-onboarding-target="review"
       className={cn(
         "flex items-center border border-studio-line bg-studio-sunken",
         mobile ? "h-11 shrink-0 rounded-lg p-0" : "h-9 rounded-md p-0.5",
