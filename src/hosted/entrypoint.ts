@@ -2,6 +2,7 @@ import http from 'node:http';
 import { resolve } from 'node:path';
 import * as nextModule from 'next/dist/server/next.js';
 import { hostedPortFromEnv, resolvePublicOrigin } from '../deploy/public-origin.js';
+import { formatDeploymentDiagnostics, validateHostedRuntime } from '../deploy/runtime-config.js';
 import { EncryptedAppendLogServer, FileAppendLogStore } from '../server/append-log.js';
 
 type NextRequestHandler = (request: http.IncomingMessage, response: http.ServerResponse) => Promise<void>;
@@ -21,6 +22,7 @@ export interface HostedCliOptions {
   host: string;
   port: number;
   dataDirectory: string;
+  defaultDataDirectory: string;
   webDirectory: string;
 }
 
@@ -29,10 +31,12 @@ export function parseHostedCliOptions(
   cwd = process.cwd(),
   env: Record<string, string | undefined> = process.env,
 ): HostedCliOptions {
+  const defaultDataDirectory = resolve(cwd, 'data/append-log');
   const options: HostedCliOptions = {
     host: env.HOST ?? '0.0.0.0',
     port: hostedPortFromEnv(env, 3000),
-    dataDirectory: resolve(cwd, env.FOLD_DATA_DIR ?? 'data/append-log'),
+    dataDirectory: resolve(cwd, env.FOLD_DATA_DIR ?? defaultDataDirectory),
+    defaultDataDirectory,
     webDirectory: resolve(cwd, 'apps/web'),
   };
 
@@ -78,6 +82,25 @@ export async function runHostedCli(argv = process.argv.slice(2)): Promise<void> 
     }
     console.error(error instanceof Error ? error.message : String(error));
     console.error(hostedUsage());
+    process.exitCode = 1;
+    return;
+  }
+
+  const publicOrigin = resolvePublicOrigin({
+    defaultUrl: `http://127.0.0.1:${options.port}`,
+  });
+  const validation = validateHostedRuntime({
+    dataDirectory: options.dataDirectory,
+    defaultDataDirectory: options.defaultDataDirectory,
+    publicOrigin,
+  });
+  for (const line of formatDeploymentDiagnostics(validation.warnings)) {
+    console.warn(`fold deploy ${line}`);
+  }
+  if (!validation.ok) {
+    for (const line of formatDeploymentDiagnostics(validation.errors)) {
+      console.error(`fold deploy ${line}`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -130,11 +153,9 @@ export async function runHostedCli(argv = process.argv.slice(2)): Promise<void> 
     server.listen(options.port, options.host);
   });
 
-  const publicOrigin = resolvePublicOrigin({
-    defaultUrl: `http://127.0.0.1:${options.port}`,
-  });
   console.log(`fold hosted server listening on ${options.host}:${options.port}`);
-  console.log(`public app/sync URL: ${publicOrigin.appUrl}`);
+  console.log(`public app/sync URL: ${publicOrigin.appUrl} (${publicOrigin.source})`);
+  console.log(`health endpoint: ${publicOrigin.syncUrl}/health`);
   console.log(`append-log store: file (${options.dataDirectory})`);
 
   let stopping = false;

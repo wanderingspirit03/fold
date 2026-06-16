@@ -12,6 +12,7 @@ describe('hosted server entrypoint', () => {
     expect(options.host).toBe('0.0.0.0');
     expect(options.port).toBe(4311);
     expect(options.dataDirectory).toBe('/data/fold');
+    expect(options.defaultDataDirectory).toBe('/repo/data/append-log');
     expect(options.webDirectory).toBe('/repo/apps/web');
   });
 
@@ -34,6 +35,7 @@ describe('hosted server entrypoint', () => {
     expect(options.host).toBe('127.0.0.1');
     expect(options.port).toBe(5123);
     expect(options.dataDirectory).toBe('/repo/tmp-data');
+    expect(options.defaultDataDirectory).toBe('/repo/data/append-log');
     expect(options.webDirectory).toBe('/repo/custom-web');
   });
 });

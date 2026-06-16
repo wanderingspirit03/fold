@@ -10,7 +10,33 @@ Fold is not production-hardened yet, but it is no longer just a spike: this repo
 
 Start with [PLAN.md](PLAN.md) for the product and architecture direction.
 
-## Fastest Hosted Path
+## Choose A Run Path
+
+### Run Locally
+
+Use local development when you are exploring Fold on one machine:
+
+```bash
+npm install
+npm run server -- --port 8787 --data ./data
+npm run web:dev
+```
+
+Then publish with local URLs:
+
+```bash
+npm run --silent cli -- publish ./README.md \
+  --app-url http://127.0.0.1:3000 \
+  --sync-url http://127.0.0.1:8787 \
+  --alias readme \
+  --json
+```
+
+`localhost` and `127.0.0.1` links are for the same machine only. To share with
+other humans, use a cloud deploy, a public tunnel, or a correctly exposed LAN or
+VPS URL.
+
+### Share From The Cloud
 
 The recommended hosted alpha path is a single Node service that serves both the web app and encrypted append-log sync from one public origin:
 
@@ -20,9 +46,10 @@ npm run build
 npm start
 ```
 
-Set `FOLD_PUBLIC_URL` to the HTTPS URL people open, and set `FOLD_DATA_DIR` to a persistent volume path if your host provides one:
+Set `FOLD_PUBLIC_URL` to the HTTPS URL people open, and set `FOLD_DATA_DIR` to a persistent volume path:
 
 ```bash
+NODE_ENV=production
 FOLD_PUBLIC_URL=https://your-fold.example
 FOLD_DATA_DIR=/persistent/fold/append-log
 ```
@@ -35,7 +62,39 @@ npm run --silent cli -- room invite launch --for human
 npm run --silent cli -- room invite launch --for agent
 ```
 
-See [docs/deploy.md](docs/deploy.md) for generic Node host, split web/sync, WebSocket, Docker, Compose, and persistence notes.
+Check the deployment:
+
+```bash
+curl https://your-fold.example/health
+npm run smoke:deploy -- --base-url https://your-fold.example
+```
+
+### Self-Host With Docker Compose
+
+```bash
+FOLD_PUBLIC_URL=http://localhost:3000 docker compose up --build
+```
+
+Compose stores encrypted append-log data in a named Docker volume. The default
+`localhost` URL is local-only; set `FOLD_PUBLIC_URL` to a public HTTPS origin
+before sharing invite links with humans on other machines.
+
+### Use The CLI With A Hosted Fold URL
+
+For hosted same-origin Fold, set `FOLD_PUBLIC_URL` once:
+
+```bash
+FOLD_PUBLIC_URL=https://your-fold.example \
+npm run --silent cli -- room create --alias launch --json
+```
+
+The room URL's `#key` fragment is client-side secret key material. Agent
+handoffs can also include a secret `fold:v1:` token. Keep both out of public
+logs, issues, screenshots, and docs.
+
+See [docs/deploy.md](docs/deploy.md) for the cloud-agnostic deployment contract
+and provider recipes for Docker, Railway, Render-style hosts, and VPS/Fly-style
+hosts.
 
 ## Current Status
 
@@ -53,7 +112,7 @@ The server stores encrypted room records plus plaintext routing metadata only: `
 
 Fold is alpha software. It has not been security-audited, and production durability, access control, fork/truncation protection, compaction, key rotation, and deployment hardening remain open.
 
-## Local Development
+## Local Development Details
 
 Install dependencies:
 

@@ -26,7 +26,34 @@ describe('deployment public origin resolution', () => {
     })).toEqual({
       appUrl: 'https://fold.example.test',
       syncUrl: 'https://fold.example.test',
-      source: 'environment',
+      source: 'fold-public-url',
+    });
+  });
+
+  it('reports split environment URL provenance separately', () => {
+    expect(resolvePublicOrigin({
+      defaultUrl: 'http://localhost:8787',
+      env: {
+        FOLD_PUBLIC_APP_URL: 'https://app.example.test',
+        FOLD_PUBLIC_SYNC_URL: 'https://sync.example.test',
+      },
+    })).toEqual({
+      appUrl: 'https://app.example.test',
+      syncUrl: 'https://sync.example.test',
+      source: 'split-environment',
+    });
+  });
+
+  it('reports provider fallback URL provenance separately', () => {
+    expect(resolvePublicOrigin({
+      defaultUrl: 'http://localhost:8787',
+      env: {
+        RAILWAY_PUBLIC_DOMAIN: 'fold.up.railway.app',
+      },
+    })).toEqual({
+      appUrl: 'https://fold.up.railway.app',
+      syncUrl: 'https://fold.up.railway.app',
+      source: 'provider',
     });
   });
 

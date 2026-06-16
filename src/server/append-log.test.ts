@@ -29,9 +29,14 @@ describe('production append-log server', () => {
       const health = await response.json() as Record<string, unknown>;
 
       expect(response.status).toBe(200);
+      expect(health.deployment).toEqual({
+        singleInstanceRequired: true,
+      });
       expect(health.ok).toBe(true);
       expect(health.service).toBe('fold');
       expect(health.store).toEqual({
+        fileBacked: true,
+        hasConfiguredDirectory: true,
         kind: 'file',
       });
       expect(health.uptimeSeconds).toBeTypeOf('number');

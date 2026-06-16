@@ -359,6 +359,30 @@ Deployment goals:
 - Clear deployment notes for simple public hosting.
 - Minimal required services for the first version.
 
+### Deployment Contract
+
+Fold's hosted alpha should be cloud-agnostic: any provider can run it if the
+provider satisfies Fold's contract instead of Fold depending on provider-specific
+runtime behavior.
+
+- Run one long-lived Node process that binds to `0.0.0.0` and reads `PORT`.
+- Serve the web app, HTTP append-log API, and WebSocket sync from one same-origin
+  process by default.
+- Set `FOLD_PUBLIC_URL` to the public HTTPS origin that humans and agents open
+  for shared hosted rooms.
+- Set `FOLD_DATA_DIR` to persistent storage for encrypted append-log records.
+- Keep the current file append-log deployment to a single instance; horizontal
+  scaling requires a different durability/write-safety design.
+- Expose `/health` for provider health checks and deployment smoke tests.
+- Treat split web/sync hosting as an advanced path using
+  `FOLD_PUBLIC_APP_URL`, `FOLD_PUBLIC_SYNC_URL`, and
+  `NEXT_PUBLIC_FOLD_SYNC_URL`.
+
+This contract makes Railway, Render, Fly.io, VPS, Docker, and similar platforms
+recipes over the same runtime. It does not make Fold production-complete:
+account auth, append authorization, multi-writer durability, fork/truncation
+proofs, compaction, key rotation, and revocation remain future hardening work.
+
 Dependency policy:
 
 - Prefer MIT, Apache-2.0, BSD, and similarly permissive licenses.

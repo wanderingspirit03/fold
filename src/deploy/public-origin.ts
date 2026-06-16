@@ -3,7 +3,7 @@ import { normalizeServerUrl } from '../rooms/room-reference.js';
 export interface PublicOriginConfig {
   appUrl: string;
   syncUrl: string;
-  source: 'explicit' | 'environment' | 'default';
+  source: 'explicit' | 'fold-public-url' | 'split-environment' | 'provider' | 'default';
 }
 
 export interface PublicOriginOptions {
@@ -16,29 +16,26 @@ export interface PublicOriginOptions {
 
 export function resolvePublicOrigin(options: PublicOriginOptions): PublicOriginConfig {
   const env = options.env ?? process.env;
+  const providerUrl = publicOriginFromProviderEnv(env);
   const appUrl = options.appUrl
     ?? options.serverUrl
     ?? options.syncUrl
     ?? env.FOLD_PUBLIC_APP_URL
     ?? env.FOLD_PUBLIC_URL
-    ?? publicOriginFromProviderEnv(env)
+    ?? providerUrl
     ?? options.defaultUrl;
   const syncUrl = options.syncUrl
     ?? options.serverUrl
     ?? options.appUrl
     ?? env.FOLD_PUBLIC_SYNC_URL
     ?? env.FOLD_PUBLIC_URL
-    ?? publicOriginFromProviderEnv(env)
+    ?? providerUrl
     ?? options.defaultUrl;
 
   return {
     appUrl: normalizeServerUrl(appUrl),
     syncUrl: normalizeServerUrl(syncUrl),
-    source: options.appUrl || options.syncUrl || options.serverUrl
-      ? 'explicit'
-      : appUrl !== options.defaultUrl || syncUrl !== options.defaultUrl
-        ? 'environment'
-        : 'default',
+    source: publicOriginSource(options, env, providerUrl),
   };
 }
 
@@ -71,4 +68,16 @@ function withHttps(value: string | undefined): string | undefined {
   if (!value) return undefined;
   if (/^https?:\/\//.test(value)) return value;
   return `https://${value}`;
+}
+
+function publicOriginSource(
+  options: PublicOriginOptions,
+  env: Record<string, string | undefined>,
+  providerUrl: string | undefined,
+): PublicOriginConfig['source'] {
+  if (options.appUrl || options.syncUrl || options.serverUrl) return 'explicit';
+  if (env.FOLD_PUBLIC_APP_URL || env.FOLD_PUBLIC_SYNC_URL) return 'split-environment';
+  if (env.FOLD_PUBLIC_URL) return 'fold-public-url';
+  if (providerUrl) return 'provider';
+  return 'default';
 }

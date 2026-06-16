@@ -24,6 +24,15 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with reason) | REJECTED (wit
 | 012 | Unify room access, invite, recent-room, and persona models | P2 | M | 001, 002 | DONE (persona hash unification deferred to preserve existing room identities) |
 | 013 | Add next product-direction plans for self-hosting and agent context | P3 | M | 003, 012 | DONE |
 
+## New Active Plans
+
+These plans were added after the completed archive above. They are active TODOs
+unless their row says otherwise.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 014 | Make Fold deployment cloud-agnostic and production-alpha safe | P1 | L | - | DONE |
+
 ## Dependency Notes
 
 - 003 should land early because the later plans need reliable web and non-mutating checks.
@@ -31,6 +40,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with reason) | REJECTED (wit
 - 005 should land before payload/replay optimization in 010 so accepted proposal semantics are stable first.
 - 001 and 002 should precede shared invite/local model work in 012, because they define the secret-handling contract.
 - 011 is intentionally after the replay and proposal repairs; moving modules before semantics are stable increases churn.
+- 014 has no dependency on the historical archive, but execution should preserve
+  the secret-redaction, local key, and deployment caveat decisions already
+  landed by earlier plans.
 
 ## Historical Verification
 

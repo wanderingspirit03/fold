@@ -41,9 +41,14 @@ export interface ServerStartOptions {
 }
 
 export interface ServerHealth {
+  deployment: {
+    singleInstanceRequired: boolean;
+  };
   ok: true;
   service: string;
   store: {
+    fileBacked: boolean;
+    hasConfiguredDirectory: boolean;
     kind: string;
   };
   uptimeSeconds: number;
@@ -231,11 +236,17 @@ export class EncryptedAppendLogServer {
   }
 
   health(): ServerHealth {
+    const storeKind = this.store.kind ?? 'custom';
     const store: ServerHealth['store'] = {
-      kind: this.store.kind ?? 'custom',
+      fileBacked: storeKind === 'file',
+      hasConfiguredDirectory: Boolean(this.store.directory),
+      kind: storeKind,
     };
 
     return {
+      deployment: {
+        singleInstanceRequired: store.fileBacked,
+      },
       ok: true,
       service: SERVER_SERVICE_NAME,
       store,
