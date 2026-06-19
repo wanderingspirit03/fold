@@ -10,6 +10,7 @@ export const TIMELINE_EVENT_SENDER_ID_PREFIX = 'fold-cli:event';
 
 export type TimelineEventType =
   | 'publish'
+  | 'file_posted'
   | 'proposal_submitted'
   | 'proposal_accepted'
   | 'proposal_rejected'
@@ -108,6 +109,7 @@ function isTimelineEvent(value: unknown): value is TimelineEvent {
 function isTimelineEventType(value: unknown): value is TimelineEventType {
   return (
     value === 'publish' ||
+    value === 'file_posted' ||
     value === 'proposal_submitted' ||
     value === 'proposal_accepted' ||
     value === 'proposal_rejected' ||

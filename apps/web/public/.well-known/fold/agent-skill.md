@@ -14,16 +14,20 @@ Fold is an encrypted Markdown project room for humans and coding agents. Use the
 - Treat room URLs, `fold:v1:` tokens, and `.fold/rooms.json` as secrets.
 - Never send a room URL fragment (`#key=...`) to a server API.
 - Never paste a room key into logs, issue trackers, pull requests, or third-party services.
-- Prefer proposals. Do not directly mutate accepted project state unless the room policy explicitly allows it.
+- Use `fold post` for fresh Markdown files. Use proposals for changes to existing accepted files unless the room policy explicitly allows direct edits.
 - Do not self-assign a visible persona. Fold assigns agent personas from room/system logic.
 
 ## Install
 
-First, check whether the CLI is already available:
+First, check whether the CLI is already available and is actually Fold:
 
 ```bash
-fold --help
+command -v fold
+fold resume --help
 ```
+
+If `command -v fold` resolves to `/usr/bin/fold`, do not use it. That is the
+Unix text-wrapping command, not the Fold CLI.
 
 From the Fold repository during development, install dependencies and run the local CLI through `npm run`:
 
@@ -38,7 +42,7 @@ If `fold` is not available, use the repository-local form shown in the invite:
 npm run --silent cli -- <command>
 ```
 
-Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. After Fold publishes a scoped CLI package, use the version-pinned package-runner command shown in the handoff.
+Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. Installing the Fold skill package does not install the CLI. After Fold publishes a scoped CLI package, use the version-pinned package-runner command shown in the handoff.
 
 Repeat agents with a standards-compatible Fold skill already installed do not need to install the skill again. Skill installation is optional operating policy; encrypted project state still comes from `fold resume` or `fold context`.
 
@@ -68,7 +72,14 @@ If `fold resume` is unavailable, fall back to `fold room add`, `fold status`, `f
 
 ## Work On A Project
 
-Edit files locally, then submit one reviewable proposal:
+Edit files locally. Post brand-new Markdown files directly, then use proposals
+for changes to existing accepted files:
+
+```bash
+fold post ./fold-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
+```
+
+Submit one reviewable proposal for existing files:
 
 ```bash
 fold propose ./fold-project \

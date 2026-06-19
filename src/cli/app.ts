@@ -19,6 +19,7 @@ import {
   listProposals,
   listRoomProfiles,
   patchMarkdown,
+  postMarkdown,
   proposeMarkdown,
   publishMarkdown,
   rejectProposal,
@@ -37,6 +38,7 @@ import {
   writeExportHuman,
   writeJson,
   writePatchHuman,
+  writePostHuman,
   writeProposalsHuman,
   writeProposeHuman,
   writePublishHuman,
@@ -84,6 +86,12 @@ type ProposeFlags = {
   path?: string;
   title?: string;
   comment?: string;
+  json: boolean;
+};
+
+type PostFlags = {
+  room: string;
+  path?: string;
   json: boolean;
 };
 
@@ -342,6 +350,55 @@ export const app: Application<FoldCommandContext> = buildApplication(
           });
           if (flags.json) writeJson(this, result);
           else writePatchHuman(this, result);
+        },
+      }),
+      post: buildCommand<PostFlags, [string], FoldCommandContext>({
+        parameters: {
+          flags: {
+            room: {
+              kind: 'parsed',
+              parse: parseString,
+              brief: 'Room alias, URL, or token',
+              placeholder: 'alias-or-url-or-token',
+            },
+            path: {
+              kind: 'parsed',
+              parse: parseString,
+              optional: true,
+              brief: 'Fresh room path for the posted Markdown file',
+              placeholder: 'path',
+            },
+            json: {
+              kind: 'boolean',
+              default: false,
+              withNegated: false,
+              brief: 'Print a stable JSON result',
+            },
+          },
+          positional: {
+            kind: 'tuple',
+            parameters: [
+              {
+                parse: parseString,
+                placeholder: 'file.md',
+                brief: 'Fresh Markdown file to post into accepted room state',
+              },
+            ],
+          },
+        },
+        docs: {
+          brief: 'Post a fresh Markdown file into accepted room state',
+          customUsage: ['<file.md> --room <alias-or-url-or-token> [--path <room-path>] [--json]'],
+        },
+        async func(this: FoldCommandContext, flags, filePath) {
+          const result = await postMarkdown({
+            cwd: this.cwd,
+            filePath,
+            room: flags.room,
+            path: flags.path,
+          });
+          if (flags.json) writeJson(this, result);
+          else writePostHuman(this, result);
         },
       }),
       propose: buildCommand<ProposeFlags, [string], FoldCommandContext>({

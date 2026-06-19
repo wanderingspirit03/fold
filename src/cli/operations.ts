@@ -34,6 +34,7 @@ import {
   type RoomMetadataEntry,
 } from '../rooms/metadata.js';
 import {
+  addProjectFile,
   createEncryptedProjectSnapshot,
   normalizeProjectSnapshot,
   projectFileOrThrow,
@@ -79,6 +80,7 @@ import type {
   ContextResult,
   ExportResult,
   PatchResult,
+  PostResult,
   ProposalSummaryResult,
   ProposalsResult,
   ProposeResult,
@@ -115,6 +117,7 @@ export interface ExportOptions {
   room: string;
   outputPath?: string;
   path?: string;
+  forceProjectDirectory?: boolean;
 }
 
 export interface StatusOptions {
@@ -137,6 +140,13 @@ export interface ProposeOptions {
   path?: string;
   title?: string;
   comment?: string;
+}
+
+export interface PostOptions {
+  cwd: string;
+  filePath: string;
+  room: string;
+  path?: string;
 }
 
 export interface ProposalRoomOptions {
@@ -357,7 +367,9 @@ export async function exportMarkdown(options: ExportOptions): Promise<ExportResu
   const outputPath = options.outputPath ? resolve(options.cwd, options.outputPath) : null;
   let writtenPaths: string[] = [];
   if (options.outputPath) {
-    writtenPaths = await writeMarkdownProject(options.cwd, options.outputPath, project, options.path);
+    writtenPaths = await writeMarkdownProject(options.cwd, options.outputPath, project, options.path, {
+      forceDirectory: options.forceProjectDirectory,
+    });
   }
 
   return {
@@ -384,6 +396,64 @@ export async function exportMarkdown(options: ExportOptions): Promise<ExportResu
     server: {
       recordCount: records.length,
       latestSeq: records.at(-1)?.seq ?? null,
+    },
+  };
+}
+
+export async function postMarkdown(options: PostOptions): Promise<PostResult> {
+  const reference = await resolveRoomReference(options.cwd, options.room);
+  const metadataPath = defaultMetadataPath(options.cwd);
+  const entry = await findRoomMetadata(metadataPath, reference.roomId, reference.serverUrl);
+  const records = await listEncryptedUpdates(reference);
+  const baseProject = records.length > 0
+    ? await currentProjectFromRecords(records, reference, entry)
+    : singleFileProject(entry?.sourcePath ? basename(entry.sourcePath) : 'document.md', await decryptLocalSnapshotOrThrow(entry, reference));
+  const inputProject = await readMarkdownProject(options.cwd, options.filePath, options.path);
+  if (inputProject.files.length !== 1) {
+    throw new Error('fold post accepts one Markdown file; use one command per fresh file');
+  }
+  const inputFile = projectFileOrThrow(inputProject, inputProject.primaryPath);
+  if (baseProject.files.some((file) => file.path === inputFile.path)) {
+    throw new Error(`Project file already exists: ${inputFile.path}. Use fold propose to change existing files.`);
+  }
+
+  const postedProject = addProjectFile(baseProject, inputFile.path, inputFile.markdown);
+  const projectSummary = summarizeProject(postedProject);
+  const fileSummary = summarizeMarkdown(inputFile.markdown);
+  await appendEncryptedUpdate(reference, await createEncryptedProjectSnapshot(reference, postedProject));
+  const persona = assignPersona({
+    roomId: reference.roomId,
+    participantKind: 'agent',
+    participantFingerprint: CLI_SENDER_ID,
+  });
+  const event = createTimelineEvent({
+    type: 'file_posted',
+    actorPersonaId: persona.id,
+    proposalId: null,
+    documentSha256: projectSummary.sha256,
+    message: `Posted ${inputFile.path}`,
+    acceptedProject: postedProject,
+  });
+  const eventRecord = await appendEncryptedUpdate(reference, await createEncryptedTimelineEvent(reference, event));
+
+  return {
+    schema: 'fold.post.result.v1',
+    ok: true,
+    mode: 'accepted-file',
+    room: safeRoomResult(reference),
+    metadata: {
+      path: metadataPath,
+      found: Boolean(entry),
+    },
+    file: {
+      path: inputFile.path,
+      ...fileSummary,
+    },
+    project: projectSummary,
+    timeline: event,
+    server: {
+      recordCount: eventRecord.seq,
+      latestSeq: eventRecord.seq,
     },
   };
 }
@@ -463,6 +533,9 @@ export async function roomContext(options: StatusOptions): Promise<ContextResult
 
 export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> {
   const parsedSecretReference = tryParseRoomReference(options.room);
+  if (!parsedSecretReference && options.alias) {
+    throw new Error('--alias is only valid when --room is a fold:v1 token or room URL; repeat agents should use --room <alias> without --alias');
+  }
   if (parsedSecretReference && !options.alias) {
     throw new Error('Resuming from a room URL or fold:v1 token requires --alias so follow-up commands do not echo secret room access material');
   }
@@ -479,7 +552,7 @@ export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> 
   const room = options.alias ?? options.room;
   const status = await roomStatus({ cwd: options.cwd, room });
   const exported = options.outputPath
-    ? await exportMarkdown({ cwd: options.cwd, room, outputPath: options.outputPath })
+    ? await exportMarkdown({ cwd: options.cwd, room, outputPath: options.outputPath, forceProjectDirectory: true })
     : null;
   const context = await roomContext({ cwd: options.cwd, room });
   const requests = await listComments({
@@ -525,6 +598,9 @@ export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> 
     comments,
     proposals,
     nextCommands: {
+      post: outputArgument
+        ? `fold post ${outputArgument}/NEW_FILE.md --room ${roomArgument} --path "NEW_FILE.md" --json`
+        : null,
       propose: outputArgument
         ? `fold propose ${outputArgument} --room ${roomArgument} --title "Describe the change" --comment "Summarize what changed." --json`
         : null,
@@ -583,12 +659,25 @@ export async function proposeMarkdown(options: ProposeOptions): Promise<ProposeR
     : singleFileProject(entry?.sourcePath ? basename(entry.sourcePath) : 'document.md', await decryptLocalSnapshotOrThrow(entry, reference));
   const inputProject = await readMarkdownProject(options.cwd, options.filePath, options.path);
   const proposedPath = options.path ?? inferSingleFileProposalPath(baseProject, inputProject);
+  const inputPrimary = projectFileOrThrow(inputProject, inputProject.primaryPath);
+  const existingBaseFile = proposedPath
+    ? baseProject.files.find((file) => file.path === proposedPath)
+    : null;
+  if (proposedPath && !existingBaseFile) {
+    throw new Error(`Fresh project files must be posted directly with fold post: ${proposedPath}`);
+  }
+  const newInputPaths = proposedPath ? [] : projectNewFilePaths(baseProject, inputProject);
+  if (newInputPaths.length > 0) {
+    throw new Error(`Fresh project files must be posted directly with fold post: ${newInputPaths.join(', ')}`);
+  }
   const proposedProject = proposedPath
-    ? replaceProjectFile(baseProject, proposedPath, projectFileOrThrow(inputProject, inputProject.primaryPath).markdown)
-    : inputProject;
-  const baseMarkdown = proposedPath
-    ? projectFileOrThrow(baseProject, proposedPath).markdown
-    : projectFileOrThrow(baseProject, baseProject.primaryPath).markdown;
+    ? replaceProjectFile(baseProject, proposedPath, inputPrimary.markdown)
+    : preserveBasePrimaryPath(baseProject, inputProject);
+  const baseMarkdown = existingBaseFile
+    ? existingBaseFile.markdown
+    : proposedPath
+      ? ''
+      : projectFileOrThrow(baseProject, baseProject.primaryPath).markdown;
   const proposedMarkdown = proposedPath
     ? projectFileOrThrow(proposedProject, proposedPath).markdown
     : projectFileOrThrow(proposedProject, proposedProject.primaryPath).markdown;
@@ -975,6 +1064,7 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
     `1. Read the agent skill: ${skillUrl}`,
     '',
     '   Repeat agents with the Fold skill already installed can skip installation.',
+    '   Skill installation does not install the Fold CLI.',
     '   Optional skill install paths when supported:',
     '   gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>',
     '   npx skills add wanderingspirit03/fold --skill fold',
@@ -982,10 +1072,12 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
     '2. Resume the encrypted project locally:',
     `   fold resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     '',
-    '   If the Fold CLI is not globally installed in this repo, use:',
+    '   If `command -v fold` resolves to /usr/bin/fold, that is the Unix wrapper, not Fold.',
+    '   Inside a cloned Fold repo with dependencies installed, use:',
     `   npm run --silent cli -- resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     '',
-    '3. Work through proposals, not direct mutation:',
+    '3. Post fresh Markdown files directly; propose changes to existing files:',
+    `   fold post ./fold-project/NEW_FILE.md --room ${JSON.stringify(options.alias)} --path "NEW_FILE.md" --json`,
     `   fold propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
     '',
     '4. Answer human requests and join comment threads when clarification is better than a proposal:',
@@ -1144,6 +1236,22 @@ function inferSingleFileProposalPath(baseProject: ProjectSnapshot, inputProject:
   if (baseProject.files.some((file) => file.path === inputPath)) return inputPath;
   if (baseProject.files.length === 1) return baseProject.primaryPath;
   throw new Error(`Use --path to choose which room file ${inputPath} should replace`);
+}
+
+function preserveBasePrimaryPath(baseProject: ProjectSnapshot, inputProject: ProjectSnapshot): ProjectSnapshot {
+  return normalizeProjectSnapshot({
+    ...inputProject,
+    primaryPath: inputProject.files.some((file) => file.path === baseProject.primaryPath)
+      ? baseProject.primaryPath
+      : inputProject.primaryPath,
+  });
+}
+
+function projectNewFilePaths(baseProject: ProjectSnapshot, inputProject: ProjectSnapshot): string[] {
+  const basePaths = new Set(baseProject.files.map((file) => file.path));
+  return inputProject.files
+    .map((file) => file.path)
+    .filter((path) => !basePaths.has(path));
 }
 
 async function decryptLocalSnapshotOrThrow(

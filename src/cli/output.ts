@@ -5,6 +5,7 @@ import type {
   CommentsResult,
   ExportResult,
   PatchResult,
+  PostResult,
   ProposalsResult,
   ProposeResult,
   PublishResult,
@@ -55,7 +56,7 @@ export function writeRoomCreateHuman(context: CommandContext, result: RoomCreate
     `→ Server records: ${result.server.recordCount}`,
     `→ Invite a human: fold room invite ${JSON.stringify(result.metadata.alias)} --for human`,
     `→ Invite an agent: fold room invite ${JSON.stringify(result.metadata.alias)} --for agent`,
-    `→ Add files later: fold propose ./project --room ${JSON.stringify(result.metadata.alias)}`,
+    `→ Post a fresh file: fold post ./project/README.md --room ${JSON.stringify(result.metadata.alias)} --path README.md`,
     '',
   ].join('\n'));
 }
@@ -100,10 +101,22 @@ export function writeResumeHuman(context: CommandContext, result: ResumeResult):
     `→ Agent skill: ${result.skill.url}`,
     '',
     'Next commands:',
+    result.nextCommands.post ?? null,
     result.nextCommands.propose ?? `Run fold resume --room ${JSON.stringify(result.metadata.alias)} --output ./fold-project --json before proposing from exported files.`,
     result.nextCommands.requests,
     result.nextCommands.comments,
     result.nextCommands.proposals,
+    '',
+  ].filter((line): line is string => line !== null).join('\n'));
+}
+
+export function writePostHuman(context: CommandContext, result: PostResult): void {
+  context.process.stdout.write([
+    '✓ Posted encrypted Markdown file',
+    `→ Room: ${result.room.serverRoomUrl}`,
+    `→ File: ${result.file.path}`,
+    `→ Project files: ${result.project.fileCount}`,
+    `→ Server records: ${result.server.recordCount}`,
     '',
   ].join('\n'));
 }

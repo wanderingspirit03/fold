@@ -140,12 +140,33 @@ export interface ResumeResult {
   comments: CommentsResult;
   proposals: ProposalsResult;
   nextCommands: {
+    post: string | null;
     propose: string | null;
     requests: string;
     comments: string;
     proposals: string;
     reply: string;
     context: string;
+  };
+}
+
+export interface PostResult {
+  schema: 'fold.post.result.v1';
+  ok: true;
+  mode: 'accepted-file';
+  room: SafeRoomResult;
+  metadata: {
+    path: string;
+    found: boolean;
+  };
+  file: {
+    path: string;
+  } & MarkdownDocumentSummary;
+  project: ProjectSummary;
+  timeline: TimelineEvent;
+  server: {
+    recordCount: number;
+    latestSeq: number;
   };
 }
 

@@ -34,5 +34,6 @@ skills.sh-style tooling:
 npx skills add wanderingspirit03/fold --skill fold
 ```
 
-Skill installation is optional. Fresh agent handoffs should still lead with the
-room-specific `fold resume --room ... --alias ...` command.
+Skill installation is optional and does not install the Fold CLI. Fresh agent
+handoffs should still lead with the room-specific
+`fold resume --room ... --alias ...` command.

@@ -16,6 +16,7 @@ fold room invite <alias> [--for human|agent] [--json]
 fold resume --room <alias-or-url-or-token> [--alias <name>] [--output <file-or-directory>] [--json]
 fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-or-directory>] [--json]
 fold status --room <alias-or-url-or-token> [--json]
+fold post <file.md> --room <alias-or-url-or-token> [--path <room-path>] [--json]
 fold propose <file-or-directory> --room <alias-or-url-or-token> [--path <room-path>] [--title <text>] [--comment <text>] [--json]
 fold proposals --room <alias-or-url-or-token> [--json]
 fold comments --room <alias-or-url-or-token> [--path <room-path>] [--type all|comment|request] [--open] [--json]
@@ -127,6 +128,7 @@ ROOM_URL=$(node -e 'let s=""; process.stdin.on("data", d => s += d); process.std
 npm run --silent cli -- resume --room "$ROOM_URL" --alias launch --output ./accepted-project --json
 npm run --silent cli -- comments --room launch --json
 npm run --silent cli -- requests --room launch --json
+npm run --silent cli -- post ./accepted-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
 npm run --silent cli -- propose ./accepted-project --room launch --title "Tighten plan" --comment "Proposed by agent workflow." --json
 npm run --silent cli -- proposals --room launch --json
 ```
@@ -144,7 +146,9 @@ gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or
 npx skills add wanderingspirit03/fold --skill fold
 ```
 
-Skill installation is optional and reusable policy only. Live project memory still comes from encrypted room replay through `resume` or `context`.
+Skill installation is optional and reusable policy only. It does not install the
+Fold CLI. Live project memory still comes from encrypted room replay through
+`resume` or `context`.
 
 If the agent is creating the project room for a human, run `fold room invite <alias> --for human` after publish and send that invite text back to the user. The invite contains the browser room link and client-side key, so treat it as secret.
 
@@ -202,7 +206,7 @@ The web app exposes an agent skill at:
 /.well-known/fold/agent-skill.md
 ```
 
-Agent invites point to this skill and then instruct the agent to run `fold resume --room ... --alias ... --output ./fold-project --json`.
+Agent invites point to this skill and then instruct the agent to run `fold resume --room ... --alias ... --output ./fold-project --json`. Use `fold post` for fresh Markdown files and `fold propose` for existing-file changes.
 
 ## Append-Log API Contract
 

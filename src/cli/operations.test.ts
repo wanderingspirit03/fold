@@ -18,6 +18,7 @@ import {
   listRoomProfiles,
   listProposals,
   patchMarkdown,
+  postMarkdown,
   proposeMarkdown,
   publishMarkdown,
   rejectProposal,
@@ -704,6 +705,118 @@ describe('CLI operations', () => {
     }
   });
 
+  it('posts a fresh Markdown file directly into accepted project state', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-post-file-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'README.md'), '# Readme\n\nKeep me.', 'utf8');
+      await writeFile(join(cwd, 'ABOUT_CODEX.md'), '# About Codex\n\nFresh file.', 'utf8');
+      await publishMarkdown({
+        cwd,
+        filePath: 'README.md',
+        serverUrl,
+        alias: 'post-room',
+        save: true,
+      });
+
+      const posted = await postMarkdown({
+        cwd,
+        filePath: 'ABOUT_CODEX.md',
+        room: 'post-room',
+      });
+      const exported = await exportMarkdown({
+        cwd,
+        room: 'post-room',
+        outputPath: 'posted-export',
+      });
+
+      expect(posted.schema).toBe('fold.post.result.v1');
+      expect(posted.file.path).toBe('ABOUT_CODEX.md');
+      expect(posted.project.primaryPath).toBe('README.md');
+      expect(posted.project.fileCount).toBe(2);
+      expectSafeRoomOutput(posted);
+      expect(exported.project.primaryPath).toBe('README.md');
+      expect(await readFile(join(cwd, 'posted-export', 'README.md'), 'utf8')).toContain('Keep me.');
+      expect(await readFile(join(cwd, 'posted-export', 'ABOUT_CODEX.md'), 'utf8')).toContain('Fresh file.');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps proposals limited to existing files', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-propose-existing-only-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'README.md'), '# Readme\n', 'utf8');
+      await writeFile(join(cwd, 'ABOUT_CODEX.md'), '# About Codex\n', 'utf8');
+      await mkdir(join(cwd, 'proposal'), { recursive: true });
+      await writeFile(join(cwd, 'proposal', 'README.md'), '# Readme\n\nUpdated.', 'utf8');
+      await writeFile(join(cwd, 'proposal', 'ABOUT_CODEX.md'), '# About Codex\n', 'utf8');
+      await publishMarkdown({
+        cwd,
+        filePath: 'README.md',
+        serverUrl,
+        alias: 'proposal-room',
+        save: true,
+      });
+
+      await expect(proposeMarkdown({
+        cwd,
+        filePath: 'ABOUT_CODEX.md',
+        room: 'proposal-room',
+        path: 'ABOUT_CODEX.md',
+        title: 'Add about',
+      })).rejects.toThrow(/fold post/);
+      await expect(proposeMarkdown({
+        cwd,
+        filePath: 'proposal',
+        room: 'proposal-room',
+        title: 'Update with fresh file',
+      })).rejects.toThrow(/fold post/);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves the existing primary path when proposing a project directory', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-primary-proposal-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await mkdir(join(cwd, 'project'), { recursive: true });
+      await writeFile(join(cwd, 'project', 'README.md'), '# Readme\n\nOriginal.', 'utf8');
+      await writeFile(join(cwd, 'project', 'ZZZ.md'), '# Later\n\nOriginal.', 'utf8');
+      await publishMarkdown({
+        cwd,
+        filePath: 'project',
+        serverUrl,
+        alias: 'primary-room',
+        save: true,
+      });
+      await mkdir(join(cwd, 'proposal'), { recursive: true });
+      await writeFile(join(cwd, 'proposal', 'README.md'), '# Readme\n\nUpdated.', 'utf8');
+      await writeFile(join(cwd, 'proposal', 'ZZZ.md'), '# Later\n\nUpdated.', 'utf8');
+
+      const proposed = await proposeMarkdown({
+        cwd,
+        filePath: 'proposal',
+        room: 'primary-room',
+        title: 'Update project',
+      });
+
+      expect(proposed.project.base.primaryPath).toBe('README.md');
+      expect(proposed.project.proposed.primaryPath).toBe('README.md');
+      expect(proposed.proposal.project?.primaryPath).toBe('README.md');
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('keeps newer web file snapshots after accepted proposal replay', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'fold-accepted-then-web-file-'));
     const server = new EncryptedAppendLogServer();
@@ -954,6 +1067,39 @@ describe('CLI operations', () => {
     }
   });
 
+  it('resumes one-file rooms into a project directory for agent workflows', async () => {
+    const ownerCwd = await mkdtemp(join(tmpdir(), 'fold-resume-one-owner-'));
+    const agentCwd = await mkdtemp(join(tmpdir(), 'fold-resume-one-agent-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(ownerCwd, 'README.md'), '# Single\n\nAccepted body.', 'utf8');
+      const published = await publishMarkdown({
+        cwd: ownerCwd,
+        filePath: 'README.md',
+        serverUrl,
+        alias: 'single',
+        save: true,
+      });
+
+      const resumed = await resumeRoom({
+        cwd: agentCwd,
+        room: published.room.token,
+        alias: 'single',
+        outputPath: 'fold-project',
+      });
+
+      expect(resumed.export?.output.paths).toEqual([join(agentCwd, 'fold-project', 'README.md')]);
+      expect(await readFile(join(agentCwd, 'fold-project', 'README.md'), 'utf8')).toContain('Accepted body.');
+      expect(resumed.nextCommands.post).toContain('fold post');
+      expect(resumed.nextCommands.propose).toContain('fold propose');
+    } finally {
+      await server.stop();
+      await rm(ownerCwd, { recursive: true, force: true });
+      await rm(agentCwd, { recursive: true, force: true });
+    }
+  });
+
   it('does not print a stale proposal command when resume skips export', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'fold-resume-no-export-'));
     const server = new EncryptedAppendLogServer();
@@ -1000,6 +1146,32 @@ describe('CLI operations', () => {
         room: published.room.token,
         outputPath: 'fold-project',
       })).rejects.toThrow(/requires --alias/);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects --alias when resuming from an already saved alias', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-resume-alias-alias-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'room.md'), '# Alias Room', 'utf8');
+      await publishMarkdown({
+        cwd,
+        filePath: 'room.md',
+        serverUrl,
+        alias: 'launch',
+        save: true,
+      });
+
+      await expect(resumeRoom({
+        cwd,
+        room: 'launch',
+        alias: 'other',
+        outputPath: 'fold-project',
+      })).rejects.toThrow(/--alias is only valid/);
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });

@@ -62,13 +62,19 @@ export async function readMarkdownProject(cwd: string, sourcePath: string, roomP
   });
 }
 
-export async function writeMarkdownProject(cwd: string, outputPath: string, project: ProjectSnapshot, selectedPath?: string): Promise<string[]> {
+export async function writeMarkdownProject(
+  cwd: string,
+  outputPath: string,
+  project: ProjectSnapshot,
+  selectedPath?: string,
+  options: { forceDirectory?: boolean } = {},
+): Promise<string[]> {
   const output = resolve(cwd, outputPath);
   const files = selectedPath
     ? [projectFileOrThrow(project, selectedPath)]
     : project.files;
 
-  if (selectedPath || files.length === 1) {
+  if (selectedPath || (files.length === 1 && !options.forceDirectory)) {
     const target = selectedPath ? output : output;
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, files[0]!.markdown, 'utf8');
@@ -123,6 +129,23 @@ export function replaceProjectFile(project: ProjectSnapshot, path: string, markd
     schema: PROJECT_SCHEMA,
     primaryPath: normalized.primaryPath || targetPath,
     files,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function addProjectFile(project: ProjectSnapshot, path: string, markdown: string): ProjectSnapshot {
+  const normalized = normalizeProjectSnapshot(project);
+  const targetPath = normalizeProjectPath(path);
+  if (normalized.files.some((file) => file.path === targetPath)) {
+    throw new Error(`Project file already exists: ${targetPath}`);
+  }
+  return normalizeProjectSnapshot({
+    schema: PROJECT_SCHEMA,
+    primaryPath: normalized.primaryPath,
+    files: [
+      ...normalized.files,
+      { path: targetPath, markdown },
+    ],
     updatedAt: new Date().toISOString(),
   });
 }

@@ -68,6 +68,7 @@ It should return:
 Example next commands:
 
 ```bash
+fold post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
 fold propose ./fold-project --room "launch" --title "..." --comment "..."
 fold reply "<thread-id>" --room "launch" --text "..."
 fold show-proposal "<proposal-id>" --room "launch" --json

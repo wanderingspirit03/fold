@@ -25,6 +25,10 @@ repo-local wrapper from the handoff:
 npm run --silent cli -- resume --room "fold:v1:..." --alias "launch" --output ./fold-project --json
 ```
 
+If `command -v fold` resolves to `/usr/bin/fold`, do not use it. That is the
+Unix text-wrapping command, not the Fold CLI. Installing this skill does not
+install the CLI.
+
 If `fold resume` is unavailable, use the fallback sequence in
 `references/workflow.md`.
 
@@ -34,8 +38,9 @@ If `fold resume` is unavailable, use the fallback sequence in
   secret.
 - Never paste room keys, tokens, or decrypted access files into logs, issues,
   pull requests, or third-party services.
-- Prefer proposals. Do not mutate accepted project state directly unless the
-  room policy explicitly asks for it.
+- Use `fold post` for fresh Markdown files. Use proposals for changes to
+  existing accepted files unless the room policy explicitly asks for direct
+  edits.
 - Do not self-assign a visible persona. Fold assigns agent personas from
   room/system logic.
 - Use saved aliases after the first join. Repeat agents should not reinstall
@@ -46,7 +51,13 @@ If `fold resume` is unavailable, use the fallback sequence in
 1. Resume the room.
 2. Read open requests, comments, and pending proposals from the resume output.
 3. Edit exported files locally.
-4. Submit one reviewable proposal:
+4. Post fresh Markdown files directly:
+
+```bash
+fold post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
+```
+
+5. Submit existing-file changes as one reviewable proposal:
 
 ```bash
 fold propose ./fold-project \
@@ -56,7 +67,7 @@ fold propose ./fold-project \
   --json
 ```
 
-5. Reply instead of proposing when a human request needs clarification:
+6. Reply instead of proposing when a human request needs clarification:
 
 ```bash
 fold reply "<thread-id>" --room "launch" --text "Short reply." --json

@@ -6,6 +6,9 @@ Development wrapper inside the Fold repo:
 npm run --silent cli -- <command>
 ```
 
+If `command -v fold` resolves to `/usr/bin/fold`, do not use it. That is the
+Unix text-wrapping command, not Fold.
+
 Primary fresh-agent command:
 
 ```bash
@@ -24,6 +27,8 @@ Optional repeat-agent skill install paths, when the host supports them:
 gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>
 npx skills add wanderingspirit03/fold --skill fold
 ```
+
+Skill installation is optional and does not install the Fold CLI.
 
 Do not use `npm install -g fold` or `npx fold`; the public unscoped npm package
 name is not Fold's CLI package. Use only the scoped package-runner command once

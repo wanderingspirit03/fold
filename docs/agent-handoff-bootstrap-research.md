@@ -153,7 +153,8 @@ If Fold is already installed:
   fold resume --room "fold:v1:..." --alias "launch" --output ./fold-project --json
 
 Then follow the commands printed by Fold. Keep room URLs, fold:v1 tokens, keys,
-and .fold/rooms.json secret. Work through proposals unless the room policy says
+and .fold/rooms.json secret. Post fresh Markdown files directly, and use
+proposals for changes to existing accepted files unless the room policy says
 otherwise.
 
 Reference skill:

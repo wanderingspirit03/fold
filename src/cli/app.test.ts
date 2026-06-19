@@ -123,6 +123,44 @@ describe('fold CLI app', () => {
     }
   });
 
+  it('prints post JSON through the Stricli route for fresh files', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    const publishOutput = buildOutputCapture();
+    const postOutput = buildOutputCapture();
+
+    try {
+      await writeFile(join(cwd, 'README.md'), '# Base', 'utf8');
+      await writeFile(join(cwd, 'ABOUT.md'), '# About', 'utf8');
+      await runFoldCli(['publish', 'README.md', '--server', serverUrl, '--alias', 'launch', '--json'], {
+        process: {
+          stdout: { write: publishOutput.stdout.write },
+          stderr: { write: publishOutput.stderr.write },
+        },
+        cwd,
+      });
+
+      await runFoldCli(['post', 'ABOUT.md', '--room', 'launch', '--path', 'ABOUT.md', '--json'], {
+        process: {
+          stdout: { write: postOutput.stdout.write },
+          stderr: { write: postOutput.stderr.write },
+        },
+        cwd,
+      });
+
+      expect(postOutput.stderr.value).toBe('');
+      const result = JSON.parse(postOutput.stdout.value) as { schema?: string; mode?: string; room?: { url?: string; token?: string } };
+      expect(result.schema).toBe('fold.post.result.v1');
+      expect(result.mode).toBe('accepted-file');
+      expect(result.room?.url).toBeUndefined();
+      expect(result.room?.token).toBeUndefined();
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('routes resume JSON through the Stricli route', async () => {
     const ownerCwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-owner-'));
     const agentCwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-agent-'));

@@ -20,7 +20,13 @@ Repeat work in the same project:
 fold resume --room "launch" --output ./fold-project --json
 ```
 
-Submit work:
+Post a fresh Markdown file directly:
+
+```bash
+fold post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
+```
+
+Submit changes to existing files as a proposal:
 
 ```bash
 fold propose ./fold-project --room "launch" --title "Describe the change" --comment "Summarize what changed." --json
