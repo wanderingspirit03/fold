@@ -1,0 +1,35 @@
+{
+  "name": "fold-agent",
+  "version": "0.1.0",
+  "description": "Fold CLI for encrypted Markdown project rooms used by humans and agents.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "fold-agent": "./bin/fold-agent.js"
+  },
+  "files": [
+    "bin",
+    "dist/cli",
+    "dist/deploy",
+    "dist/rooms",
+    "skills/fold",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@stricli/core": "^1.2.7",
+    "prosemirror-markdown": "^1.13.4",
+    "prosemirror-model": "^1.25.7",
+    "ws": "^8.18.0",
+    "yjs": "^13.6.23"
+  }
+}

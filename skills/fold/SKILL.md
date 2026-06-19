@@ -7,29 +7,29 @@ description: Work safely in encrypted Fold Markdown project rooms. Use when join
 
 Fold is an encrypted Markdown project room for humans and coding agents. Use the
 Fold CLI for room work. Treat this skill as reusable operating policy; live
-project memory comes from encrypted room replay through `fold resume` or
-`fold context`, not from the skill.
+project memory comes from encrypted room replay through `fold-agent bootstrap`,
+`fold-agent resume`, or `fold-agent context`, not from the skill.
 
 ## Start Here
 
-When a handoff contains a `fold resume` command, run that first:
+When a handoff contains a pinned `fold-agent bootstrap` command, run that first:
 
 ```bash
-fold resume --room "fold:v1:..." --alias "launch" --output ./fold-project --json
+npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project --json
 ```
 
 If `fold` is not globally installed but you are inside the Fold repo, use the
 repo-local wrapper from the handoff:
 
 ```bash
-npm run --silent cli -- resume --room "fold:v1:..." --alias "launch" --output ./fold-project --json
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project --json
 ```
 
-If `command -v fold` resolves to `/usr/bin/fold`, do not use it. That is the
-Unix text-wrapping command, not the Fold CLI. Installing this skill does not
-install the CLI.
+Do not use `/usr/bin/fold`. That is the Unix text-wrapping command, not Fold.
+The Fold skill teaches agent behavior; `fold-agent` performs encrypted room
+operations.
 
-If `fold resume` is unavailable, use the fallback sequence in
+If `fold-agent resume` is unavailable, use the fallback sequence in
 `references/workflow.md`.
 
 ## Rules
@@ -38,7 +38,7 @@ If `fold resume` is unavailable, use the fallback sequence in
   secret.
 - Never paste room keys, tokens, or decrypted access files into logs, issues,
   pull requests, or third-party services.
-- Use `fold post` for fresh Markdown files. Use proposals for changes to
+- Use `fold-agent post` for fresh Markdown files. Use proposals for changes to
   existing accepted files unless the room policy explicitly asks for direct
   edits.
 - Do not self-assign a visible persona. Fold assigns agent personas from
@@ -54,13 +54,13 @@ If `fold resume` is unavailable, use the fallback sequence in
 4. Post fresh Markdown files directly:
 
 ```bash
-fold post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
+fold-agent post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
 ```
 
 5. Submit existing-file changes as one reviewable proposal:
 
 ```bash
-fold propose ./fold-project \
+fold-agent propose ./fold-project \
   --room "launch" \
   --title "Describe the change" \
   --comment "Summarize what changed." \
@@ -70,12 +70,12 @@ fold propose ./fold-project \
 6. Reply instead of proposing when a human request needs clarification:
 
 ```bash
-fold reply "<thread-id>" --room "launch" --text "Short reply." --json
+fold-agent reply "<thread-id>" --room "launch" --text "Short reply." --json
 ```
 
 ## References
 
 - Read `references/security.md` before handling secret-bearing room access.
-- Read `references/workflow.md` when `fold resume` is unavailable or a handoff
+- Read `references/workflow.md` when `fold-agent resume` is unavailable or a handoff
   gives only older commands.
 - Read `references/cli.md` for command examples and repeat-agent behavior.

@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "packages/fold-agent"
   ],
   "type": "module",
   "description": "OSS plan and spikes for encrypted Markdown rooms created by coding agents.",
@@ -12,6 +13,7 @@
   },
   "scripts": {
     "build": "npm run web:build",
+    "build:fold-agent": "npm run build --workspace=fold-agent",
     "start": "tsx src/hosted/bin.ts",
     "cli": "tsx src/cli/bin.ts",
     "server": "tsx src/server/bin.ts",

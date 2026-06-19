@@ -129,8 +129,8 @@ export interface ResumeResult {
     install: {
       required: false;
       repeatAgents: string;
-      ghSkill: string;
-      skillsSh: string;
+      command: string;
+      updateCommand: string;
     };
   };
   status: StatusResult;
@@ -139,6 +139,55 @@ export interface ResumeResult {
   requests: CommentsResult;
   comments: CommentsResult;
   proposals: ProposalsResult;
+  nextCommands: {
+    post: string | null;
+    propose: string | null;
+    requests: string;
+    comments: string;
+    proposals: string;
+    reply: string;
+    context: string;
+  };
+}
+
+export type SkillInstallScope = 'project' | 'global' | 'all';
+
+export interface SkillInstallTargetResult {
+  path: string;
+  version: string;
+  host: 'agents' | 'codex';
+  autoLoadKnown: boolean;
+  reason?:
+    | 'same_version'
+    | 'unmanaged_existing'
+    | 'newer_managed'
+    | 'modified_existing'
+    | 'target_unavailable'
+    | 'permission_denied';
+}
+
+export interface SkillInstallResult {
+  schema: 'fold.skill.result.v1';
+  ok: true;
+  package: {
+    name: 'fold-agent';
+    version: string;
+  };
+  scope: SkillInstallScope;
+  installed: SkillInstallTargetResult[];
+  updated: SkillInstallTargetResult[];
+  skipped: SkillInstallTargetResult[];
+}
+
+export interface BootstrapResult {
+  schema: 'fold.bootstrap.result.v1';
+  ok: true;
+  package: {
+    name: 'fold-agent';
+    version: string;
+  };
+  skill: SkillInstallResult | null;
+  resume: ResumeResult;
   nextCommands: {
     post: string | null;
     propose: string | null;

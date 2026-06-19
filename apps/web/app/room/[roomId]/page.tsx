@@ -34,6 +34,7 @@ const CLI_COMMENT_EVENT_SENDER_ID = "fold-cli:comment-event";
 const PRESENCE_SENDER_ID = "web-client:presence";
 const FILE_VERSION_SENDER_ID = "web-client:version";
 const ROOM_PROFILE_SENDER_ID = "web-client:room-profile";
+const FOLD_AGENT_COMMAND_PREFIX = "npx --yes fold-agent@0.1.0";
 const LIVE_FILE_PATH = "reports/launch-review.md";
 const DEFAULT_PROJECT_FILE_PATH = "README.md";
 const PRESENCE_TTL_MS = 75_000;
@@ -2098,6 +2099,7 @@ function createAgentInvite({
     syncUrl: normalizedSyncUrl,
   });
   const skillUrl = `${normalizedAppUrl}/.well-known/fold/agent-skill.md`;
+  const bootstrapCommand = `${FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`;
   const warningLines = warnings.length
     ? ["", "Reachability warning:", ...warnings.map((warning) => `- ${warning}`)]
     : [];
@@ -2109,30 +2111,26 @@ function createAgentInvite({
       "Join this Fold project room:",
       ...warningLines,
       "",
-      `1. Read the agent skill: ${skillUrl}`,
+      "1. Run the pinned Fold agent CLI. It installs the Fold skill locally and resumes the encrypted project:",
+      `   ${bootstrapCommand}`,
       "",
-      "   Repeat agents with the Fold skill already installed can skip installation.",
-      "   Skill installation does not install the Fold CLI.",
-      "   Optional skill install paths when supported:",
-      "   gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>",
-      "   npx skills add wanderingspirit03/fold --skill fold",
+      "   Do not use /usr/bin/fold. That is the Unix text wrapper, not Fold.",
+      "   The Fold skill teaches agent behavior; fold-agent performs encrypted room operations.",
       "",
-      "2. Resume the encrypted project locally:",
-      `   fold resume --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`,
+      `2. Optional reference skill: ${skillUrl}`,
       "",
-      "   If `command -v fold` resolves to /usr/bin/fold, that is the Unix wrapper, not Fold.",
-      "   Inside a cloned Fold repo with dependencies installed, use:",
-      `   npm run --silent cli -- resume --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`,
+      "   Inside a cloned Fold repo during development, the equivalent local command is:",
+      `   npm run --silent cli -- bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`,
       "",
       "3. Post fresh Markdown files directly; propose changes to existing files:",
-      `   fold post ./fold-project/NEW_FILE.md --room ${JSON.stringify(alias)} --path "NEW_FILE.md" --json`,
-      `   fold propose ./fold-project --room ${JSON.stringify(alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} post ./fold-project/NEW_FILE.md --room ${JSON.stringify(alias)} --path "NEW_FILE.md" --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} propose ./fold-project --room ${JSON.stringify(alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
       "",
       "4. Join comment threads when clarification is better than a proposal:",
-      `   fold requests --room ${JSON.stringify(alias)} --json`,
-      `   fold comments --room ${JSON.stringify(alias)} --type comment --open --json`,
-      `   fold reply "<thread-id>" --room ${JSON.stringify(alias)} --text "Short reply." --json`,
-      `   fold comment --room ${JSON.stringify(alias)} --path "docs/PLAN.md" --text "Short note." --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} requests --room ${JSON.stringify(alias)} --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} comments --room ${JSON.stringify(alias)} --type comment --open --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} reply "<thread-id>" --room ${JSON.stringify(alias)} --text "Short reply." --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} comment --room ${JSON.stringify(alias)} --path "docs/PLAN.md" --text "Short note." --json`,
     ].join("\n"),
   };
 }
@@ -2407,14 +2405,14 @@ function createInitialVirtualFiles(template: InitialProjectTemplate): Record<str
       "",
       "1. Human creates or opens a Fold project room.",
       "2. Human copies the secure agent handoff.",
-      "3. Agent reads the room skill and exports the encrypted project locally.",
+      "3. Agent runs fold-agent bootstrap and exports the encrypted project locally.",
       "4. Agent proposes a Markdown change instead of mutating accepted content directly.",
       "5. Human reviews the suggestion inline, accepts it, rejects it, or asks for another pass.",
       "",
       "## Example Patch Command",
       "",
       "```bash",
-      "fold propose ./fold-project \\",
+      "fold-agent propose ./fold-project \\",
       "  --room room-launch-review \\",
       "  --title \"Tighten handoff language\" \\",
       "  --comment \"Clarifies proposal-first workflow and E2EE boundaries.\" \\",

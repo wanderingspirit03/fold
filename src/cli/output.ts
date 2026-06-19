@@ -1,6 +1,7 @@
 import type { CommandContext } from '@stricli/core';
 import type {
   DecideProposalResult,
+  BootstrapResult,
   CommentResult,
   CommentsResult,
   ExportResult,
@@ -16,6 +17,7 @@ import type {
   RoomListResult,
   RoomProfileResult,
   ShowProposalResult,
+  SkillInstallResult,
   StatusResult,
 } from './results.js';
 
@@ -108,6 +110,43 @@ export function writeResumeHuman(context: CommandContext, result: ResumeResult):
     result.nextCommands.proposals,
     '',
   ].filter((line): line is string => line !== null).join('\n'));
+}
+
+export function writeBootstrapHuman(context: CommandContext, result: BootstrapResult): void {
+  const skillLine = result.skill
+    ? `→ Skill install: ${result.skill.installed.length} installed, ${result.skill.updated.length} updated, ${result.skill.skipped.length} skipped`
+    : '→ Skill install skipped';
+  context.process.stdout.write([
+    '✓ Bootstrapped Fold agent workspace',
+    skillLine,
+    `→ Alias: ${result.resume.metadata.alias}`,
+    result.resume.export?.output.written
+      ? `→ Exported files: ${result.resume.export.output.path}`
+      : '→ Export skipped: pass --output <path> to write accepted files',
+    '',
+    'Next commands:',
+    result.nextCommands.post ?? null,
+    result.nextCommands.propose ?? null,
+    result.nextCommands.requests,
+    result.nextCommands.comments,
+    result.nextCommands.proposals,
+    '',
+  ].filter((line): line is string => line !== null).join('\n'));
+}
+
+export function writeSkillHuman(context: CommandContext, result: SkillInstallResult): void {
+  const lines = [
+    result.installed.map((entry) => `✓ Installed Fold skill: ${entry.path}`),
+    result.updated.map((entry) => `✓ Updated Fold skill: ${entry.path}`),
+    result.skipped.map((entry) => {
+      const reason = entry.reason ? ` (${entry.reason})` : '';
+      return `→ Skipped Fold skill: ${entry.path}${reason}`;
+    }),
+  ].flat();
+  context.process.stdout.write([
+    lines.length > 0 ? lines.join('\n') : 'No Fold skill targets found.',
+    '',
+  ].join('\n'));
 }
 
 export function writePostHuman(context: CommandContext, result: PostResult): void {

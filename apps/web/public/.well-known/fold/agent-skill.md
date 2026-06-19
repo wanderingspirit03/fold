@@ -14,61 +14,52 @@ Fold is an encrypted Markdown project room for humans and coding agents. Use the
 - Treat room URLs, `fold:v1:` tokens, and `.fold/rooms.json` as secrets.
 - Never send a room URL fragment (`#key=...`) to a server API.
 - Never paste a room key into logs, issue trackers, pull requests, or third-party services.
-- Use `fold post` for fresh Markdown files. Use proposals for changes to existing accepted files unless the room policy explicitly allows direct edits.
+- Use `fold-agent post` for fresh Markdown files. Use proposals for changes to existing accepted files unless the room policy explicitly allows direct edits.
 - Do not self-assign a visible persona. Fold assigns agent personas from room/system logic.
 
 ## Install
 
-First, check whether the CLI is already available and is actually Fold:
+Run the pinned Fold agent CLI from the copied handoff:
 
 ```bash
-command -v fold
-fold resume --help
+npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
 ```
 
-If `command -v fold` resolves to `/usr/bin/fold`, do not use it. That is the
-Unix text-wrapping command, not the Fold CLI.
+Do not use `/usr/bin/fold`. That is the Unix text-wrapping command, not Fold.
+The Fold skill teaches agent behavior; `fold-agent` performs encrypted room
+operations.
 
-From the Fold repository during development, install dependencies and run the local CLI through `npm run`:
-
-```bash
-npm install
-npm run --silent cli -- --help
-```
-
-If `fold` is not available, use the repository-local form shown in the invite:
+From the Fold repository during development, use the repository-local form shown in the invite:
 
 ```bash
 npm run --silent cli -- <command>
 ```
 
-Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. Installing the Fold skill package does not install the CLI. After Fold publishes a scoped CLI package, use the version-pinned package-runner command shown in the handoff.
-
-Repeat agents with a standards-compatible Fold skill already installed do not need to install the skill again. Skill installation is optional operating policy; encrypted project state still comes from `fold resume` or `fold context`.
+Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. Repeat agents can use `fold-agent resume --room launch --output ./fold-project --json` after bootstrap has saved the alias.
 
 The copied agent handoff is authoritative for the room. Prefer its exact alias, token, app URL, and sync URL.
 
 ## Resume A Room
 
-Use the copied handoff's `fold resume` command first. Agent invites normally use a token because it preserves both the web app URL and sync server URL:
+Use the copied handoff's `fold-agent bootstrap` command first. Agent invites normally use a token because it preserves both the web app URL and sync server URL:
 
 ```bash
-fold resume --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
 ```
 
 If `fold` is not installed yet in development, run the same command through:
 
 ```bash
-npm run --silent cli -- resume --room "fold:v1:..." --alias launch --output ./fold-project --json
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
 ```
 
 For repeat work in the same project, use the saved alias:
 
 ```bash
-fold resume --room launch --output ./fold-project --json
+fold-agent resume --room launch --output ./fold-project --json
 ```
 
-If `fold resume` is unavailable, fall back to `fold room add`, `fold status`, `fold export`, `fold context`, `fold requests`, `fold comments`, and `fold proposals`.
+If `fold-agent resume` is unavailable, fall back to `fold-agent room add`, `fold-agent status`, `fold-agent export`, `fold-agent context`, `fold-agent requests`, `fold-agent comments`, and `fold-agent proposals`.
 
 ## Work On A Project
 
@@ -76,13 +67,13 @@ Edit files locally. Post brand-new Markdown files directly, then use proposals
 for changes to existing accepted files:
 
 ```bash
-fold post ./fold-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
+fold-agent post ./fold-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
 ```
 
 Submit one reviewable proposal for existing files:
 
 ```bash
-fold propose ./fold-project \
+fold-agent propose ./fold-project \
   --room launch \
   --title "Update project docs" \
   --comment "Summarizes the changes and any decisions needed." \
@@ -92,17 +83,17 @@ fold propose ./fold-project \
 For one file:
 
 ```bash
-fold export --room launch --path docs/PLAN.md --output ./PLAN.md --json
-fold propose ./PLAN.md --room launch --path docs/PLAN.md --title "Tighten plan" --json
+fold-agent export --room launch --path docs/PLAN.md --output ./PLAN.md --json
+fold-agent propose ./PLAN.md --room launch --path docs/PLAN.md --title "Tighten plan" --json
 ```
 
 ## Review Proposals
 
 ```bash
-fold proposals --room launch --json
-fold show-proposal PROPOSAL_ID --room launch --json
-fold accept PROPOSAL_ID --room launch --json
-fold reject PROPOSAL_ID --room launch --json
+fold-agent proposals --room launch --json
+fold-agent show-proposal PROPOSAL_ID --room launch --json
+fold-agent accept PROPOSAL_ID --room launch --json
+fold-agent reject PROPOSAL_ID --room launch --json
 ```
 
 Accept/reject only when a human or higher-level workflow explicitly asks you to make the review decision.
@@ -154,13 +145,6 @@ Generate an agent invite:
 
 ```bash
 fold room invite launch --for agent
-```
-
-Optional repeat-agent skill install paths, when the agent host supports them:
-
-```bash
-gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>
-npx skills add wanderingspirit03/fold --skill fold
 ```
 
 If the invite warns about `localhost`, `127.0.0.1`, or a private LAN address, the room may not be reachable by collaborators outside that machine or network. Ask the human to provide a reachable `appUrl` and `syncUrl`, then update:

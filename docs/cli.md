@@ -1,5 +1,9 @@
 # Fold CLI
 
+The packaged agent CLI is `fold-agent`. Inside this repository, the development
+wrapper still runs the same command surface through `npm run --silent cli --`
+and examples may show the repo-local binary name `fold`.
+
 The CLI is the agent-facing entry point for publishing Markdown project rooms, saving room aliases, generating invites, submitting reviewable proposals, accepting/rejecting proposals, checking room status, and exporting canonical Markdown. Commands talk to the encrypted append-log HTTP API; document bodies, proposal bodies, comments, project files, and timeline payloads are encrypted client-side before they leave the CLI.
 
 ## Commands
@@ -13,6 +17,7 @@ fold room show <alias> [--json]
 fold room set-url <alias> [--app-url <url>] [--sync-url <url>] [--json]
 fold room forget <alias> [--json]
 fold room invite <alias> [--for human|agent] [--json]
+fold-agent bootstrap --room <alias-or-url-or-token> --alias <name> --output <project-directory> [--json]
 fold resume --room <alias-or-url-or-token> [--alias <name>] [--output <file-or-directory>] [--json]
 fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-or-directory>] [--json]
 fold status --room <alias-or-url-or-token> [--json]
@@ -86,7 +91,8 @@ fold room invite launch --for human
 - The initial primary Markdown state is encoded as a Yjs update, encrypted locally, and posted to `POST /rooms/:roomId/updates`; project snapshots are encrypted JSON room payloads.
 - Unless `--no-save` is passed, room profiles are written to `.fold/rooms.json` with restrictive local permissions on POSIX systems.
 - `export` fetches encrypted records from `GET /rooms/:roomId/updates`, decrypts and replays accepted project records locally, and writes one Markdown file or a project directory.
-- `resume` is the fresh-agent entry point. It imports a room token or URL when `--alias` is provided, confirms access, optionally exports accepted files, prints a redacted context packet, lists open requests/comments and proposals, and returns next commands that use the saved alias instead of secret room access material.
+- `fold-agent bootstrap` is the cold-agent entry point. It installs or updates the bundled skill, imports the room token or URL with `--alias`, exports accepted files, prints a redacted context packet, lists open requests/comments and proposals, and returns next commands that use the saved alias instead of secret room access material.
+- `resume` is the warm repeat-agent entry point after an alias already exists.
 - `status` calls `GET /rooms/:roomId/status`, which returns metadata only: `roomId`, `recordCount`, and `latestSeq`.
 - `propose` submits an encrypted whole-file or whole-project replacement proposal. It does not mutate accepted Markdown. Its JSON response is compact and returns proposal ids, status, persona, hashes, and project summaries, not full proposed Markdown.
 - `proposals` lists decrypted proposal summaries by replaying encrypted room records.
@@ -120,12 +126,19 @@ Routine JSON results such as `status`, `export`, `resume`, `propose`, `proposals
 
 ## Agent Workflow
 
-Agents should prefer `resume`, JSON output, and saved aliases:
+Cold agents should prefer the pinned package runner from the copied handoff:
+
+```bash
+npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+```
+
+Inside this repository during development, use the local wrapper. Agents should
+still prefer JSON output and saved aliases:
 
 ```bash
 ROOM_JSON=$(npm run --silent cli -- publish ./project --app-url http://127.0.0.1:3000 --sync-url http://127.0.0.1:8787 --alias launch --json)
 ROOM_URL=$(node -e 'let s=""; process.stdin.on("data", d => s += d); process.stdin.on("end", () => console.log(JSON.parse(s).room.url));' <<< "$ROOM_JSON")
-npm run --silent cli -- resume --room "$ROOM_URL" --alias launch --output ./accepted-project --json
+npm run --silent cli -- bootstrap --room "$ROOM_URL" --alias launch --output ./accepted-project --json
 npm run --silent cli -- comments --room launch --json
 npm run --silent cli -- requests --room launch --json
 npm run --silent cli -- post ./accepted-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
@@ -133,22 +146,23 @@ npm run --silent cli -- propose ./accepted-project --room launch --title "Tighte
 npm run --silent cli -- proposals --room launch --json
 ```
 
-For repeat work in the same project, use the saved alias from `.fold/rooms.json`:
+For warm repeat work in the same project, use the saved alias from `.fold/rooms.json`:
 
 ```bash
-npm run --silent cli -- resume --room launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.0 resume --room launch --output ./accepted-project --json
 ```
 
-Repeat users can optionally install the standards-compatible Fold skill once at user scope where their agent host supports it:
+Repeat users can optionally install the CLI when their environment keeps global
+tools:
 
 ```bash
-gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>
-npx skills add wanderingspirit03/fold --skill fold
+npm install -g fold-agent@0.1.0
+fold-agent skill status
+fold-agent resume --room launch --output ./accepted-project --json
 ```
 
-Skill installation is optional and reusable policy only. It does not install the
-Fold CLI. Live project memory still comes from encrypted room replay through
-`resume` or `context`.
+Skill installation is bundled into `fold-agent bootstrap`. Live project memory
+still comes from encrypted room replay through `resume` or `context`.
 
 If the agent is creating the project room for a human, run `fold room invite <alias> --for human` after publish and send that invite text back to the user. The invite contains the browser room link and client-side key, so treat it as secret.
 
@@ -206,7 +220,7 @@ The web app exposes an agent skill at:
 /.well-known/fold/agent-skill.md
 ```
 
-Agent invites point to this skill and then instruct the agent to run `fold resume --room ... --alias ... --output ./fold-project --json`. Use `fold post` for fresh Markdown files and `fold propose` for existing-file changes.
+Agent invites point to this skill and instruct the agent to run `npx --yes fold-agent@0.1.0 bootstrap --room ... --alias ... --output ./fold-project --json`. Use `fold-agent post` for fresh Markdown files and `fold-agent propose` for existing-file changes.
 
 ## Append-Log API Contract
 

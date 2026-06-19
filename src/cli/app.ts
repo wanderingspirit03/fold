@@ -11,6 +11,7 @@ import {
   acceptProposal,
   addComment,
   addRoomProfile,
+  bootstrapRoom,
   createRoomProfile,
   createRoomInvite,
   exportMarkdown,
@@ -31,7 +32,9 @@ import {
   showRoomProfile,
   showProposal,
 } from './operations.js';
+import { installFoldSkill } from './skill-install.js';
 import {
+  writeBootstrapHuman,
   writeDecisionHuman,
   writeCommentHuman,
   writeCommentsHuman,
@@ -49,8 +52,10 @@ import {
   writeRoomListHuman,
   writeRoomProfileHuman,
   writeShowProposalHuman,
+  writeSkillHuman,
   writeStatusHuman,
 } from './output.js';
+import type { SkillInstallScope } from './results.js';
 
 type PublishFlags = {
   server?: string;
@@ -119,6 +124,22 @@ type ResumeFlags = {
   room: string;
   alias?: string;
   output?: string;
+  json: boolean;
+};
+
+type BootstrapFlags = {
+  room: string;
+  alias?: string;
+  output: string;
+  skipSkill: boolean;
+  skillScope: SkillInstallScope;
+  nextCommandPrefix?: string;
+  json: boolean;
+};
+
+type SkillFlags = {
+  scope?: 'project' | 'global';
+  all: boolean;
   json: boolean;
 };
 
@@ -526,7 +547,7 @@ export const app: Application<FoldCommandContext> = buildApplication(
           },
         },
         docs: {
-          brief: 'Resume an encrypted room for fresh agent work',
+          brief: 'Resume an encrypted room from a saved alias or explicit room reference',
           customUsage: ['--room <alias-or-url-or-token> [--alias <name>] [--output <path>] [--json]'],
         },
         async func(this: FoldCommandContext, flags) {
@@ -535,9 +556,84 @@ export const app: Application<FoldCommandContext> = buildApplication(
             room: flags.room,
             alias: flags.alias,
             outputPath: flags.output,
+            commandPrefix: this.commandPrefix,
           });
           if (flags.json) writeJson(this, result);
           else writeResumeHuman(this, result);
+        },
+      }),
+      bootstrap: buildCommand<BootstrapFlags, [], FoldCommandContext>({
+        parameters: {
+          flags: {
+            room: {
+              kind: 'parsed',
+              parse: parseString,
+              brief: 'Room alias, URL, or token',
+              placeholder: 'alias-or-url-or-token',
+            },
+            alias: {
+              kind: 'parsed',
+              parse: parseString,
+              optional: true,
+              brief: 'Local alias to save when bootstrapping from a URL or token',
+              placeholder: 'name',
+            },
+            output: {
+              kind: 'parsed',
+              parse: parseString,
+              brief: 'Directory for accepted Markdown project files',
+              placeholder: 'dir',
+            },
+            skipSkill: {
+              kind: 'boolean',
+              default: false,
+              withNegated: false,
+              brief: 'Skip bundled Fold skill install/update',
+            },
+            skillScope: {
+              kind: 'parsed',
+              parse: buildChoiceParser(['project', 'global', 'all'] as const),
+              default: 'all',
+              brief: 'Skill install target scope',
+              placeholder: 'project|global|all',
+            },
+            nextCommandPrefix: {
+              kind: 'parsed',
+              parse: parseString,
+              optional: true,
+              brief: 'Override printed follow-up command prefix',
+              placeholder: 'command',
+            },
+            json: jsonFlag(),
+          },
+        },
+        docs: {
+          brief: 'Install the Fold skill and resume an encrypted room for agent work',
+          customUsage: ['--room <alias-or-url-or-token> [--alias <name>] [--output <dir>] [--json]'],
+        },
+        async func(this: FoldCommandContext, flags) {
+          const result = await bootstrapRoom({
+            cwd: this.cwd,
+            room: flags.room,
+            alias: flags.alias,
+            outputPath: flags.output,
+            skipSkill: flags.skipSkill,
+            skillScope: flags.skillScope,
+            nextCommandPrefix: flags.nextCommandPrefix,
+          });
+          if (flags.json) writeJson(this, result);
+          else writeBootstrapHuman(this, result);
+        },
+      }),
+      skill: buildRouteMap({
+        routes: {
+          install: skillCommand('update'),
+          update: skillCommand('update'),
+          status: skillCommand('status'),
+        },
+        defaultCommand: 'install',
+        docs: {
+          brief: 'Install or inspect the bundled Fold agent skill',
         },
       }),
       comments: buildCommand<CommentListFlags, [], FoldCommandContext>({
@@ -1077,7 +1173,7 @@ export const app: Application<FoldCommandContext> = buildApplication(
     },
   }),
   {
-    name: 'fold',
+    name: 'fold-agent',
     scanner: {
       caseStyle: 'allow-kebab-for-camel',
     },
@@ -1133,4 +1229,46 @@ function jsonFlag(): {
     withNegated: false,
     brief: 'Print a stable JSON result',
   };
+}
+
+function skillCommand(mode: 'update' | 'status') {
+  return buildCommand<SkillFlags, [], FoldCommandContext>({
+    parameters: {
+      flags: {
+        scope: {
+          kind: 'parsed',
+          parse: buildChoiceParser(['project', 'global'] as const),
+          optional: true,
+          brief: 'Skill install target scope',
+          placeholder: 'project|global',
+        },
+        all: {
+          kind: 'boolean',
+          default: false,
+          withNegated: false,
+          brief: 'Target project and known global skill locations',
+        },
+        json: jsonFlag(),
+      },
+    },
+    docs: {
+      brief: mode === 'status' ? 'Inspect bundled Fold skill targets' : 'Install or update the bundled Fold skill',
+      customUsage: ['[--scope project|global] [--all] [--json]'],
+    },
+    async func(this: FoldCommandContext, flags) {
+      const scope = skillScopeFromFlags(flags);
+      const result = await installFoldSkill({
+        cwd: this.cwd,
+        scope,
+        mode,
+      });
+      if (flags.json) writeJson(this, result);
+      else writeSkillHuman(this, result);
+    },
+  });
+}
+
+function skillScopeFromFlags(flags: SkillFlags): SkillInstallScope {
+  if (flags.all) return 'all';
+  return flags.scope ?? 'all';
 }

@@ -33,6 +33,7 @@ unless their row says otherwise.
 |------|-------|----------|--------|------------|--------|
 | 014 | Make Fold deployment cloud-agnostic and production-alpha safe | P1 | L | - | DONE |
 | 015 | Agent handoff bootstrap with fold resume and repeat-agent skill | P1 | M | - | DONE |
+| 016 | fold-agent CLI with bundled skill bootstrap | P1 | L | 015 | TODO |
 
 ## Dependency Notes
 
@@ -44,6 +45,8 @@ unless their row says otherwise.
 - 014 has no dependency on the historical archive, but execution should preserve
   the secret-redaction, local key, and deployment caveat decisions already
   landed by earlier plans.
+- 016 builds on the working `fold resume` and skill-only handoff from 015, and
+  should preserve the same routine-output redaction and E2EE room access model.
 
 ## Historical Verification
 

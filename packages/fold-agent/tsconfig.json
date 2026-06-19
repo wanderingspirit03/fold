@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../../src",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "noEmit": false,
+    "types": ["node"]
+  },
+  "include": [
+    "../../src/cli/**/*.ts",
+    "../../src/deploy/public-origin.ts",
+    "../../src/rooms/**/*.ts"
+  ],
+  "exclude": [
+    "../../src/**/*.test.ts",
+    "../../src/**/*.test.tsx"
+  ]
+}

@@ -74,6 +74,7 @@ import {
 } from '../rooms/timeline.js';
 import { decryptJsonRecord } from '../rooms/encrypted-records.js';
 import type {
+  BootstrapResult,
   DecideProposalResult,
   CommentResult,
   CommentsResult,
@@ -94,8 +95,15 @@ import type {
   RoomProfileResult,
   SafeRoomResult,
   ShowProposalResult,
+  SkillInstallScope,
   StatusResult,
 } from './results.js';
+import { installFoldSkill } from './skill-install.js';
+import {
+  DEFAULT_FOLD_AGENT_COMMAND_PREFIX,
+  FOLD_AGENT_PACKAGE_NAME,
+  FOLD_AGENT_VERSION,
+} from './package-info.js';
 
 const CLI_SENDER_ID = 'fold-cli:document';
 const CLI_REVIEWER_FINGERPRINT = 'fold-cli:review';
@@ -181,6 +189,13 @@ export interface ResumeOptions {
   room: string;
   alias?: string;
   outputPath?: string;
+  commandPrefix?: string;
+}
+
+export interface BootstrapOptions extends ResumeOptions {
+  skipSkill?: boolean;
+  skillScope: SkillInstallScope;
+  nextCommandPrefix?: string;
 }
 
 export interface RoomAddOptions {
@@ -568,6 +583,7 @@ export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> 
     open: true,
   });
   const proposals = await listProposals({ cwd: options.cwd, room });
+  const commandPrefix = options.commandPrefix ?? 'fold';
   const roomArgument = JSON.stringify(room);
   const outputArgument = options.outputPath ? JSON.stringify(options.outputPath) : null;
   const skillUrl = `${context.room.appUrl.replace(/\/$/, '')}/.well-known/fold/agent-skill.md`;
@@ -586,9 +602,9 @@ export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> 
       url: skillUrl,
       install: {
         required: false,
-        repeatAgents: 'If the Fold skill is already installed, do not reinstall it; run fold resume with the saved alias.',
-        ghSkill: 'gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>',
-        skillsSh: 'npx skills add wanderingspirit03/fold --skill fold',
+        repeatAgents: `If the Fold skill is already installed, do not reinstall it; run ${commandPrefix} resume with the saved alias.`,
+        command: `${commandPrefix} skill`,
+        updateCommand: `${commandPrefix} skill update`,
       },
     },
     status,
@@ -599,17 +615,47 @@ export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> 
     proposals,
     nextCommands: {
       post: outputArgument
-        ? `fold post ${outputArgument}/NEW_FILE.md --room ${roomArgument} --path "NEW_FILE.md" --json`
+        ? `${commandPrefix} post ${outputArgument}/NEW_FILE.md --room ${roomArgument} --path "NEW_FILE.md" --json`
         : null,
       propose: outputArgument
-        ? `fold propose ${outputArgument} --room ${roomArgument} --title "Describe the change" --comment "Summarize what changed." --json`
+        ? `${commandPrefix} propose ${outputArgument} --room ${roomArgument} --title "Describe the change" --comment "Summarize what changed." --json`
         : null,
-      requests: `fold requests --room ${roomArgument} --json`,
-      comments: `fold comments --room ${roomArgument} --type comment --open --json`,
-      proposals: `fold proposals --room ${roomArgument} --json`,
-      reply: `fold reply "<thread-id>" --room ${roomArgument} --text "Short reply." --json`,
-      context: `fold context --room ${roomArgument} --json`,
+      requests: `${commandPrefix} requests --room ${roomArgument} --json`,
+      comments: `${commandPrefix} comments --room ${roomArgument} --type comment --open --json`,
+      proposals: `${commandPrefix} proposals --room ${roomArgument} --json`,
+      reply: `${commandPrefix} reply "<thread-id>" --room ${roomArgument} --text "Short reply." --json`,
+      context: `${commandPrefix} context --room ${roomArgument} --json`,
     },
+  };
+}
+
+export async function bootstrapRoom(options: BootstrapOptions): Promise<BootstrapResult> {
+  const commandPrefix = options.nextCommandPrefix ?? DEFAULT_FOLD_AGENT_COMMAND_PREFIX;
+  const skill = options.skipSkill
+    ? null
+    : await installFoldSkill({
+      cwd: options.cwd,
+      scope: options.skillScope,
+      mode: 'update',
+    });
+  const resume = await resumeRoom({
+    cwd: options.cwd,
+    room: options.room,
+    alias: options.alias,
+    outputPath: options.outputPath,
+    commandPrefix,
+  });
+
+  return {
+    schema: 'fold.bootstrap.result.v1',
+    ok: true,
+    package: {
+      name: FOLD_AGENT_PACKAGE_NAME,
+      version: FOLD_AGENT_VERSION,
+    },
+    skill,
+    resume,
+    nextCommands: resume.nextCommands,
   };
 }
 
@@ -1058,33 +1104,30 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
   const roomUrl = roomUrlForAccess(access);
   const warnings = shareabilityWarnings(access);
   const skillUrl = `${access.appUrl.replace(/\/$/, '')}/.well-known/fold/agent-skill.md`;
+  const bootstrapCommand = `${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`;
   const agentInviteText = [
     'Join this Fold project room:',
     '',
-    `1. Read the agent skill: ${skillUrl}`,
+    '1. Run the pinned Fold agent CLI. It installs the Fold skill locally and resumes the encrypted project:',
+    `   ${bootstrapCommand}`,
     '',
-    '   Repeat agents with the Fold skill already installed can skip installation.',
-    '   Skill installation does not install the Fold CLI.',
-    '   Optional skill install paths when supported:',
-    '   gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>',
-    '   npx skills add wanderingspirit03/fold --skill fold',
+    '   Do not use /usr/bin/fold. That is the Unix text wrapper, not Fold.',
+    '   The Fold skill teaches agent behavior; fold-agent performs encrypted room operations.',
     '',
-    '2. Resume the encrypted project locally:',
-    `   fold resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
+    `2. Optional reference skill: ${skillUrl}`,
     '',
-    '   If `command -v fold` resolves to /usr/bin/fold, that is the Unix wrapper, not Fold.',
-    '   Inside a cloned Fold repo with dependencies installed, use:',
-    `   npm run --silent cli -- resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
+    '   Inside a cloned Fold repo during development, the equivalent local command is:',
+    `   npm run --silent cli -- bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     '',
     '3. Post fresh Markdown files directly; propose changes to existing files:',
-    `   fold post ./fold-project/NEW_FILE.md --room ${JSON.stringify(options.alias)} --path "NEW_FILE.md" --json`,
-    `   fold propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} post ./fold-project/NEW_FILE.md --room ${JSON.stringify(options.alias)} --path "NEW_FILE.md" --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
     '',
     '4. Answer human requests and join comment threads when clarification is better than a proposal:',
-    `   fold requests --room ${JSON.stringify(options.alias)} --json`,
-    `   fold comments --room ${JSON.stringify(options.alias)} --type comment --open --json`,
-    `   fold reply "<thread-id>" --room ${JSON.stringify(options.alias)} --text "Short reply." --json`,
-    `   fold comment --room ${JSON.stringify(options.alias)} --path "docs/PLAN.md" --text "Short note." --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} requests --room ${JSON.stringify(options.alias)} --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} comments --room ${JSON.stringify(options.alias)} --type comment --open --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} reply "<thread-id>" --room ${JSON.stringify(options.alias)} --text "Short reply." --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} comment --room ${JSON.stringify(options.alias)} --path "docs/PLAN.md" --text "Short note." --json`,
   ].join('\n');
   const text = options.audience === 'agent'
     ? agentInviteText

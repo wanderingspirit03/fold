@@ -192,16 +192,22 @@ npm run --silent cli -- export --room launch --output ./exported-project --json
 
 ## Agent Workflow
 
-Agents should join with `resume`, inspect the returned requests/comments/proposals, edit exported files locally, and submit a reviewable proposal instead of overwriting accepted content.
+Agents should join with `fold-agent bootstrap`, inspect the returned requests/comments/proposals, edit exported files locally, and submit a reviewable proposal instead of overwriting accepted content.
 
 ```bash
-npm run --silent cli -- resume --room "fold:v1:..." --alias launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
 ```
 
-After editing files locally:
+Inside this repository during development, use the local wrapper:
 
 ```bash
-npm run --silent cli -- propose ./accepted-project \
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+```
+
+After editing existing files locally:
+
+```bash
+npx --yes fold-agent@0.1.0 propose ./accepted-project \
   --room launch \
   --title "Update project docs" \
   --comment "Clarifies the README and preserves portable Markdown export." \
@@ -237,6 +243,7 @@ fold room show <alias> [--json]
 fold room set-url <alias> [--app-url <url>] [--sync-url <url>] [--json]
 fold room forget <alias> [--json]
 fold room invite <alias> [--for human|agent] [--json]
+fold-agent bootstrap --room <alias-or-url-or-token> --alias <name> --output <project-directory> [--json]
 fold resume --room <alias-or-url-or-token> [--alias <name>] [--output <file-or-directory>] [--json]
 fold status --room <alias-or-url-or-token> [--json]
 fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-or-directory>] [--json]
@@ -254,10 +261,11 @@ fold reject <proposal-id> --room <alias-or-url-or-token> [--json]
 fold patch <file.md> --room <alias-or-url-or-token> [--path <room-path>] [--summary <text>] [--json]
 ```
 
-`resume` is the fresh-agent entry point. It can import a `fold:v1:` token with
-`--alias`, export accepted files, print redacted room context, list requests,
-comments, and proposals, and return exact next commands. `patch` is a
-compatibility wrapper around proposal submission.
+`fold-agent bootstrap` is the fresh-agent entry point. It installs or updates
+the bundled Fold skill, imports a `fold:v1:` token with `--alias`, exports
+accepted files, prints redacted room context, lists requests/comments/proposals,
+and returns exact next commands. `resume` is the warm-agent repeat path after an
+alias is saved. `patch` is a compatibility wrapper around proposal submission.
 
 ## Security Model
 
@@ -340,7 +348,7 @@ See:
 - Accepted Markdown export to file or directory.
 - Encrypted proposal records with diffs, personas, and timeline events.
 - Proposal status derived by encrypted event replay, not trusted plaintext server state.
-- Redacted `fold resume --room` and `fold context --room` packets for agent handoff.
+- Redacted `fold-agent bootstrap`, `fold resume --room`, and `fold context --room` packets for agent handoff.
 - Next.js web room app at `/room/:roomId#key=...`.
 - Web room unlock with key fragment/manual key flow.
 - Project file tree, recent files, local Markdown import, current-file export.
