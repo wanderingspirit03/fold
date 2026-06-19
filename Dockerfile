@@ -15,6 +15,5 @@ ENV PORT=3000
 ENV FOLD_DATA_DIR=/data/append-log
 
 EXPOSE 3000
-VOLUME ["/data"]
 
 CMD ["npm", "start"]
