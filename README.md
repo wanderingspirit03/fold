@@ -192,12 +192,10 @@ npm run --silent cli -- export --room launch --output ./exported-project --json
 
 ## Agent Workflow
 
-Agents should join with an invite token or room URL, export accepted state, edit locally, and submit a reviewable proposal instead of overwriting accepted content.
+Agents should join with `resume`, inspect the returned requests/comments/proposals, edit exported files locally, and submit a reviewable proposal instead of overwriting accepted content.
 
 ```bash
-npm run --silent cli -- room add "fold:v1:..." --alias launch --json
-npm run --silent cli -- status --room launch --json
-npm run --silent cli -- export --room launch --output ./accepted-project --json
+npm run --silent cli -- resume --room "fold:v1:..." --alias launch --output ./accepted-project --json
 ```
 
 After editing files locally:
@@ -239,6 +237,7 @@ fold room show <alias> [--json]
 fold room set-url <alias> [--app-url <url>] [--sync-url <url>] [--json]
 fold room forget <alias> [--json]
 fold room invite <alias> [--for human|agent] [--json]
+fold resume --room <alias-or-url-or-token> [--alias <name>] [--output <file-or-directory>] [--json]
 fold status --room <alias-or-url-or-token> [--json]
 fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-or-directory>] [--json]
 fold propose <file-or-directory> --room <alias-or-url-or-token> [--path <room-path>] [--title <text>] [--comment <text>] [--json]
@@ -254,7 +253,10 @@ fold reject <proposal-id> --room <alias-or-url-or-token> [--json]
 fold patch <file.md> --room <alias-or-url-or-token> [--path <room-path>] [--summary <text>] [--json]
 ```
 
-`patch` is a compatibility wrapper around proposal submission.
+`resume` is the fresh-agent entry point. It can import a `fold:v1:` token with
+`--alias`, export accepted files, print redacted room context, list requests,
+comments, and proposals, and return exact next commands. `patch` is a
+compatibility wrapper around proposal submission.
 
 ## Security Model
 
@@ -337,7 +339,7 @@ See:
 - Accepted Markdown export to file or directory.
 - Encrypted proposal records with diffs, personas, and timeline events.
 - Proposal status derived by encrypted event replay, not trusted plaintext server state.
-- Redacted `fold context --room` packets for agent handoff.
+- Redacted `fold resume --room` and `fold context --room` packets for agent handoff.
 - Next.js web room app at `/room/:roomId#key=...`.
 - Web room unlock with key fragment/manual key flow.
 - Project file tree, recent files, local Markdown import, current-file export.

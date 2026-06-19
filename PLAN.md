@@ -196,6 +196,7 @@ Proposed commands:
 ```bash
 fold publish file.md
 fold patch file.md --room <url-or-token>
+fold resume --room <url-or-token> --alias <name> --output ./fold-project
 fold propose file.md --room <url-or-token> --title "Tighten positioning" --comment "I made the opening sharper and added a concrete ICP section."
 fold proposals --room <url-or-token>
 fold show-proposal <proposal-id> --room <url-or-token>
@@ -224,6 +225,7 @@ CLI requirements:
 - Never send the room key to the server.
 - Assign visible agent personas by room/system logic from stable participant fingerprints. Agents should not self-declare their visible room persona through user-facing CLI flags.
 - Support patch metadata flags from day one: `--title`, `--comment`, and `--json` fields that make the patch reviewable like a commit.
+- Support `fold resume` as the fresh-agent entry point: import secret room access into an alias, export accepted Markdown, print a redacted context packet, list open requests/comments/proposals, and provide next commands without echoing room tokens or `#key` fragments.
 
 ## Agent Edit Modes
 

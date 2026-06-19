@@ -13,6 +13,7 @@ fold room show <alias> [--json]
 fold room set-url <alias> [--app-url <url>] [--sync-url <url>] [--json]
 fold room forget <alias> [--json]
 fold room invite <alias> [--for human|agent] [--json]
+fold resume --room <alias-or-url-or-token> [--alias <name>] [--output <file-or-directory>] [--json]
 fold export --room <alias-or-url-or-token> [--path <room-path>] [--output <file-or-directory>] [--json]
 fold status --room <alias-or-url-or-token> [--json]
 fold propose <file-or-directory> --room <alias-or-url-or-token> [--path <room-path>] [--title <text>] [--comment <text>] [--json]
@@ -84,6 +85,7 @@ fold room invite launch --for human
 - The initial primary Markdown state is encoded as a Yjs update, encrypted locally, and posted to `POST /rooms/:roomId/updates`; project snapshots are encrypted JSON room payloads.
 - Unless `--no-save` is passed, room profiles are written to `.fold/rooms.json` with restrictive local permissions on POSIX systems.
 - `export` fetches encrypted records from `GET /rooms/:roomId/updates`, decrypts and replays accepted project records locally, and writes one Markdown file or a project directory.
+- `resume` is the fresh-agent entry point. It imports a room token or URL when `--alias` is provided, confirms access, optionally exports accepted files, prints a redacted context packet, lists open requests/comments and proposals, and returns next commands that use the saved alias instead of secret room access material.
 - `status` calls `GET /rooms/:roomId/status`, which returns metadata only: `roomId`, `recordCount`, and `latestSeq`.
 - `propose` submits an encrypted whole-file or whole-project replacement proposal. It does not mutate accepted Markdown. Its JSON response is compact and returns proposal ids, status, persona, hashes, and project summaries, not full proposed Markdown.
 - `proposals` lists decrypted proposal summaries by replaying encrypted room records.
@@ -105,6 +107,7 @@ fold room invite launch --for human
   - `fold.comments.result.v1`
   - `fold.comment.result.v1`
   - `fold.reply.result.v1`
+  - `fold.resume.result.v1`
   - `fold.context.result.v1`
   - `fold.show-proposal.result.v1`
   - `fold.accept.result.v1`
@@ -112,24 +115,36 @@ fold room invite launch --for human
   - `fold.patch.result.v1`
   - `fold.room.create.result.v1`
 
-Routine JSON results such as `status`, `export`, `propose`, `proposals`, `comments`, `context`, `show-proposal`, `accept`, and `reject` include safe room routing fields (`roomId`, `serverRoomUrl`, `appUrl`, `syncUrl`) but omit decryption-capable `room.url`, `room.token`, and `roomSecret` fields. Secret-bearing room access material is only emitted by explicit create, publish, add/show profile, and invite workflows.
+Routine JSON results such as `status`, `export`, `resume`, `propose`, `proposals`, `comments`, `context`, `show-proposal`, `accept`, and `reject` include safe room routing fields (`roomId`, `serverRoomUrl`, `appUrl`, `syncUrl`) but omit decryption-capable `room.url`, `room.token`, and `roomSecret` fields. Secret-bearing room access material is only emitted by explicit create, publish, add/show profile, and invite workflows.
 
 ## Agent Workflow
 
-Agents should prefer JSON output and explicit room references:
+Agents should prefer `resume`, JSON output, and saved aliases:
 
 ```bash
 ROOM_JSON=$(npm run --silent cli -- publish ./project --app-url http://127.0.0.1:3000 --sync-url http://127.0.0.1:8787 --alias launch --json)
 ROOM_URL=$(node -e 'let s=""; process.stdin.on("data", d => s += d); process.stdin.on("end", () => console.log(JSON.parse(s).room.url));' <<< "$ROOM_JSON")
-npm run --silent cli -- room add "$ROOM_URL" --alias launch
-npm run --silent cli -- status --room launch --json
-npm run --silent cli -- export --room launch --output ./accepted-project --json
-npm run --silent cli -- context --room launch --json
+npm run --silent cli -- resume --room "$ROOM_URL" --alias launch --output ./accepted-project --json
 npm run --silent cli -- comments --room launch --json
 npm run --silent cli -- requests --room launch --json
 npm run --silent cli -- propose ./accepted-project --room launch --title "Tighten plan" --comment "Proposed by agent workflow." --json
 npm run --silent cli -- proposals --room launch --json
 ```
+
+For repeat work in the same project, use the saved alias from `.fold/rooms.json`:
+
+```bash
+npm run --silent cli -- resume --room launch --output ./accepted-project --json
+```
+
+Repeat users can optionally install the standards-compatible Fold skill once at user scope where their agent host supports it:
+
+```bash
+gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>
+npx skills add wanderingspirit03/fold --skill fold
+```
+
+Skill installation is optional and reusable policy only. Live project memory still comes from encrypted room replay through `resume` or `context`.
 
 If the agent is creating the project room for a human, run `fold room invite <alias> --for human` after publish and send that invite text back to the user. The invite contains the browser room link and client-side key, so treat it as secret.
 
@@ -187,7 +202,7 @@ The web app exposes an agent skill at:
 /.well-known/fold/agent-skill.md
 ```
 
-Agent invites point to this skill and then instruct the agent to run `fold room add ... --alias ...`.
+Agent invites point to this skill and then instruct the agent to run `fold resume --room ... --alias ... --output ./fold-project --json`.
 
 ## Append-Log API Contract
 
@@ -210,6 +225,7 @@ The current fresh local workflow has been verified with:
 - `room create --json`
 - `room add --json`
 - `room invite`
+- `resume --json`
 - `status --json`
 - `export --json`
 - `context --json`

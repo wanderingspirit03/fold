@@ -8,6 +8,7 @@ import type {
   ProposalsResult,
   ProposeResult,
   PublishResult,
+  ResumeResult,
   RoomCreateResult,
   RoomForgetResult,
   RoomInviteResult,
@@ -80,6 +81,29 @@ export function writeStatusHuman(context: CommandContext, result: StatusResult):
     `→ Metadata: ${result.metadata.path}`,
     result.document ? `→ Markdown bytes: ${result.document.bytes}` : '→ Markdown bytes: unknown',
     `→ Server records: ${result.server.recordCount}`,
+    '',
+  ].join('\n'));
+}
+
+export function writeResumeHuman(context: CommandContext, result: ResumeResult): void {
+  const outputLine = result.export?.output.written
+    ? `→ Exported files: ${result.export.output.path}`
+    : '→ Export skipped: pass --output <path> to write accepted files';
+  context.process.stdout.write([
+    '✓ Resumed encrypted Fold room',
+    `→ Room: ${result.room.serverRoomUrl}`,
+    `→ Alias: ${result.metadata.alias}`,
+    outputLine,
+    `→ Open requests: ${result.requests.comments.length}`,
+    `→ Open comments: ${result.comments.comments.length}`,
+    `→ Pending proposals: ${result.proposals.proposals.filter((proposal) => proposal.status === 'pending').length}`,
+    `→ Agent skill: ${result.skill.url}`,
+    '',
+    'Next commands:',
+    result.nextCommands.propose ?? `Run fold resume --room ${JSON.stringify(result.metadata.alias)} --output ./fold-project --json before proposing from exported files.`,
+    result.nextCommands.requests,
+    result.nextCommands.comments,
+    result.nextCommands.proposals,
     '',
   ].join('\n'));
 }

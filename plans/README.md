@@ -32,6 +32,7 @@ unless their row says otherwise.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 014 | Make Fold deployment cloud-agnostic and production-alpha safe | P1 | L | - | DONE |
+| 015 | Agent handoff bootstrap with fold resume and repeat-agent skill | P1 | M | - | DONE |
 
 ## Dependency Notes
 

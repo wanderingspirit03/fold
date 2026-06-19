@@ -84,6 +84,7 @@ import type {
   ProposeResult,
   PublicRoomResult,
   PublishResult,
+  ResumeResult,
   RoomCreateResult,
   RoomForgetResult,
   RoomInviteResult,
@@ -163,6 +164,13 @@ export interface ReplyCommentOptions extends ProposalRoomOptions {
 
 export interface ProposalIdOptions extends ProposalRoomOptions {
   proposalId: string;
+}
+
+export interface ResumeOptions {
+  cwd: string;
+  room: string;
+  alias?: string;
+  outputPath?: string;
 }
 
 export interface RoomAddOptions {
@@ -451,6 +459,90 @@ export async function roomContext(options: StatusOptions): Promise<ContextResult
       latestSeq: records.at(-1)?.seq ?? null,
     },
   };
+}
+
+export async function resumeRoom(options: ResumeOptions): Promise<ResumeResult> {
+  const parsedSecretReference = tryParseRoomReference(options.room);
+  if (parsedSecretReference && !options.alias) {
+    throw new Error('Resuming from a room URL or fold:v1 token requires --alias so follow-up commands do not echo secret room access material');
+  }
+
+  const imported = Boolean(parsedSecretReference && options.alias);
+  if (imported && options.alias) {
+    await addRoomProfile({
+      cwd: options.cwd,
+      room: options.room,
+      alias: options.alias,
+    });
+  }
+
+  const room = options.alias ?? options.room;
+  const status = await roomStatus({ cwd: options.cwd, room });
+  const exported = options.outputPath
+    ? await exportMarkdown({ cwd: options.cwd, room, outputPath: options.outputPath })
+    : null;
+  const context = await roomContext({ cwd: options.cwd, room });
+  const requests = await listComments({
+    cwd: options.cwd,
+    room,
+    type: 'request',
+    open: true,
+  });
+  const comments = await listComments({
+    cwd: options.cwd,
+    room,
+    type: 'comment',
+    open: true,
+  });
+  const proposals = await listProposals({ cwd: options.cwd, room });
+  const roomArgument = JSON.stringify(room);
+  const outputArgument = options.outputPath ? JSON.stringify(options.outputPath) : null;
+  const skillUrl = `${context.room.appUrl.replace(/\/$/, '')}/.well-known/fold/agent-skill.md`;
+
+  return {
+    schema: 'fold.resume.result.v1',
+    ok: true,
+    mode: 'agent-resume',
+    room: context.room,
+    metadata: {
+      path: defaultMetadataPath(options.cwd),
+      alias: room,
+      imported,
+    },
+    skill: {
+      url: skillUrl,
+      install: {
+        required: false,
+        repeatAgents: 'If the Fold skill is already installed, do not reinstall it; run fold resume with the saved alias.',
+        ghSkill: 'gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>',
+        skillsSh: 'npx skills add wanderingspirit03/fold --skill fold',
+      },
+    },
+    status,
+    export: exported,
+    context,
+    requests,
+    comments,
+    proposals,
+    nextCommands: {
+      propose: outputArgument
+        ? `fold propose ${outputArgument} --room ${roomArgument} --title "Describe the change" --comment "Summarize what changed." --json`
+        : null,
+      requests: `fold requests --room ${roomArgument} --json`,
+      comments: `fold comments --room ${roomArgument} --type comment --open --json`,
+      proposals: `fold proposals --room ${roomArgument} --json`,
+      reply: `fold reply "<thread-id>" --room ${roomArgument} --text "Short reply." --json`,
+      context: `fold context --room ${roomArgument} --json`,
+    },
+  };
+}
+
+function tryParseRoomReference(input: string): RoomAccess | null {
+  try {
+    return parseRoomReference(input);
+  } catch {
+    return null;
+  }
 }
 
 export async function patchMarkdown(options: PatchOptions): Promise<PatchResult> {
@@ -882,20 +974,21 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
     '',
     `1. Read the agent skill: ${skillUrl}`,
     '',
-    '2. Save the room alias:',
-    `   fold room add ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)}`,
+    '   Repeat agents with the Fold skill already installed can skip installation.',
+    '   Optional skill install paths when supported:',
+    '   gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>',
+    '   npx skills add wanderingspirit03/fold --skill fold',
+    '',
+    '2. Resume the encrypted project locally:',
+    `   fold resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     '',
     '   If the Fold CLI is not globally installed in this repo, use:',
-    `   npm run --silent cli -- room add ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)}`,
+    `   npm run --silent cli -- resume --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
     '',
-    '3. Confirm access:',
-    `   fold status --room ${JSON.stringify(options.alias)} --json`,
-    '',
-    '4. Work through proposals, not direct mutation:',
-    `   fold export --room ${JSON.stringify(options.alias)} --output ./fold-project --json`,
+    '3. Work through proposals, not direct mutation:',
     `   fold propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
     '',
-    '5. Answer human requests and join comment threads when clarification is better than a proposal:',
+    '4. Answer human requests and join comment threads when clarification is better than a proposal:',
     `   fold requests --room ${JSON.stringify(options.alias)} --json`,
     `   fold comments --room ${JSON.stringify(options.alias)} --type comment --open --json`,
     `   fold reply "<thread-id>" --room ${JSON.stringify(options.alias)} --text "Short reply." --json`,

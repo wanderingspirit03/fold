@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fold"
+  short_description: "Resume encrypted Fold project rooms"
+  default_prompt: "Use $fold to resume a Fold project room from an agent handoff."

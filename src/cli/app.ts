@@ -23,6 +23,7 @@ import {
   publishMarkdown,
   rejectProposal,
   replyToComment,
+  resumeRoom,
   roomContext,
   roomStatus,
   setRoomProfileUrls,
@@ -39,6 +40,7 @@ import {
   writeProposalsHuman,
   writeProposeHuman,
   writePublishHuman,
+  writeResumeHuman,
   writeRoomForgetHuman,
   writeRoomCreateHuman,
   writeRoomInviteHuman,
@@ -102,6 +104,13 @@ type RequestListFlags = {
   room: string;
   path?: string;
   open: boolean;
+  json: boolean;
+};
+
+type ResumeFlags = {
+  room: string;
+  alias?: string;
+  output?: string;
   json: boolean;
 };
 
@@ -431,6 +440,47 @@ export const app: Application<FoldCommandContext> = buildApplication(
             room: flags.room,
           });
           writeJson(this, result);
+        },
+      }),
+      resume: buildCommand<ResumeFlags, [], FoldCommandContext>({
+        parameters: {
+          flags: {
+            room: {
+              kind: 'parsed',
+              parse: parseString,
+              brief: 'Room alias, URL, or token',
+              placeholder: 'alias-or-url-or-token',
+            },
+            alias: {
+              kind: 'parsed',
+              parse: parseString,
+              optional: true,
+              brief: 'Local alias to save when resuming from a URL or token',
+              placeholder: 'name',
+            },
+            output: {
+              kind: 'parsed',
+              parse: parseString,
+              optional: true,
+              brief: 'Directory or file path for accepted Markdown export',
+              placeholder: 'path',
+            },
+            json: jsonFlag(),
+          },
+        },
+        docs: {
+          brief: 'Resume an encrypted room for fresh agent work',
+          customUsage: ['--room <alias-or-url-or-token> [--alias <name>] [--output <path>] [--json]'],
+        },
+        async func(this: FoldCommandContext, flags) {
+          const result = await resumeRoom({
+            cwd: this.cwd,
+            room: flags.room,
+            alias: flags.alias,
+            outputPath: flags.output,
+          });
+          if (flags.json) writeJson(this, result);
+          else writeResumeHuman(this, result);
         },
       }),
       comments: buildCommand<CommentListFlags, [], FoldCommandContext>({

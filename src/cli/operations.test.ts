@@ -22,6 +22,7 @@ import {
   publishMarkdown,
   rejectProposal,
   replyToComment,
+  resumeRoom,
   roomContext,
   roomStatus,
   showProposal,
@@ -164,8 +165,8 @@ describe('CLI operations', () => {
       expect(exported.document.markdown).toBe('');
       expect(await readFile(join(cwd, 'empty.md'), 'utf8')).toBe('');
       expect(humanInvite.invite.text).toContain(created.room.url);
-      expect(agentInvite.invite.text).toContain('fold room add');
-      expect(agentInvite.invite.text).toContain('fold export --room "empty" --output ./fold-project --json');
+      expect(agentInvite.invite.text).toContain('fold resume --room');
+      expect(agentInvite.invite.text).toContain('--alias "empty" --output ./fold-project --json');
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });
@@ -559,9 +560,9 @@ describe('CLI operations', () => {
 
       expect(status.room.alias).toBe('launch');
       expectSafeRoomOutput(status);
-      expect(invite.invite.text).toContain('fold room add');
-      expect(invite.invite.text).toContain('npm run --silent cli -- room add');
-      expect(invite.invite.text).toContain('fold export --room "launch" --output ./fold-project --json');
+      expect(invite.invite.text).toContain('fold resume --room');
+      expect(invite.invite.text).toContain('npm run --silent cli -- resume --room');
+      expect(invite.invite.text).toContain('--alias "launch" --output ./fold-project --json');
       expect(invite.invite.text).toContain('fold propose ./fold-project --room "launch"');
       expect(invite.invite.text).toContain('--alias');
       expect(invite.invite.text).toContain('fold:v1:');
@@ -882,6 +883,123 @@ describe('CLI operations', () => {
       expect(context.comments.unresolved[0]?.text).toContain('Please decide');
       expect(context.proposals.pending[0]?.title).toBe('Update context');
       expect(JSON.stringify(context)).not.toContain(published.room.token);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('resumes a fresh agent room through a redacted alias-first packet', async () => {
+    const ownerCwd = await mkdtemp(join(tmpdir(), 'fold-resume-owner-'));
+    const agentCwd = await mkdtemp(join(tmpdir(), 'fold-resume-agent-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await mkdir(join(ownerCwd, 'project', 'docs'), { recursive: true });
+      await writeFile(join(ownerCwd, 'project', 'README.md'), '# Resume\n\nAccepted body.', 'utf8');
+      await writeFile(join(ownerCwd, 'project', 'docs', 'PLAN.md'), '# Plan\n\nDo the next thing.', 'utf8');
+      const published = await publishMarkdown({
+        cwd: ownerCwd,
+        filePath: 'project',
+        serverUrl,
+        alias: 'launch',
+        save: true,
+      });
+      await addComment({
+        cwd: ownerCwd,
+        room: 'launch',
+        text: 'Please answer this before proposing.',
+        path: 'README.md',
+        type: 'request',
+      });
+      await addComment({
+        cwd: ownerCwd,
+        room: 'launch',
+        text: 'Ordinary open comment.',
+        path: 'docs/PLAN.md',
+      });
+      await writeFile(join(ownerCwd, 'proposal.md'), '# Resume\n\nProposed body.', 'utf8');
+      await proposeMarkdown({
+        cwd: ownerCwd,
+        filePath: 'proposal.md',
+        room: 'launch',
+        path: 'README.md',
+        title: 'Update resume readme',
+      });
+
+      const resumed = await resumeRoom({
+        cwd: agentCwd,
+        room: published.room.token,
+        alias: 'launch',
+        outputPath: 'fold-project',
+      });
+
+      expect(resumed.schema).toBe('fold.resume.result.v1');
+      expect(resumed.metadata.imported).toBe(true);
+      expect(resumed.metadata.alias).toBe('launch');
+      expectSafeRoomOutput(resumed);
+      expect(resumed.export?.output.written).toBe(true);
+      expect(resumed.export?.output.paths?.some((path) => path.endsWith('README.md'))).toBe(true);
+      expect(await readFile(join(agentCwd, 'fold-project', 'README.md'), 'utf8')).toContain('Accepted body.');
+      expect(await readFile(join(agentCwd, 'fold-project', 'docs', 'PLAN.md'), 'utf8')).toContain('Do the next thing.');
+      expect(resumed.requests.comments[0]?.text).toContain('Please answer');
+      expect(resumed.comments.comments[0]?.text).toContain('Ordinary open comment');
+      expect(resumed.proposals.proposals.some((proposal) => proposal.title === 'Update resume readme')).toBe(true);
+      expect(resumed.nextCommands.propose).toContain('--room "launch"');
+      expect(JSON.stringify(resumed)).not.toContain(published.room.token);
+    } finally {
+      await server.stop();
+      await rm(ownerCwd, { recursive: true, force: true });
+      await rm(agentCwd, { recursive: true, force: true });
+    }
+  });
+
+  it('does not print a stale proposal command when resume skips export', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-resume-no-export-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'room.md'), '# No Export', 'utf8');
+      await publishMarkdown({
+        cwd,
+        filePath: 'room.md',
+        serverUrl,
+        alias: 'no-export',
+        save: true,
+      });
+
+      const resumed = await resumeRoom({
+        cwd,
+        room: 'no-export',
+      });
+
+      expect(resumed.export).toBeNull();
+      expect(resumed.nextCommands.propose).toBeNull();
+      expectSafeRoomOutput(resumed);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('requires an alias when resuming from a secret token', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-resume-token-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(cwd, 'room.md'), '# Token Room', 'utf8');
+      const published = await publishMarkdown({
+        cwd,
+        filePath: 'room.md',
+        serverUrl,
+        save: true,
+      });
+
+      await expect(resumeRoom({
+        cwd,
+        room: published.room.token,
+        outputPath: 'fold-project',
+      })).rejects.toThrow(/requires --alias/);
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });

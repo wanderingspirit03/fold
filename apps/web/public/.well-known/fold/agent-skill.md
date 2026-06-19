@@ -25,49 +25,48 @@ First, check whether the CLI is already available:
 fold --help
 ```
 
-From this repository during development, install dependencies and run the local CLI through `npm run`:
+From the Fold repository during development, install dependencies and run the local CLI through `npm run`:
 
 ```bash
 npm install
 npm run --silent cli -- --help
 ```
 
-When packaged, use:
-
-```bash
-npm install -g fold
-```
-
-If the global `fold` command is unavailable, use the repository-local form shown in the invite:
+If `fold` is not available, use the repository-local form shown in the invite:
 
 ```bash
 npm run --silent cli -- <command>
 ```
 
+Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. After Fold publishes a scoped CLI package, use the version-pinned package-runner command shown in the handoff.
+
+Repeat agents with a standards-compatible Fold skill already installed do not need to install the skill again. Skill installation is optional operating policy; encrypted project state still comes from `fold resume` or `fold context`.
+
 The copied agent handoff is authoritative for the room. Prefer its exact alias, token, app URL, and sync URL.
 
-## Join A Room
+## Resume A Room
 
-Import the secret room URL or token once, then use the alias. Agent invites normally use a token because it preserves both the web app URL and sync server URL:
-
-```bash
-fold room add "fold:v1:..." --alias launch
-fold status --room launch --json
-```
-
-If `fold` is not installed yet in development, run the same commands through:
+Use the copied handoff's `fold resume` command first. Agent invites normally use a token because it preserves both the web app URL and sync server URL:
 
 ```bash
-npm run --silent cli -- room add "fold:v1:..." --alias launch
+fold resume --room "fold:v1:..." --alias launch --output ./fold-project --json
 ```
+
+If `fold` is not installed yet in development, run the same command through:
+
+```bash
+npm run --silent cli -- resume --room "fold:v1:..." --alias launch --output ./fold-project --json
+```
+
+For repeat work in the same project, use the saved alias:
+
+```bash
+fold resume --room launch --output ./fold-project --json
+```
+
+If `fold resume` is unavailable, fall back to `fold room add`, `fold status`, `fold export`, `fold context`, `fold requests`, `fold comments`, and `fold proposals`.
 
 ## Work On A Project
-
-Export the accepted Markdown project:
-
-```bash
-fold export --room launch --output ./fold-project --json
-```
 
 Edit files locally, then submit one reviewable proposal:
 
@@ -144,6 +143,13 @@ Generate an agent invite:
 
 ```bash
 fold room invite launch --for agent
+```
+
+Optional repeat-agent skill install paths, when the agent host supports them:
+
+```bash
+gh skill install wanderingspirit03/fold packages/fold-skills/skills/fold@<tag-or-sha>
+npx skills add wanderingspirit03/fold --skill fold
 ```
 
 If the invite warns about `localhost`, `127.0.0.1`, or a private LAN address, the room may not be reachable by collaborators outside that machine or network. Ask the human to provide a reachable `appUrl` and `syncUrl`, then update:

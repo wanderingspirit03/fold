@@ -13,14 +13,14 @@ without manually assembling five commands.
 
 ## Best Next Design
 
-Ship `fold resume` as the fresh-agent entry point:
+Use `fold resume` as the fresh-agent entry point:
 
 ```bash
 fold resume --room launch --output ./fold-project --json
 fold resume --room "fold:v1:..." --alias launch --output ./fold-project --json
 ```
 
-`resume` should be a thin orchestration layer over existing primitives, not a
+`resume` is a thin orchestration layer over existing primitives, not a
 second state model. It should internally compose:
 
 - `room add` when a token plus `--alias` is provided;
@@ -46,13 +46,13 @@ Fold already has the ingredients:
 - Agent invites already teach `room add`, `status`, `export`, `propose`,
   `requests`, `comments`, and `reply`.
 
-`fold resume` should package those concepts into the friendly front door.
+`fold resume` packages those concepts into the friendly front door.
 
 ## Priority Order
 
-### 1. Add `fold resume`
+### 1. Use `fold resume`
 
-Make it the product-facing command for "new agent session, continue this room."
+Keep it as the product-facing command for "new agent session, continue this room."
 
 It should return:
 
@@ -133,7 +133,7 @@ Fold's product language is proposal-first.
 
 ## Net Direction
 
-`fold resume` should become the friendly front door.
+`fold resume` is the friendly front door.
 
 `fold context` should remain the stable encrypted replay packet underneath.
 

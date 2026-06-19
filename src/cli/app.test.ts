@@ -123,6 +123,61 @@ describe('fold CLI app', () => {
     }
   });
 
+  it('routes resume JSON through the Stricli route', async () => {
+    const ownerCwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-owner-'));
+    const agentCwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-agent-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    const publishOutput = buildOutputCapture();
+    const resumeOutput = buildOutputCapture();
+
+    try {
+      await writeFile(join(ownerCwd, 'base.md'), '# Resume Route', 'utf8');
+      await runFoldCli(['publish', 'base.md', '--server', serverUrl, '--json'], {
+        process: {
+          stdout: { write: publishOutput.stdout.write },
+          stderr: { write: publishOutput.stderr.write },
+        },
+        cwd: ownerCwd,
+      });
+      const published = JSON.parse(publishOutput.stdout.value) as { room?: { token?: string } };
+
+      await runFoldCli([
+        'resume',
+        '--room',
+        published.room?.token ?? '',
+        '--alias',
+        'launch',
+        '--output',
+        'fold-project',
+        '--json',
+      ], {
+        process: {
+          stdout: { write: resumeOutput.stdout.write },
+          stderr: { write: resumeOutput.stderr.write },
+        },
+        cwd: agentCwd,
+      });
+
+      expect(resumeOutput.stderr.value).toBe('');
+      const result = JSON.parse(resumeOutput.stdout.value) as {
+        schema?: string;
+        metadata?: { alias?: string; imported?: boolean };
+        nextCommands?: { propose?: string };
+      };
+      expect(result.schema).toBe('fold.resume.result.v1');
+      expect(result.metadata?.alias).toBe('launch');
+      expect(result.metadata?.imported).toBe(true);
+      expect(result.nextCommands?.propose).toContain('--room "launch"');
+      expect(resumeOutput.stdout.value).not.toContain('fold:v1:');
+      expect(resumeOutput.stdout.value).not.toContain('#key=');
+    } finally {
+      await server.stop();
+      await rm(ownerCwd, { recursive: true, force: true });
+      await rm(agentCwd, { recursive: true, force: true });
+    }
+  });
+
   it('routes proposal list/show/accept/reject commands with kebab-case names', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'fold-cli-app-'));
     const server = new EncryptedAppendLogServer();

@@ -114,6 +114,41 @@ export interface ContextResult {
   };
 }
 
+export interface ResumeResult {
+  schema: 'fold.resume.result.v1';
+  ok: true;
+  mode: 'agent-resume';
+  room: SafeRoomResult;
+  metadata: {
+    path: string;
+    alias: string;
+    imported: boolean;
+  };
+  skill: {
+    url: string;
+    install: {
+      required: false;
+      repeatAgents: string;
+      ghSkill: string;
+      skillsSh: string;
+    };
+  };
+  status: StatusResult;
+  export: ExportResult | null;
+  context: ContextResult;
+  requests: CommentsResult;
+  comments: CommentsResult;
+  proposals: ProposalsResult;
+  nextCommands: {
+    propose: string | null;
+    requests: string;
+    comments: string;
+    proposals: string;
+    reply: string;
+    context: string;
+  };
+}
+
 export interface PatchResult {
   schema: 'fold.patch.result.v1';
   ok: true;
