@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import MarkdownRenderer from "../../apps/web/components/MarkdownRenderer.js";
+import { createContentSecurityPolicy } from "../../apps/web/proxy.js";
 
 interface NextConfigWithHeaders {
   headers(): Promise<Array<{ source: string; headers: Array<{ key: string; value: string }> }>>;
@@ -49,18 +50,23 @@ describe("MarkdownRenderer security behavior", () => {
 });
 
 describe("web hardening headers", () => {
-  it("configures CSP and browser hardening headers for every route", async () => {
+  it("configures browser hardening headers for every route", async () => {
     const configuredHeaders = await nextConfig.headers();
     const routeHeaders = configuredHeaders.find((entry) => entry.source === "/:path*")?.headers ?? [];
     const headerMap = new Map(routeHeaders.map((header) => [header.key, header.value]));
-    const csp = headerMap.get("Content-Security-Policy") ?? "";
 
     expect(headerMap.get("X-Content-Type-Options")).toBe("nosniff");
     expect(headerMap.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
     expect(headerMap.get("Permissions-Policy")).toContain("camera=()");
+    expect(headerMap.has("Content-Security-Policy")).toBe(false);
+  });
+
+  it("configures nonce-based CSP for hydrated production pages", () => {
+    const csp = createContentSecurityPolicy("test-nonce");
+
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
-    expect(csp).toMatch(/script-src 'self' 'sha256-[A-Za-z0-9+/=]+'/);
+    expect(csp).toContain("script-src 'self' 'nonce-test-nonce' 'strict-dynamic'");
     expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 });
