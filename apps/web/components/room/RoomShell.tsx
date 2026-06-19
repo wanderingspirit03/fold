@@ -117,6 +117,7 @@ export function RoomShell({
   const [recentFilePaths, setRecentFilePaths] = useState<string[]>([]);
   const [tourReplayToken, setTourReplayToken] = useState(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const readModeCommentComposer = mode === "read" ? onFocusCommentComposer : undefined;
   const selectedFile = useMemo(
     () => files.find((file) => file.path === selectedFilePath) ?? files[0],
     [files, selectedFilePath],
@@ -306,7 +307,7 @@ export function RoomShell({
                     pendingCount={pendingCount}
                     conflictCount={conflictCount}
                     reviewLabel={reviewLabel}
-                    onAddComment={onFocusCommentComposer}
+                    onAddComment={readModeCommentComposer}
                     onOpenReview={() => setReviewOpen(true)}
                   />
                   <Tooltip>
@@ -366,7 +367,7 @@ export function RoomShell({
                     pendingCount={pendingCount}
                     conflictCount={conflictCount}
                     reviewLabel={reviewLabel}
-                    onAddComment={onFocusCommentComposer}
+                    onAddComment={readModeCommentComposer}
                     onOpenReview={() => setReviewOpen(true)}
                     mobile
                   />
@@ -1910,24 +1911,26 @@ function ProjectCommandPalette({
   }, [onClose]);
 
   const staticItems: PaletteItem[] = [
-    {
-      id: "add-comment",
-      label: trimmedQuote ? "Add comment to selection" : "Add file comment",
-      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
-      group: "actions",
-      icon: <MessageSquarePlus className="h-4 w-4" />,
-      action: onFocusCommentComposer,
-    },
-    {
-      id: "ask-agent",
-      label: trimmedQuote ? "Ask agent at selection" : "Ask agent about file",
-      detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
-      group: "actions",
-      searchText: "ask agent request selection revise clarify help",
-      showByDefault: Boolean(trimmedQuote),
-      icon: <Bot className="h-4 w-4" />,
-      action: onFocusCommentComposer,
-    },
+    ...(mode === "read" ? [
+      {
+        id: "add-comment",
+        label: trimmedQuote ? "Add comment to selection" : "Add file comment",
+        detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
+        group: "actions",
+        icon: <MessageSquarePlus className="h-4 w-4" />,
+        action: onFocusCommentComposer,
+      },
+      {
+        id: "ask-agent",
+        label: trimmedQuote ? "Ask agent at selection" : "Ask agent about file",
+        detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
+        group: "actions",
+        searchText: "ask agent request selection revise clarify help",
+        showByDefault: Boolean(trimmedQuote),
+        icon: <Bot className="h-4 w-4" />,
+        action: onFocusCommentComposer,
+      },
+    ] satisfies PaletteItem[] : []),
     {
       id: "show-comments",
       label: "Show unresolved comments",

@@ -2331,7 +2331,7 @@ function createInitialVirtualFiles(template: InitialProjectTemplate): Record<str
       "## Measure",
       "",
       "- Import/export fidelity",
-      "- Selection comment behavior",
+      "- Read-state comment behavior",
       "- Source-mode escape hatch",
     ].join("\n"),
     "notes/meeting-product-review.md": [

@@ -48,7 +48,6 @@ export function DocumentSurface({
   onProjectFileLinkClick,
   selectedQuote,
   onSelectedQuoteChange,
-  selectedInsertionOffset,
   onSelectedInsertionOffsetChange,
   comments,
   proposals,
@@ -73,7 +72,6 @@ export function DocumentSurface({
   } | null>(null);
   const [fileCommentsOpen, setFileCommentsOpen] = useState(false);
   const [fileComposerOpen, setFileComposerOpen] = useState(false);
-  const [editComposerOpen, setEditComposerOpen] = useState(false);
   const [inlineComposerOpen, setInlineComposerOpen] = useState(false);
   const parsedMarkdown = useMemo(() => extractMarkdownProperties(markdown), [markdown]);
   const activeComments = useMemo(() => comments.filter((comment) => !comment.resolvedAt), [comments]);
@@ -94,10 +92,6 @@ export function DocumentSurface({
     [parsedMarkdown.content, proposals],
   );
   const detachedAnchorCount = detachedComments.length + detachedProposals.length;
-  const insertionPreview = useMemo(
-    () => selectedInsertionOffset === null ? null : createInsertionPreview(markdown, selectedInsertionOffset),
-    [markdown, selectedInsertionOffset],
-  );
   const activeComment = useMemo(
     () => activeComments.find((comment) => comment.id === activeCommentCard?.commentId) || null,
     [activeComments, activeCommentCard],
@@ -124,16 +118,6 @@ export function DocumentSurface({
     setAnchorPoint(null);
     clearSelectedAnchor();
   }, [anchorPoint, clearSelectedAnchor, composerFocusToken, mode, selectedQuote]);
-
-  useEffect(() => {
-    if (mode !== "edit" || composerFocusToken === 0) return;
-    setEditComposerOpen(true);
-    setFileComposerOpen(false);
-    setInlineComposerOpen(false);
-    setAnchorPoint(null);
-    clearSelectedAnchor();
-    window.requestAnimationFrame(() => composerRef.current?.focus());
-  }, [clearSelectedAnchor, composerFocusToken, mode]);
 
   useEffect(() => {
     if (!fileComposerOpen || selectedQuote) return;
@@ -216,109 +200,10 @@ export function DocumentSurface({
     const wrapEditedMarkdown = (content: string) => `${parsedMarkdown.propertySource}${content}`;
 
     return (
-      <section className="mx-auto w-full max-w-[880px] space-y-3">
-        {(selectedQuote || selectedInsertionOffset !== null) && !editComposerOpen && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              aria-label={selectedQuote ? "Add comment to source selection" : "Add comment at source cursor"}
-              className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border border-midnight/25 bg-studio-paper px-3 py-2 text-xs text-ink-muted shadow-[0_6px_18px_rgba(0,0,0,0.12)] transition-colors hover:border-midnight/45 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:min-h-9"
-              onClick={() => {
-                setEditComposerOpen(true);
-                window.requestAnimationFrame(() => composerRef.current?.focus());
-              }}
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
-              <span className="truncate">{selectedQuote ? "Comment selection" : "Comment cursor"}</span>
-            </button>
-          </div>
-        )}
-        {editComposerOpen && (
-          <form
-            data-comment-composer
-            onSubmit={(event) => {
-              if (!newCommentText.trim()) {
-                event.preventDefault();
-                return;
-              }
-              onPostComment(event);
-              setEditComposerOpen(false);
-              clearSelectedAnchor();
-              onNewCommentTextChange("");
-            }}
-            className="rounded-md border border-midnight/25 bg-studio-paper p-2 text-ink shadow-[0_10px_28px_rgba(0,0,0,0.14)]"
-          >
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 px-1 text-xs text-ink-subtle">
-                  <MessageSquarePlus className="h-3.5 w-3.5 shrink-0 text-midnight-strong" aria-hidden />
-                  <span>{selectedQuote ? "Selection comment" : selectedInsertionOffset !== null ? "Cursor comment" : "File comment"}</span>
-                </div>
-                {selectedQuote && (
-                  <p className="mt-1 line-clamp-2 border-l border-midnight/35 pl-2 text-xs leading-5 text-ink-muted">
-                    {selectedQuote}
-                  </p>
-                )}
-                {!selectedQuote && insertionPreview && (
-                  <p className="mt-1 line-clamp-2 border-l border-midnight/35 pl-2 text-xs leading-5 text-ink-muted">
-                    {insertionPreview}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                aria-label="Cancel comment"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-8 md:w-8"
-                onClick={() => {
-                  setEditComposerOpen(false);
-                  clearSelectedAnchor();
-                  onNewCommentTextChange("");
-                }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <Textarea
-              ref={composerRef}
-              aria-label={selectedQuote ? "Inline comment" : selectedInsertionOffset !== null ? "Cursor comment" : "File comment"}
-              placeholder="Comment"
-              rows={2}
-              value={newCommentText}
-              onChange={(event) => onNewCommentTextChange(event.target.value)}
-              required
-              className="min-h-20 resize-none border-studio-line bg-studio-sunken text-sm text-ink placeholder:text-ink-subtle"
-            />
-            <div className="mt-2 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-11 md:h-8"
-                disabled={!newCommentText.trim() || isPostingComment}
-                onClick={(event) => {
-                  onPostComment(event, "request");
-                  setEditComposerOpen(false);
-                  clearSelectedAnchor();
-                  onNewCommentTextChange("");
-                }}
-              >
-                <Bot className="h-3.5 w-3.5" />
-                Ask
-              </Button>
-              <Button type="submit" size="sm" className="h-11 md:h-8" disabled={!newCommentText.trim() || isPostingComment}>
-                <Send className="h-3.5 w-3.5" />
-                Add
-              </Button>
-            </div>
-          </form>
-        )}
+      <section className="mx-auto w-full max-w-[880px]">
         <MarkdownSourceEditor
           initialMarkdown={parsedMarkdown.content}
           properties={parsedMarkdown.properties}
-          onSelectionQuoteChange={(quote) => onSelectedQuoteChange(quote)}
-          onInsertionOffsetChange={(offset) => {
-            onSelectedInsertionOffsetChange(offset === null ? null : parsedMarkdown.propertySource.length + offset);
-          }}
           onChange={(content) => onMarkdownChange(wrapEditedMarkdown(content))}
           onCommit={(content) => onMarkdownCommit?.(wrapEditedMarkdown(content))}
         />
@@ -766,14 +651,6 @@ function expandPartialWordSelection(markdown: string, selectedText: string) {
   while (end < markdown.length && /[A-Za-z0-9_-]/.test(markdown[end])) end += 1;
 
   return markdown.slice(start, end).trim() || quote;
-}
-
-function createInsertionPreview(markdown: string, offset: number) {
-  const safeOffset = Math.max(0, Math.min(markdown.length, offset));
-  const before = markdown.slice(Math.max(0, safeOffset - 80), safeOffset).trim();
-  const after = markdown.slice(safeOffset, safeOffset + 80).trim();
-  if (before && after) return `${before} | ${after}`;
-  return before || after || "Start of file";
 }
 
 function isMissingTextAnchor(record: Pick<ChatComment | Proposal, "anchorType" | "selectedQuote">, markdown: string) {
