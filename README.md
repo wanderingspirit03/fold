@@ -195,7 +195,7 @@ npm run --silent cli -- export --room launch --output ./exported-project --json
 Agents should join with `fold-agent bootstrap`, inspect the returned requests/comments/proposals, edit exported files locally, and submit a reviewable proposal instead of overwriting accepted content.
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
 ```
 
 Inside this repository during development, use the local wrapper:
@@ -207,7 +207,7 @@ npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output .
 After editing existing files locally:
 
 ```bash
-npx --yes fold-agent@0.1.0 propose ./accepted-project \
+npx --yes fold-agent@0.1.2 propose ./accepted-project \
   --room launch \
   --title "Update project docs" \
   --comment "Clarifies the README and preserves portable Markdown export." \

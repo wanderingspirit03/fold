@@ -74,6 +74,10 @@ export async function writeMarkdownProject(
     ? [projectFileOrThrow(project, selectedPath)]
     : project.files;
 
+  if (!selectedPath && (files.length > 1 || options.forceDirectory)) {
+    await assertDirectoryOutputAvailable(output, outputPath);
+  }
+
   if (selectedPath || (files.length === 1 && !options.forceDirectory)) {
     const target = selectedPath ? output : output;
     await mkdir(dirname(target), { recursive: true });
@@ -89,6 +93,18 @@ export async function writeMarkdownProject(
     written.push(target);
   }
   return written;
+}
+
+async function assertDirectoryOutputAvailable(output: string, displayPath: string): Promise<void> {
+  try {
+    const info = await stat(output);
+    if (!info.isDirectory()) {
+      throw new Error(`Output path exists and is not a directory: ${displayPath}. Choose a project directory path such as ./fold-project-<room-alias>.`);
+    }
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return;
+    throw error;
+  }
 }
 
 export function normalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectSnapshot {

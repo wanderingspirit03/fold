@@ -11,13 +11,13 @@ Do not use `/usr/bin/fold`. That is the Unix text-wrapping command, not Fold.
 Primary fresh-agent command:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project-launch --json
 ```
 
 Installed CLI repeat command:
 
 ```bash
-fold-agent resume --room "launch" --output ./fold-project --json
+fold-agent resume --room "launch" --output ./fold-project-launch --json
 ```
 
 Bundled skill commands:

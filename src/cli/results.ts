@@ -159,6 +159,7 @@ export interface SkillInstallTargetResult {
   autoLoadKnown: boolean;
   reason?:
     | 'same_version'
+    | 'update_available'
     | 'unmanaged_existing'
     | 'newer_managed'
     | 'modified_existing'

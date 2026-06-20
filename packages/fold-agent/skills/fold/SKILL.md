@@ -15,14 +15,14 @@ project memory comes from encrypted room replay through `fold-agent bootstrap`,
 When a handoff contains a pinned `fold-agent bootstrap` command, run that first:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project-launch --json
 ```
 
 If `fold` is not globally installed but you are inside the Fold repo, use the
 repo-local wrapper from the handoff:
 
 ```bash
-npm run --silent cli -- bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project --json
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias "launch" --output ./fold-project-launch --json
 ```
 
 Do not use `/usr/bin/fold`. That is the Unix text-wrapping command, not Fold.
@@ -54,13 +54,13 @@ If `fold-agent resume` is unavailable, use the fallback sequence in
 4. Post fresh Markdown files directly:
 
 ```bash
-fold-agent post ./fold-project/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
+fold-agent post ./fold-project-launch/NEW_FILE.md --room "launch" --path "NEW_FILE.md" --json
 ```
 
 5. Submit existing-file changes as one reviewable proposal:
 
 ```bash
-fold-agent propose ./fold-project \
+fold-agent propose ./fold-project-launch \
   --room "launch" \
   --title "Describe the change" \
   --comment "Summarize what changed." \

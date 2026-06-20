@@ -168,8 +168,8 @@ describe('CLI operations', () => {
       expect(exported.document.markdown).toBe('');
       expect(await readFile(join(cwd, 'empty.md'), 'utf8')).toBe('');
       expect(humanInvite.invite.text).toContain(created.room.url);
-      expect(agentInvite.invite.text).toContain('npx --yes fold-agent@0.1.0 bootstrap --room');
-      expect(agentInvite.invite.text).toContain('--alias "empty" --output ./fold-project --json');
+      expect(agentInvite.invite.text).toContain('npx --yes fold-agent@0.1.2 bootstrap --room');
+      expect(agentInvite.invite.text).toContain('--alias "empty" --output ./fold-project-empty --json');
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });
@@ -563,10 +563,10 @@ describe('CLI operations', () => {
 
       expect(status.room.alias).toBe('launch');
       expectSafeRoomOutput(status);
-      expect(invite.invite.text).toContain('npx --yes fold-agent@0.1.0 bootstrap --room');
+      expect(invite.invite.text).toContain('npx --yes fold-agent@0.1.2 bootstrap --room');
       expect(invite.invite.text).toContain('npm run --silent cli -- bootstrap --room');
-      expect(invite.invite.text).toContain('--alias "launch" --output ./fold-project --json');
-      expect(invite.invite.text).toContain('npx --yes fold-agent@0.1.0 propose ./fold-project --room "launch"');
+      expect(invite.invite.text).toContain('--alias "launch" --output ./fold-project-launch --json');
+      expect(invite.invite.text).toContain('npx --yes fold-agent@0.1.2 propose ./fold-project-launch --room "launch"');
       expect(invite.invite.text).toContain('--alias');
       expect(invite.invite.text).toContain('fold:v1:');
       expect(invite.invite.text).not.toContain('#key=');
@@ -1097,8 +1097,8 @@ describe('CLI operations', () => {
       expect(bootstrapped.skill?.installed[0]?.path).toBe(join(agentCwd, '.agents', 'skills', 'fold'));
       expect(bootstrapped.resume.metadata.alias).toBe('launch');
       expect(bootstrapped.resume.export?.output.paths).toEqual([join(agentCwd, 'fold-project', 'README.md')]);
-      expect(bootstrapped.nextCommands.post).toContain('npx --yes fold-agent@0.1.0 post');
-      expect(bootstrapped.nextCommands.propose).toContain('npx --yes fold-agent@0.1.0 propose');
+      expect(bootstrapped.nextCommands.post).toContain('npx --yes fold-agent@0.1.2 post');
+      expect(bootstrapped.nextCommands.propose).toContain('npx --yes fold-agent@0.1.2 propose');
       expect(JSON.stringify(bootstrapped)).not.toContain(published.room.token);
       expect(JSON.stringify(bootstrapped)).not.toContain('#key=');
 
@@ -1125,6 +1125,7 @@ describe('CLI operations', () => {
       const second = await installFoldSkill({ cwd, scope: 'project', mode: 'update' });
       expect(first.installed).toHaveLength(1);
       expect(second.skipped[0]?.reason).toBe('same_version');
+      expect(second.skipped[0]?.version).not.toBe('0.1.0');
 
       await mkdir(join(unmanagedCwd, '.agents', 'skills', 'fold'), { recursive: true });
       await writeFile(join(unmanagedCwd, '.agents', 'skills', 'fold', 'SKILL.md'), '# local custom skill\n', 'utf8');
@@ -1133,6 +1134,25 @@ describe('CLI operations', () => {
     } finally {
       await rm(cwd, { recursive: true, force: true });
       await rm(unmanagedCwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports update_available instead of same_version for stale managed skills in status mode', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-skill-stale-'));
+    try {
+      const first = await installFoldSkill({ cwd, scope: 'project', mode: 'update' });
+      const targetPath = first.installed[0]!.path;
+      const manifestPath = join(targetPath, '.fold-skill-manifest.json');
+      const rawManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as { version: string };
+      rawManifest.version = '0.1.0';
+      await writeFile(manifestPath, `${JSON.stringify(rawManifest, null, 2)}\n`, 'utf8');
+
+      const status = await installFoldSkill({ cwd, scope: 'project', mode: 'status' });
+
+      expect(status.skipped[0]?.version).toBe('0.1.0');
+      expect(status.skipped[0]?.reason).toBe('update_available');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
     }
   });
 
@@ -1162,6 +1182,40 @@ describe('CLI operations', () => {
       expect(await readFile(join(agentCwd, 'fold-project', 'README.md'), 'utf8')).toContain('Accepted body.');
       expect(resumed.nextCommands.post).toContain('fold post');
       expect(resumed.nextCommands.propose).toContain('fold propose');
+    } finally {
+      await server.stop();
+      await rm(ownerCwd, { recursive: true, force: true });
+      await rm(agentCwd, { recursive: true, force: true });
+    }
+  });
+
+  it('explains project-directory output collisions when the target is a file', async () => {
+    const ownerCwd = await mkdtemp(join(tmpdir(), 'fold-resume-collision-owner-'));
+    const agentCwd = await mkdtemp(join(tmpdir(), 'fold-resume-collision-agent-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      await writeFile(join(ownerCwd, 'README.md'), '# Collision\n\nAccepted body.', 'utf8');
+      const published = await publishMarkdown({
+        cwd: ownerCwd,
+        filePath: 'README.md',
+        serverUrl,
+        alias: 'launch',
+        save: true,
+      });
+      await writeFile(join(agentCwd, 'fold-project'), '# existing file', 'utf8');
+
+      await expect(resumeRoom({
+        cwd: agentCwd,
+        room: published.room.token,
+        alias: 'launch',
+        outputPath: 'fold-project',
+      })).rejects.toThrow('Output path exists and is not a directory: fold-project');
+      await expect(resumeRoom({
+        cwd: agentCwd,
+        room: 'launch',
+        outputPath: 'fold-project',
+      })).rejects.toThrow('Choose a project directory path such as ./fold-project-<room-alias>');
     } finally {
       await server.stop();
       await rm(ownerCwd, { recursive: true, force: true });

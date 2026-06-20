@@ -196,7 +196,7 @@ Proposed commands:
 ```bash
 fold publish file.md
 fold patch file.md --room <url-or-token>
-fold resume --room <url-or-token> --alias <name> --output ./fold-project
+fold resume --room <url-or-token> --alias <name> --output ./fold-project-<name>
 fold propose file.md --room <url-or-token> --title "Tighten positioning" --comment "I made the opening sharper and added a concrete ICP section."
 fold proposals --room <url-or-token>
 fold show-proposal <proposal-id> --room <url-or-token>

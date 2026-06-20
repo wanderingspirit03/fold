@@ -7,7 +7,7 @@ Status: superseded by the `fold-agent` bundled CLI and skill package.
 Fold handoffs should lead with one pinned package-runner command:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 This is more practical than requiring a separate skill manager because a cold
@@ -48,21 +48,21 @@ The packaged CLI path keeps the copied handoff small and executable:
 Cold agent:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 Warm repeat agent:
 
 ```bash
-npx --yes fold-agent@0.1.0 resume --room launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 resume --room launch --output ./fold-project-launch --json
 ```
 
 Installed CLI repeat agent:
 
 ```bash
-npm install -g fold-agent@0.1.0
+npm install -g fold-agent@0.1.2
 fold-agent skill status
-fold-agent resume --room launch --output ./fold-project --json
+fold-agent resume --room launch --output ./fold-project-launch --json
 ```
 
 ## Security Rules

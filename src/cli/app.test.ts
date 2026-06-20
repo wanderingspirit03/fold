@@ -53,7 +53,7 @@ describe('fold CLI app', () => {
       expect(output.stdout.value).toContain('✓ Published encrypted Markdown room');
       expect(output.stdout.value).toContain('→ Invite a human: fold room invite "launch" --for human');
       expect(output.stdout.value).toContain('→ Invite an agent: fold room invite "launch" --for agent');
-      expect(output.stdout.value).toContain('→ Export for local work: fold export --room "launch" --output ./fold-project');
+      expect(output.stdout.value).toContain('→ Export for local work: fold export --room "launch" --output ./fold-project-launch');
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });

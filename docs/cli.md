@@ -129,7 +129,7 @@ Routine JSON results such as `status`, `export`, `resume`, `propose`, `proposals
 Cold agents should prefer the pinned package runner from the copied handoff:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
 ```
 
 Inside this repository during development, use the local wrapper. Agents should
@@ -149,14 +149,14 @@ npm run --silent cli -- proposals --room launch --json
 For warm repeat work in the same project, use the saved alias from `.fold/rooms.json`:
 
 ```bash
-npx --yes fold-agent@0.1.0 resume --room launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.2 resume --room launch --output ./accepted-project --json
 ```
 
 Repeat users can optionally install the CLI when their environment keeps global
 tools:
 
 ```bash
-npm install -g fold-agent@0.1.0
+npm install -g fold-agent@0.1.2
 fold-agent skill status
 fold-agent resume --room launch --output ./accepted-project --json
 ```
@@ -220,7 +220,7 @@ The web app exposes an agent skill at:
 /.well-known/fold/agent-skill.md
 ```
 
-Agent invites point to this skill and instruct the agent to run `npx --yes fold-agent@0.1.0 bootstrap --room ... --alias ... --output ./fold-project --json`. Use `fold-agent post` for fresh Markdown files and `fold-agent propose` for existing-file changes.
+Agent invites point to this skill and instruct the agent to run `npx --yes fold-agent@0.1.2 bootstrap --room ... --alias ... --output ./fold-project-<room-alias> --json`. Use `fold-agent post` for fresh Markdown files and `fold-agent propose` for existing-file changes.
 
 ## Append-Log API Contract
 

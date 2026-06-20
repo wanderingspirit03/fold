@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-const EXPECTED_BOOTSTRAP = 'npx --yes fold-agent@0.1.0 bootstrap';
+const EXPECTED_BOOTSTRAP = 'npx --yes fold-agent@0.1.2 bootstrap';
 const STALE_SKILL_PACKAGE = 'packages/fold-skills';
 
 describe('agent handoff copy drift', () => {

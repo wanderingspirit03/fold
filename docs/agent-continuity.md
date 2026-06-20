@@ -9,7 +9,7 @@ warm repeat agent should be able to continue from a saved alias.
 Use the pinned package runner from the handoff:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 `bootstrap` does three things:
@@ -26,15 +26,15 @@ or raw `.fold/rooms.json`.
 After the alias exists, repeat agents should use:
 
 ```bash
-npx --yes fold-agent@0.1.0 resume --room launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 resume --room launch --output ./fold-project-launch --json
 ```
 
 If the environment keeps global tools:
 
 ```bash
-npm install -g fold-agent@0.1.0
+npm install -g fold-agent@0.1.2
 fold-agent skill status
-fold-agent resume --room launch --output ./fold-project --json
+fold-agent resume --room launch --output ./fold-project-launch --json
 ```
 
 Warm agents should not reinstall the skill unless `fold-agent skill status` or
@@ -45,8 +45,8 @@ the handoff asks them to update.
 ```bash
 fold-agent requests --room launch --json
 fold-agent comments --room launch --type comment --open --json
-fold-agent post ./fold-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
-fold-agent propose ./fold-project --room launch --title "Describe the change" --comment "Summarize what changed." --json
+fold-agent post ./fold-project-launch/NEW_FILE.md --room launch --path NEW_FILE.md --json
+fold-agent propose ./fold-project-launch --room launch --title "Describe the change" --comment "Summarize what changed." --json
 fold-agent reply "<thread-id>" --room launch --text "Short reply." --json
 ```
 

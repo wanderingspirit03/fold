@@ -1104,7 +1104,8 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
   const roomUrl = roomUrlForAccess(access);
   const warnings = shareabilityWarnings(access);
   const skillUrl = `${access.appUrl.replace(/\/$/, '')}/.well-known/fold/agent-skill.md`;
-  const bootstrapCommand = `${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`;
+  const outputPath = defaultAgentProjectOutputPath(options.alias);
+  const bootstrapCommand = `${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ${outputPath} --json`;
   const agentInviteText = [
     'Join this Fold project room:',
     '',
@@ -1117,11 +1118,11 @@ export async function createRoomInvite(options: RoomInviteOptions): Promise<Room
     `2. Optional reference skill: ${skillUrl}`,
     '',
     '   Inside a cloned Fold repo during development, the equivalent local command is:',
-    `   npm run --silent cli -- bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ./fold-project --json`,
+    `   npm run --silent cli -- bootstrap --room ${JSON.stringify(entry.token)} --alias ${JSON.stringify(options.alias)} --output ${outputPath} --json`,
     '',
     '3. Post fresh Markdown files directly; propose changes to existing files:',
-    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} post ./fold-project/NEW_FILE.md --room ${JSON.stringify(options.alias)} --path "NEW_FILE.md" --json`,
-    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} propose ./fold-project --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} post ${outputPath}/NEW_FILE.md --room ${JSON.stringify(options.alias)} --path "NEW_FILE.md" --json`,
+    `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} propose ${outputPath} --room ${JSON.stringify(options.alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
     '',
     '4. Answer human requests and join comment threads when clarification is better than a proposal:',
     `   ${DEFAULT_FOLD_AGENT_COMMAND_PREFIX} requests --room ${JSON.stringify(options.alias)} --json`,
@@ -1253,6 +1254,16 @@ async function roomEntryByAliasOrThrow(metadataPath: string, alias: string): Pro
 
 function defaultAliasForSource(filePath: string): string {
   return basename(filePath).replace(/\.md$/i, '') || 'room';
+}
+
+function defaultAgentProjectOutputPath(alias: string): string {
+  const slug = alias
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+  return `./fold-project-${slug || 'room'}`;
 }
 
 function shareabilityWarnings(access: RoomAccess): string[] {

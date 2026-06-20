@@ -26,11 +26,12 @@ export function writeJson(context: CommandContext, value: unknown): void {
 }
 
 export function writePublishHuman(context: CommandContext, result: PublishResult): void {
+  const projectOutputPath = result.room.alias ? defaultAgentProjectOutputPath(result.room.alias) : './fold-project-room';
   const inviteLines = result.metadata.saved && result.room.alias
     ? [
       `→ Invite a human: fold room invite ${JSON.stringify(result.room.alias)} --for human`,
       `→ Invite an agent: fold room invite ${JSON.stringify(result.room.alias)} --for agent`,
-      `→ Export for local work: fold export --room ${JSON.stringify(result.room.alias)} --output ./fold-project`,
+      `→ Export for local work: fold export --room ${JSON.stringify(result.room.alias)} --output ${projectOutputPath}`,
     ]
     : [
       '→ Save this token with `fold room add ... --alias <name>` before generating invites.',
@@ -89,6 +90,7 @@ export function writeStatusHuman(context: CommandContext, result: StatusResult):
 }
 
 export function writeResumeHuman(context: CommandContext, result: ResumeResult): void {
+  const suggestedOutputPath = defaultAgentProjectOutputPath(result.metadata.alias);
   const outputLine = result.export?.output.written
     ? `→ Exported files: ${result.export.output.path}`
     : '→ Export skipped: pass --output <path> to write accepted files';
@@ -104,12 +106,22 @@ export function writeResumeHuman(context: CommandContext, result: ResumeResult):
     '',
     'Next commands:',
     result.nextCommands.post ?? null,
-    result.nextCommands.propose ?? `Run fold resume --room ${JSON.stringify(result.metadata.alias)} --output ./fold-project --json before proposing from exported files.`,
+    result.nextCommands.propose ?? `Run fold resume --room ${JSON.stringify(result.metadata.alias)} --output ${suggestedOutputPath} --json before proposing from exported files.`,
     result.nextCommands.requests,
     result.nextCommands.comments,
     result.nextCommands.proposals,
     '',
   ].filter((line): line is string => line !== null).join('\n'));
+}
+
+function defaultAgentProjectOutputPath(alias: string): string {
+  const slug = alias
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+  return `./fold-project-${slug || 'room'}`;
 }
 
 export function writeBootstrapHuman(context: CommandContext, result: BootstrapResult): void {

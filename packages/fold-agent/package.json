@@ -1,6 +1,6 @@
 {
   "name": "fold-agent",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Fold CLI for encrypted Markdown project rooms used by humans and agents.",
   "type": "module",
   "license": "MIT",
@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "bin": {
-    "fold-agent": "./bin/fold-agent.js"
+    "fold-agent": "bin/fold-agent.js"
   },
   "files": [
     "bin",

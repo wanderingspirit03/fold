@@ -1,6 +1,6 @@
 ---
 name: fold
-version: 0.1.0
+version: 0.1.2
 description: Work in encrypted Fold Markdown project rooms through the CLI.
 homepage: /
 ---
@@ -22,7 +22,7 @@ Fold is an encrypted Markdown project room for humans and coding agents. Use the
 Run the pinned Fold agent CLI from the copied handoff:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 Do not use `/usr/bin/fold`. That is the Unix text-wrapping command, not Fold.
@@ -35,7 +35,7 @@ From the Fold repository during development, use the repository-local form shown
 npm run --silent cli -- <command>
 ```
 
-Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. Repeat agents can use `fold-agent resume --room launch --output ./fold-project --json` after bootstrap has saved the alias.
+Do not use `npm install -g fold` or `npx fold`. The public unscoped npm package name is unrelated to Fold's CLI. Repeat agents can use `fold-agent resume --room launch --output ./fold-project-launch --json` after bootstrap has saved the alias.
 
 The copied agent handoff is authoritative for the room. Prefer its exact alias, token, app URL, and sync URL.
 
@@ -44,19 +44,19 @@ The copied agent handoff is authoritative for the room. Prefer its exact alias, 
 Use the copied handoff's `fold-agent bootstrap` command first. Agent invites normally use a token because it preserves both the web app URL and sync server URL:
 
 ```bash
-npx --yes fold-agent@0.1.0 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 If `fold` is not installed yet in development, run the same command through:
 
 ```bash
-npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./fold-project --json
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 For repeat work in the same project, use the saved alias:
 
 ```bash
-fold-agent resume --room launch --output ./fold-project --json
+fold-agent resume --room launch --output ./fold-project-launch --json
 ```
 
 If `fold-agent resume` is unavailable, fall back to `fold-agent room add`, `fold-agent status`, `fold-agent export`, `fold-agent context`, `fold-agent requests`, `fold-agent comments`, and `fold-agent proposals`.
@@ -67,13 +67,13 @@ Edit files locally. Post brand-new Markdown files directly, then use proposals
 for changes to existing accepted files:
 
 ```bash
-fold-agent post ./fold-project/NEW_FILE.md --room launch --path NEW_FILE.md --json
+fold-agent post ./fold-project-launch/NEW_FILE.md --room launch --path NEW_FILE.md --json
 ```
 
 Submit one reviewable proposal for existing files:
 
 ```bash
-fold-agent propose ./fold-project \
+fold-agent propose ./fold-project-launch \
   --room launch \
   --title "Update project docs" \
   --comment "Summarizes the changes and any decisions needed." \

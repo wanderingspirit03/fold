@@ -7,6 +7,7 @@ import type { SkillInstallResult, SkillInstallScope, SkillInstallTargetResult } 
 
 type TargetReason =
   | 'same_version'
+  | 'update_available'
   | 'unmanaged_existing'
   | 'newer_managed'
   | 'modified_existing'
@@ -55,7 +56,7 @@ export async function installFoldSkill(options: InstallFoldSkillOptions): Promis
         version: outcome.version,
         host: target.host,
         autoLoadKnown: target.autoLoadKnown,
-        reason: outcome.action === 'install' ? 'target_unavailable' : 'same_version',
+        reason: outcome.action === 'install' ? 'target_unavailable' : 'update_available',
       });
       continue;
     }

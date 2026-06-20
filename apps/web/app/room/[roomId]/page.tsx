@@ -34,7 +34,7 @@ const CLI_COMMENT_EVENT_SENDER_ID = "fold-cli:comment-event";
 const PRESENCE_SENDER_ID = "web-client:presence";
 const FILE_VERSION_SENDER_ID = "web-client:version";
 const ROOM_PROFILE_SENDER_ID = "web-client:room-profile";
-const FOLD_AGENT_COMMAND_PREFIX = "npx --yes fold-agent@0.1.0";
+const FOLD_AGENT_COMMAND_PREFIX = "npx --yes fold-agent@0.1.2";
 const LIVE_FILE_PATH = "reports/launch-review.md";
 const DEFAULT_PROJECT_FILE_PATH = "README.md";
 const PRESENCE_TTL_MS = 75_000;
@@ -2099,7 +2099,8 @@ function createAgentInvite({
     syncUrl: normalizedSyncUrl,
   });
   const skillUrl = `${normalizedAppUrl}/.well-known/fold/agent-skill.md`;
-  const bootstrapCommand = `${FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`;
+  const outputPath = defaultAgentProjectOutputPath(alias);
+  const bootstrapCommand = `${FOLD_AGENT_COMMAND_PREFIX} bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ${outputPath} --json`;
   const warningLines = warnings.length
     ? ["", "Reachability warning:", ...warnings.map((warning) => `- ${warning}`)]
     : [];
@@ -2120,11 +2121,11 @@ function createAgentInvite({
       `2. Optional reference skill: ${skillUrl}`,
       "",
       "   Inside a cloned Fold repo during development, the equivalent local command is:",
-      `   npm run --silent cli -- bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ./fold-project --json`,
+      `   npm run --silent cli -- bootstrap --room ${JSON.stringify(token)} --alias ${JSON.stringify(alias)} --output ${outputPath} --json`,
       "",
       "3. Post fresh Markdown files directly; propose changes to existing files:",
-      `   ${FOLD_AGENT_COMMAND_PREFIX} post ./fold-project/NEW_FILE.md --room ${JSON.stringify(alias)} --path "NEW_FILE.md" --json`,
-      `   ${FOLD_AGENT_COMMAND_PREFIX} propose ./fold-project --room ${JSON.stringify(alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} post ${outputPath}/NEW_FILE.md --room ${JSON.stringify(alias)} --path "NEW_FILE.md" --json`,
+      `   ${FOLD_AGENT_COMMAND_PREFIX} propose ${outputPath} --room ${JSON.stringify(alias)} --title "Describe the change" --comment "Summarize what changed." --json`,
       "",
       "4. Join comment threads when clarification is better than a proposal:",
       `   ${FOLD_AGENT_COMMAND_PREFIX} requests --room ${JSON.stringify(alias)} --json`,
@@ -2133,6 +2134,16 @@ function createAgentInvite({
       `   ${FOLD_AGENT_COMMAND_PREFIX} comment --room ${JSON.stringify(alias)} --path "docs/PLAN.md" --text "Short note." --json`,
     ].join("\n"),
   };
+}
+
+function defaultAgentProjectOutputPath(alias: string): string {
+  const slug = alias
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return `./fold-project-${slug || "room"}`;
 }
 
 function createHumanInvite({
@@ -2412,7 +2423,7 @@ function createInitialVirtualFiles(template: InitialProjectTemplate): Record<str
       "## Example Patch Command",
       "",
       "```bash",
-      "fold-agent propose ./fold-project \\",
+      "fold-agent propose ./fold-project-room-launch-review \\",
       "  --room room-launch-review \\",
       "  --title \"Tighten handoff language\" \\",
       "  --comment \"Clarifies proposal-first workflow and E2EE boundaries.\" \\",
