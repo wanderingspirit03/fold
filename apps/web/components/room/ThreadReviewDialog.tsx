@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check, Pencil, Quote, Send, X } from "lucide-react";
+import { Bot, Check, FileText, ListChecks, Pencil, Quote, Send, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import MarkdownRenderer from "../MarkdownRenderer";
 import { extractMarkdownProperties } from "../../lib/markdown-properties";
@@ -40,15 +40,18 @@ export function ThreadReviewDialog({
   const [editOpen, setEditOpen] = useState(false);
   const [editedMarkdown, setEditedMarkdown] = useState("");
   const [editedProposalId, setEditedProposalId] = useState<string | null>(null);
-  const activeEditedMarkdown = proposal && editedProposalId === proposal.id ? editedMarkdown : proposal?.proposedMarkdown ?? "";
-  const hasEditedMarkdown = Boolean(proposal && activeEditedMarkdown !== proposal.proposedMarkdown);
+  const targetPaths = proposal ? proposalTargetPaths(proposal) : [];
+  const previewPath = proposal ? targetPaths[0] || proposal.filePath || proposal.proposedProject?.primaryPath || "" : "";
+  const initialReviewMarkdown = proposal ? proposalPreviewMarkdown(proposal, previewPath) : "";
+  const activeEditedMarkdown = proposal && editedProposalId === proposal.id ? editedMarkdown : initialReviewMarkdown;
+  const hasEditedMarkdown = Boolean(proposal && activeEditedMarkdown !== initialReviewMarkdown);
   const reviewMarkdown = proposal ? activeEditedMarkdown : "";
-  const reviewProposal = proposal && hasEditedMarkdown ? proposalWithEditedMarkdown(proposal, editedMarkdown) : proposal;
+  const reviewProposal = proposal && hasEditedMarkdown ? proposalWithEditedMarkdown(proposal, editedMarkdown, previewPath) : proposal;
   const parsedProposal = proposal ? extractMarkdownProperties(reviewMarkdown) : null;
   const diff = proposal
     ? hasEditedMarkdown
-      ? fallbackDiff(proposal.createdFromMarkdown || proposal.proposedMarkdown, reviewMarkdown)
-      : proposal.diff || fallbackDiff(proposal.createdFromMarkdown, proposal.proposedMarkdown)
+      ? fallbackDiff(proposal.createdFromMarkdown || initialReviewMarkdown, reviewMarkdown, previewPath)
+      : proposal.diff || fallbackDiff(proposal.createdFromMarkdown, initialReviewMarkdown, previewPath)
     : "";
 
   useEffect(() => {
@@ -56,16 +59,16 @@ export function ThreadReviewDialog({
     setAskAgainOpen(false);
     setAskAgainText("");
     setEditOpen(false);
-    setEditedMarkdown(proposal?.proposedMarkdown || "");
+    setEditedMarkdown(proposal ? proposalPreviewMarkdown(proposal, proposalTargetPaths(proposal)[0] || proposal.filePath || proposal.proposedProject?.primaryPath || "") : "");
     setEditedProposalId(proposal?.id || null);
   }, [proposal?.id]);
 
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_12px_34px_rgba(0,0,0,0.18)]">
+      <DialogContent className="flex max-h-[min(860px,calc(100dvh-2rem))] max-w-3xl flex-col gap-0 overflow-hidden border-studio-line bg-studio-paper p-0 text-ink shadow-[0_12px_34px_rgba(0,0,0,0.18)]">
         {proposal && (
           <>
-            <DialogHeader className="border-b border-studio-line px-4 py-3 sm:px-5">
+            <DialogHeader className="shrink-0 border-b border-studio-line px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-8 pr-8">
                 <div className="min-w-0">
                   <StatusText status={proposal.status} />
@@ -78,25 +81,40 @@ export function ThreadReviewDialog({
               </div>
             </DialogHeader>
 
-            <div className="min-h-0 overflow-y-auto px-4 py-3 sm:px-5">
-              <div className="mb-3 flex min-h-8 items-center gap-2 rounded-md border border-studio-line bg-studio-sunken/70 px-2.5 py-1.5">
-                <Quote className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
-                <p className="min-w-0 truncate text-xs leading-5 text-ink-muted">
-                  {proposal.selectedQuote
-                    ? proposal.selectedQuote
-                    : proposal.anchorType === "block"
-                      ? "Section suggestion"
-                      : "Whole-document suggestion"}
-                </p>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
+              <div className="mb-3 rounded-md border border-studio-line bg-studio-sunken/70 px-3 py-2">
+                <div className="flex min-w-0 items-start gap-2">
+                  <ListChecks className="mt-0.5 h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium leading-5 text-ink">{proposalTargetSummary(proposal, targetPaths)}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-ink-muted">
+                      {proposal.comment || "Review the proposed Markdown before accepting it."}
+                    </p>
+                  </div>
+                </div>
+                {proposal.selectedQuote || proposal.anchorType === "block" ? (
+                  <div className="mt-2 flex min-h-8 items-center gap-2 rounded border border-studio-line/80 bg-studio-paper/55 px-2.5 py-1.5">
+                    <Quote className="h-3.5 w-3.5 shrink-0 text-midnight-strong" />
+                    <p className="min-w-0 truncate text-xs leading-5 text-ink-muted">
+                      {proposal.selectedQuote || "Section suggestion"}
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
-              {diff ? <DiffPreview diff={diff} /> : null}
-
               <div className="overflow-hidden rounded-md border border-document-edge bg-document shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-                <div className="border-b border-document-edge bg-black/[0.018] px-4 py-2">
-                  <p className="text-[11px] font-medium text-document-subtle">Suggestion preview</p>
+                <div className="flex min-h-9 items-center justify-between gap-3 border-b border-document-edge bg-black/[0.018] px-4 py-2">
+                  <p className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-document-subtle">
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{previewPath ? `Preview: ${previewPath}` : "Suggestion preview"}</span>
+                  </p>
+                  {targetPaths.length > 1 ? (
+                    <span className="shrink-0 font-mono text-[11px] text-document-subtle">
+                      {targetPaths.length} files
+                    </span>
+                  ) : null}
                 </div>
-                <div className="max-h-[54dvh] overflow-y-auto px-4 py-5 sm:px-6">
+                <div className="max-h-[38dvh] overflow-y-auto px-4 py-5 sm:px-6">
                   {parsedProposal?.properties.length ? (
                     <div className="mb-6 rounded-md border border-document-edge bg-black/[0.025] px-3 py-2">
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -114,6 +132,8 @@ export function ThreadReviewDialog({
                 </div>
               </div>
 
+              {diff ? <DiffPreview diff={diff} /> : null}
+
               {editOpen && (
                 <section className="mt-3 rounded-md border border-midnight/25 bg-studio-sunken/55 p-2.5" aria-label="Edit suggestion before accepting">
                   <div className="mb-2 flex items-center justify-between gap-3 px-0.5">
@@ -126,7 +146,7 @@ export function ThreadReviewDialog({
                       className="h-8 rounded px-2 text-xs text-ink-subtle transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong"
                       onClick={() => {
                         setEditedProposalId(proposal.id);
-                        setEditedMarkdown(proposal.proposedMarkdown);
+                        setEditedMarkdown(initialReviewMarkdown);
                       }}
                     >
                       Reset
@@ -140,7 +160,7 @@ export function ThreadReviewDialog({
                       setEditedMarkdown(event.target.value);
                     }}
                     rows={10}
-                    className="min-h-64 resize-y border-studio-line bg-studio-paper font-mono text-xs leading-5 text-ink placeholder:text-ink-subtle focus-visible:ring-1"
+                    className="min-h-48 resize-y border-studio-line bg-studio-paper font-mono text-xs leading-5 text-ink placeholder:text-ink-subtle focus-visible:ring-1"
                   />
                 </section>
               )}
@@ -161,7 +181,7 @@ export function ThreadReviewDialog({
             </div>
 
             {proposal.status === "pending" ? (
-              <DialogFooter className="border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
+              <DialogFooter className="shrink-0 border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
                 {confirmingAccept ? (
                   <div className="flex w-full items-center justify-end gap-2">
                     <p className="mr-auto text-xs text-midnight-strong">{hasEditedMarkdown ? "Apply edited Markdown?" : "Apply?"}</p>
@@ -249,7 +269,7 @@ export function ThreadReviewDialog({
                 )}
               </DialogFooter>
             ) : (
-              <div className="border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
+              <div className="shrink-0 border-t border-studio-line bg-studio-paper px-4 py-3 sm:px-5">
                 <p className="text-xs text-ink-subtle">
                   {proposal.status === "accepted" ? "This suggestion has been accepted." : "This suggestion has been rejected."}
                 </p>
@@ -262,8 +282,8 @@ export function ThreadReviewDialog({
   );
 }
 
-function proposalWithEditedMarkdown(proposal: Proposal, markdown: string): Proposal {
-  const editedPath = proposal.filePath || proposal.proposedProject?.primaryPath;
+function proposalWithEditedMarkdown(proposal: Proposal, markdown: string, previewPath: string): Proposal {
+  const editedPath = previewPath || proposal.filePath || proposal.proposedProject?.primaryPath;
   const proposedProject = proposal.proposedProject
     ? {
         ...proposal.proposedProject,
@@ -300,6 +320,30 @@ function proposalDiscussionComment(proposal: Proposal): ChatComment {
   };
 }
 
+function proposalTargetPaths(proposal: Proposal) {
+  if (proposal.targetPaths?.length) return proposal.targetPaths;
+  if (proposal.filePath) return [proposal.filePath];
+  if (proposal.proposedProject?.primaryPath) return [proposal.proposedProject.primaryPath];
+  return [];
+}
+
+function proposalPreviewMarkdown(proposal: Proposal, previewPath: string) {
+  if (proposal.proposedProject && previewPath) {
+    return proposal.proposedProject.files.find((file) => file.path === previewPath)?.markdown ?? proposal.proposedMarkdown;
+  }
+  return proposal.proposedMarkdown;
+}
+
+function proposalTargetSummary(proposal: Proposal, targetPaths: string[]) {
+  if (proposal.kind === "project-replacement") {
+    if (targetPaths.length === 1) return `Project suggestion for ${targetPaths[0]}`;
+    if (targetPaths.length > 1) return `Project suggestion touching ${targetPaths.length} files`;
+    return "Project suggestion";
+  }
+  if (targetPaths.length === 1) return `Suggestion for ${targetPaths[0]}`;
+  return proposal.anchorType === "block" ? "Section suggestion" : "Whole-document suggestion";
+}
+
 function DiffPreview({ diff }: { diff: string }) {
   const lines = diff.split(/\r?\n/);
   const stats = diffStats(lines);
@@ -307,7 +351,7 @@ function DiffPreview({ diff }: { diff: string }) {
   const hiddenCount = Math.max(0, lines.length - visibleLines.length);
 
   return (
-    <section className="mb-3 overflow-hidden rounded-md border border-studio-line bg-studio-sunken/55" aria-label={`Suggestion diff, ${stats.added} added, ${stats.removed} removed`}>
+    <section className="mt-3 overflow-hidden rounded-md border border-studio-line bg-studio-sunken/55" aria-label={`Suggestion diff, ${stats.added} added, ${stats.removed} removed`}>
       <div className="flex min-h-8 items-center justify-between gap-3 border-b border-studio-line px-3 py-1.5">
         <p className="text-[11px] font-medium text-ink-subtle">Diff</p>
         <p className="shrink-0 font-mono text-[11px] text-ink-subtle">
@@ -316,7 +360,7 @@ function DiffPreview({ diff }: { diff: string }) {
           <span className="text-rose-400">-{stats.removed}</span>
         </p>
       </div>
-      <pre className="max-h-[24dvh] overflow-auto py-1 text-[11px] leading-5 text-ink-muted">
+      <pre className="max-h-[18dvh] overflow-auto py-1 text-[11px] leading-5 text-ink-muted">
         {visibleLines.map((line, index) => (
           <code key={`${index}:${line}`} className={cn("block border-l-2 border-transparent px-3 whitespace-pre-wrap break-words", diffLineClass(line))}>
             {line || " "}
@@ -351,11 +395,11 @@ function diffLineClass(line: string) {
   return "";
 }
 
-function fallbackDiff(baseMarkdown: string | undefined, proposedMarkdown: string) {
+function fallbackDiff(baseMarkdown: string | undefined, proposedMarkdown: string, path = "proposed.md") {
   if (!baseMarkdown || baseMarkdown === proposedMarkdown) return "";
   return [
-    "--- current.md",
-    "+++ proposed.md",
+    `--- ${path || "current.md"}`,
+    `+++ ${path || "proposed.md"}`,
     "@@ whole-document-replacement @@",
     ...baseMarkdown.split("\n").map((line) => `-${line}`),
     ...proposedMarkdown.split("\n").map((line) => `+${line}`),

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { chromium, type Page } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 
 const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
@@ -16,6 +16,8 @@ const PROPOSAL_TITLE = `Proposal review smoke ${Date.now()}`;
 const REJECT_PROPOSAL_TITLE = `Rejected proposal smoke ${Date.now()}`;
 const PROPOSAL_REPLY_MARKER = `Proposal discussion reply ${Date.now()}.`;
 const PROPOSAL_ASK_AGAIN_MARKER = `Please make the proposal more specific ${Date.now()}.`;
+const PROJECT_PROPOSAL_TITLE = `Project target smoke ${Date.now()}`;
+const PROJECT_ABOUT_PROPOSED = `About Codex proposed project change ${Date.now()}.`;
 const execFileAsync = promisify(execFile);
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const tsxCli = join(repoRoot, "node_modules/tsx/dist/cli.mjs");
@@ -109,7 +111,7 @@ async function main() {
     const desktopDialogScreenshotPath = join(screenshotDir, "desktop-proposal-preview.png");
     await desktop.screenshot({ path: desktopDialogScreenshotPath, fullPage: false, caret: "initial" });
     await desktop.keyboard.press("Escape");
-    await desktop.waitForFunction(() => !document.body.innerText.includes("Suggestion preview"), null, { timeout: 8_000 });
+    await desktop.getByRole("dialog", { name: PROPOSAL_TITLE }).waitFor({ state: "hidden", timeout: 8_000 });
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
     await preparePage(mobile, "mobile", logs);
@@ -193,7 +195,7 @@ async function main() {
     await desktop.getByRole("button", { name: /open pending suggestion/i }).click({ timeout: 8_000 });
     await assertProposalDialog(desktop, REJECT_PROPOSAL_TITLE, REJECTED_TEXT);
     await desktop.getByRole("button", { name: "Reject", exact: true }).click();
-    await desktop.waitForFunction(() => !document.body.innerText.includes("Suggestion preview"), null, { timeout: 8_000 });
+    await desktop.getByRole("dialog", { name: REJECT_PROPOSAL_TITLE }).waitFor({ state: "hidden", timeout: 8_000 });
 
     const replayedAfterReject = await runCliJson<ProposalsJson>(cwd, [
       "proposals",
@@ -225,6 +227,8 @@ async function main() {
       throw new Error("CLI export included rejected proposal markdown.");
     }
 
+    const projectTargetScreenshotPath = await assertProjectProposalTargetsChangedFile(browser, cwd, baseUrl, logs, screenshotDir);
+
     await assertNoHorizontalOverflow(desktop, "desktop proposal review smoke");
     const errors = logs.filter((entry) => entry.includes("pageerror:") || entry.includes(" console:error:"));
     if (errors.length > 0) {
@@ -245,6 +249,7 @@ async function main() {
           proposalAskAgainMarker: PROPOSAL_ASK_AGAIN_MARKER,
           desktopDialogScreenshotPath,
           mobileDialogScreenshotPath,
+          projectTargetScreenshotPath,
         },
         null,
         2,
@@ -261,7 +266,7 @@ async function assertProposalDialog(page: Page, title: string, proposedText: str
   await page.waitForFunction(
     ([title, proposedText]) => (
       document.body.innerText.includes(title) &&
-      document.body.innerText.includes("Suggestion preview") &&
+      document.body.innerText.includes("Preview:") &&
       document.body.innerText.includes("Diff") &&
       document.body.innerText.includes(proposedText)
     ),
@@ -270,6 +275,81 @@ async function assertProposalDialog(page: Page, title: string, proposedText: str
   );
   await page.getByRole("button", { name: "Accept", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
   await page.getByRole("button", { name: "Reject", exact: true }).waitFor({ state: "visible", timeout: 8_000 });
+}
+
+async function assertProjectProposalTargetsChangedFile(
+  browser: Browser,
+  cwd: string,
+  baseUrl: string,
+  logs: string[],
+  screenshotDir: string,
+) {
+  const projectDir = join(cwd, "project-target");
+  await mkdir(join(projectDir, "docs"), { recursive: true });
+  const readmePath = join(projectDir, "README.md");
+  const targetPath = join(projectDir, "docs", "Target.md");
+  await writeFile(readmePath, "# Project Target\n\nREADME stays unchanged.\n", "utf8");
+  await writeFile(targetPath, "# Target\n\nOriginal target body.\n", "utf8");
+  const published = await runCliJson<PublishJson>(cwd, [
+    "publish",
+    projectDir,
+    "--app-url",
+    baseUrl,
+    "--sync-url",
+    DEFAULT_SYNC_URL,
+    "--alias",
+    "project-target-smoke",
+    "--json",
+  ]);
+
+  await writeFile(targetPath, `# Target\n\n${PROJECT_ABOUT_PROPOSED}\n`, "utf8");
+  await runCliJson<ProposeJson>(cwd, [
+    "propose",
+    projectDir,
+    "--room",
+    published.room.token,
+    "--title",
+    PROJECT_PROPOSAL_TITLE,
+    "--comment",
+    "Verify project suggestions are attached to the changed file.",
+    "--json",
+  ]);
+
+  const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+  await preparePage(page, "project-target", logs);
+  await page.goto(published.room.url, { waitUntil: "networkidle", timeout: 20_000 });
+  await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+  await page.waitForFunction(
+    () => document.body.innerText.includes("Project Target") && !document.body.innerText.includes("Project target smoke"),
+    null,
+    { timeout: 10_000 },
+  );
+  const readmePendingButton = page.getByRole("button", { name: /open pending suggestion/i });
+  if (await readmePendingButton.count()) {
+    throw new Error("Project proposal appeared on the README document surface instead of the changed file.");
+  }
+
+  await page.getByRole("button", { name: /Target\.md/ }).last().click();
+  await page.waitForFunction((text) => document.body.innerText.includes(text), "Original target body.", { timeout: 8_000 });
+  await page.getByRole("button", { name: /open pending suggestion/i }).click({ timeout: 8_000 });
+  const dialog = page.getByRole("dialog", { name: PROJECT_PROPOSAL_TITLE });
+  await dialog.waitFor({ state: "visible", timeout: 8_000 });
+  await page.waitForFunction(
+    ([title, proposed]) => (
+      document.body.innerText.includes(title) &&
+      document.body.innerText.includes("Project suggestion for docs/Target.md") &&
+      document.body.innerText.includes("Preview: docs/Target.md") &&
+      document.body.innerText.includes(proposed) &&
+      !document.body.innerText.includes("Preview: README.md")
+    ),
+    [PROJECT_PROPOSAL_TITLE, PROJECT_ABOUT_PROPOSED],
+    { timeout: 8_000 },
+  );
+  const screenshotPath = join(screenshotDir, "project-proposal-target-preview.png");
+  await page.screenshot({ path: screenshotPath, fullPage: false, caret: "initial" });
+  await assertNoHorizontalOverflow(page, "project proposal target preview");
+  await page.close();
+  return screenshotPath;
 }
 
 async function assertNoHorizontalOverflow(page: Page, label: string) {

@@ -398,6 +398,7 @@ export default function RoomPage() {
         ? normalizeProjectSnapshot(parsed.proposedProject)
         : undefined;
       const fallbackFilePath = proposedProject?.primaryPath || projectPrimaryPathRef.current || LIVE_FILE_PATH;
+      const targetPaths = deriveProposalTargetPaths(parsed, proposedProject, fallbackFilePath);
       setProposals((prev) => upsertProposal(prev, {
         id: parsed.id,
         title: parsed.title,
@@ -409,7 +410,8 @@ export default function RoomPage() {
         createdAt: parsed.createdAt,
         status: "pending",
         kind: parsed.kind,
-        filePath: parsed.filePath || parsed.path || fallbackFilePath,
+        filePath: parsed.filePath || parsed.path || targetPaths[0] || fallbackFilePath,
+        targetPaths,
         anchorType: parsed.anchorType || parsed.anchor?.anchorType,
         selectedQuote: parsed.selectedQuote || parsed.anchor?.selectedQuote,
         createdFromMarkdown: parsed.createdFromMarkdown || parsed.anchor?.createdFromMarkdown,
@@ -1360,7 +1362,7 @@ export default function RoomPage() {
   const selectedFileActiveComments = selectedFileComments.filter((comment) => !comment.resolvedAt);
   const selectedFileActiveRequests = selectedFileActiveComments.filter((comment) => comment.type === "request");
   const selectedFileActiveNotes = selectedFileActiveComments.filter((comment) => comment.type !== "request");
-  const selectedFileProposals = proposals.filter((proposal) => (proposal.filePath || defaultRecordFilePath) === selectedFilePath);
+  const selectedFileProposals = proposals.filter((proposal) => proposalTargetsFile(proposal, selectedFilePath, defaultRecordFilePath));
   const selectedProposalIds = new Set(selectedFileProposals.map((proposal) => proposal.id));
   const selectedCommentIds = new Set(selectedFileComments.map((comment) => comment.id));
   const selectedFileTimeline = timeline.filter((event) => {
@@ -2014,13 +2016,60 @@ function activePresencesByFile(
   return byPath;
 }
 
-function countRecordsByFile(records: Array<{ filePath?: string }>, defaultFilePath = LIVE_FILE_PATH) {
+function countRecordsByFile(records: Array<{ filePath?: string; targetPaths?: string[] }>, defaultFilePath = LIVE_FILE_PATH) {
   const counts = new Map<string, number>();
   for (const record of records) {
-    const path = record.filePath || defaultFilePath;
-    counts.set(path, (counts.get(path) || 0) + 1);
+    const paths = record.targetPaths?.length ? record.targetPaths : [record.filePath || defaultFilePath];
+    for (const path of paths) {
+      counts.set(path, (counts.get(path) || 0) + 1);
+    }
   }
   return counts;
+}
+
+function proposalTargetsFile(proposal: Proposal, filePath: string, defaultFilePath = LIVE_FILE_PATH) {
+  const targetPaths = proposal.targetPaths?.length ? proposal.targetPaths : [proposal.filePath || defaultFilePath];
+  return targetPaths.includes(filePath);
+}
+
+function deriveProposalTargetPaths(
+  parsed: { path?: unknown; filePath?: unknown; diff?: unknown; kind?: unknown },
+  proposedProject: ProjectSnapshot | undefined,
+  fallbackFilePath: string,
+) {
+  const explicitPath = typeof parsed.filePath === "string"
+    ? parsed.filePath
+    : typeof parsed.path === "string"
+      ? parsed.path
+      : "";
+  if (explicitPath) return uniqueNormalizedPaths([explicitPath]);
+  const changedPaths = changedPathsFromDiff(typeof parsed.diff === "string" ? parsed.diff : "");
+  if (changedPaths.length > 0) return uniqueNormalizedPaths(changedPaths);
+  return uniqueNormalizedPaths([proposedProject?.primaryPath, fallbackFilePath]);
+}
+
+function changedPathsFromDiff(diff: string) {
+  const paths: string[] = [];
+  for (const line of diff.split(/\r?\n/)) {
+    const match = /^---\s+(.+)$/.exec(line);
+    if (!match) continue;
+    const path = match[1].trim();
+    if (!path || path === "current.md" || path === "/dev/null") continue;
+    paths.push(path);
+  }
+  return paths;
+}
+
+function uniqueNormalizedPaths(paths: Array<string | undefined>) {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const path of paths) {
+    const next = normalizeProjectFilePath(path || "");
+    if (!next || seen.has(next)) continue;
+    seen.add(next);
+    normalized.push(next);
+  }
+  return normalized;
 }
 
 function lastOpenedFileStorageKey(roomId: string) {

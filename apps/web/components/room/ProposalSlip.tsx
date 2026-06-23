@@ -27,7 +27,7 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
     ? proposal.selectedQuote
     : proposal.anchorType === "block"
       ? "Section suggestion"
-      : "Whole-document suggestion";
+      : proposalTargetLabel(proposal);
   const renderedAnchor = proposal.selectedQuote ? `"${anchorText}"` : anchorText;
 
   useEffect(() => {
@@ -131,6 +131,21 @@ export function ProposalSlip({ proposal, anchorMissing = false, onOpen, onAccept
       </div>
     </article>
   );
+}
+
+function proposalTargetLabel(proposal: Proposal) {
+  const paths = proposal.targetPaths?.length
+    ? proposal.targetPaths
+    : proposal.filePath
+      ? [proposal.filePath]
+      : [];
+  if (proposal.kind === "project-replacement") {
+    if (paths.length === 1) return `${paths[0]} project suggestion`;
+    if (paths.length > 1) return `${paths.length} files changed`;
+    return "Project suggestion";
+  }
+  if (paths.length === 1) return `${paths[0]} suggestion`;
+  return "Whole-document suggestion";
 }
 
 function formatTime(value: string) {

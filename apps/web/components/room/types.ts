@@ -16,6 +16,7 @@ export interface Proposal {
   createdAt: string;
   status: ProposalStatus;
   filePath?: string;
+  targetPaths?: string[];
   anchorType?: ThreadAnchorType;
   selectedQuote?: string;
   createdFromMarkdown?: string;
