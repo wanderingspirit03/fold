@@ -36,7 +36,7 @@ const FILE_VERSION_SENDER_ID = "web-client:version";
 const ROOM_PROFILE_SENDER_ID = "web-client:room-profile";
 const FOLD_AGENT_COMMAND_PREFIX = "npx --yes fold-agent@0.1.2";
 const LIVE_FILE_PATH = "reports/launch-review.md";
-const DEFAULT_PROJECT_FILE_PATH = "README.md";
+const DEFAULT_PROJECT_FILE_PATH = "document.md";
 const PRESENCE_TTL_MS = 75_000;
 const PRESENCE_ACTIVITY_IDLE_DELAY_MS = 4_000;
 type PresenceActivity = NonNullable<CollaborationPresence["activity"]>;
@@ -1982,7 +1982,7 @@ function deriveProjectName(
     if (title) return title;
   }
 
-  return "Fold project";
+  return "Untitled project";
 }
 
 function firstMarkdownHeading(markdown = "") {
@@ -2309,7 +2309,7 @@ function initialProjectPrimaryPath(template: InitialProjectTemplate) {
 function createInitialVirtualFiles(template: InitialProjectTemplate): Record<string, string> {
   if (template !== "demo") {
     return {
-      "README.md": "# Untitled project\n\n",
+      [DEFAULT_PROJECT_FILE_PATH]: "",
     };
   }
 
