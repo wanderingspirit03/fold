@@ -232,6 +232,10 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
   const primary = projectFileOrThrow(project, project.primaryPath);
   const markdown = primary.markdown;
   const savedAlias = options.alias ?? defaultAliasForSource(options.filePath);
+  const metadataPath = defaultMetadataPath(options.cwd);
+  if (options.save) {
+    await assertAliasUnused(metadataPath, savedAlias);
+  }
   const urls = resolvePublicOrigin({
     serverUrl: options.serverUrl,
     appUrl: options.appUrl,
@@ -260,7 +264,6 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
   const eventRecord = await appendEncryptedUpdate(access, await createEncryptedTimelineEvent(access, publishEvent));
   const encryptedSnapshot = await createEncryptedMarkdownSnapshot(markdown, access, CLI_SENDER_ID);
   const token = createRoomToken(access);
-  const metadataPath = defaultMetadataPath(options.cwd);
   const now = new Date().toISOString();
 
   if (options.save) {
@@ -303,6 +306,8 @@ export async function publishMarkdown(options: PublishOptions): Promise<PublishR
 export async function createRoomProfile(options: RoomCreateOptions): Promise<RoomCreateResult> {
   const markdown = '';
   const project = singleFileProject('document.md', markdown);
+  const metadataPath = defaultMetadataPath(options.cwd);
+  await assertAliasUnused(metadataPath, options.alias);
   const urls = resolvePublicOrigin({
     serverUrl: options.serverUrl,
     appUrl: options.appUrl,
@@ -330,7 +335,6 @@ export async function createRoomProfile(options: RoomCreateOptions): Promise<Roo
   const eventRecord = await appendEncryptedUpdate(access, await createEncryptedTimelineEvent(access, publishEvent));
   const encryptedSnapshot = await createEncryptedMarkdownSnapshot(markdown, access, CLI_SENDER_ID);
   const token = createRoomToken(access);
-  const metadataPath = defaultMetadataPath(options.cwd);
   const now = new Date().toISOString();
   const entry: RoomMetadataEntry = {
     alias: options.alias,
@@ -999,6 +1003,7 @@ export async function rejectProposal(options: ProposalIdOptions): Promise<Decide
 export async function addRoomProfile(options: RoomAddOptions): Promise<RoomProfileResult> {
   const reference = parseRoomReference(options.room);
   const metadataPath = defaultMetadataPath(options.cwd);
+  await assertAliasAvailableForAccess(metadataPath, options.alias, reference);
   const now = new Date().toISOString();
   const entry: RoomMetadataEntry = {
     alias: options.alias,
@@ -1250,6 +1255,30 @@ async function roomEntryByAliasOrThrow(metadataPath: string, alias: string): Pro
   const entry = await findRoomMetadataByAlias(metadataPath, alias);
   if (!entry) throw new Error(`Room alias not found: ${alias}`);
   return entry;
+}
+
+async function assertAliasUnused(metadataPath: string, alias: string): Promise<void> {
+  const existing = await findRoomMetadataByAlias(metadataPath, alias);
+  if (!existing) return;
+  throw new Error(`Room alias already exists: ${alias}. Choose a different alias or forget the existing room first.`);
+}
+
+async function assertAliasAvailableForAccess(
+  metadataPath: string,
+  alias: string,
+  access: RoomAccess,
+): Promise<void> {
+  const existing = await findRoomMetadataByAlias(metadataPath, alias);
+  if (!existing) return;
+  const existingAccess = accessFromEntry(existing);
+  const existingSyncUrl = existingAccess.syncUrl ?? existingAccess.serverUrl;
+  const nextSyncUrl = access.syncUrl ?? access.serverUrl;
+  if (
+    existingAccess.roomId === access.roomId &&
+    existingAccess.roomSecret === access.roomSecret &&
+    existingSyncUrl === nextSyncUrl
+  ) return;
+  throw new Error(`Room alias already exists: ${alias}. Choose a different alias or forget the existing room first.`);
 }
 
 function defaultAliasForSource(filePath: string): string {

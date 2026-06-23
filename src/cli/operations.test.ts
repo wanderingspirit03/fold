@@ -28,6 +28,7 @@ import {
   roomContext,
   roomStatus,
   showProposal,
+  showRoomProfile,
 } from './operations.js';
 import { installFoldSkill } from './skill-install.js';
 
@@ -1295,6 +1296,69 @@ describe('CLI operations', () => {
         alias: 'other',
         outputPath: 'fold-project',
       })).rejects.toThrow(/--alias is only valid/);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects importing a different room over an existing alias', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-alias-collision-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      const first = await createRoomProfile({
+        cwd,
+        alias: 'launch',
+        serverUrl,
+      });
+      const second = await createRoomProfile({
+        cwd,
+        alias: 'other',
+        serverUrl,
+      });
+
+      await expect(resumeRoom({
+        cwd,
+        room: second.room.token,
+        alias: 'launch',
+        outputPath: 'fold-project-launch',
+      })).rejects.toThrow(/Room alias already exists: launch/);
+
+      const shown = await showRoomProfile({ cwd, alias: 'launch' });
+      expect(shown.room.roomId).toBe(first.room.roomId);
+    } finally {
+      await server.stop();
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects importing a wrong key over an existing room alias', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fold-alias-wrong-key-'));
+    const server = new EncryptedAppendLogServer();
+    const serverUrl = await server.start();
+    try {
+      const created = await createRoomProfile({
+        cwd,
+        alias: 'launch',
+        serverUrl,
+      });
+      const beforeMetadata = await readRoomMetadata(defaultMetadataPath(cwd));
+      const originalToken = beforeMetadata.rooms[0]?.token;
+      const badAccess = {
+        ...parseRoomReference(created.room.token),
+        roomSecret: 'wrong-room-secret',
+      };
+
+      await expect(resumeRoom({
+        cwd,
+        room: createRoomToken(badAccess),
+        alias: 'launch',
+        outputPath: 'fold-project-launch',
+      })).rejects.toThrow(/Room alias already exists: launch/);
+
+      const metadata = await readRoomMetadata(defaultMetadataPath(cwd));
+      expect(metadata.rooms[0]?.token).toBe(originalToken);
     } finally {
       await server.stop();
       await rm(cwd, { recursive: true, force: true });

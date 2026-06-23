@@ -102,6 +102,7 @@ export default function RoomPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [syncProgress, setSyncDone] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [logRecords, setLogRecords] = useState<any[]>([]);
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -220,6 +221,7 @@ export default function RoomPage() {
     e.preventDefault();
     if (!roomSecret) return;
     window.location.hash = `key=${roomSecret}`;
+    setAccessError(null);
     setIsKeyConfigured(true);
   };
 
@@ -241,7 +243,13 @@ export default function RoomPage() {
           await task();
         })
         .catch((err) => {
-          if (!destroyed) setSyncError(`Could not process room update: ${String(err)}`);
+          if (destroyed) return;
+          if (isDecryptFailure(err)) {
+            setAccessError("This project key could not decrypt the room. Paste the correct #key fragment to continue.");
+            setIsKeyConfigured(false);
+            return;
+          }
+          setSyncError(`Could not process room update: ${String(err)}`);
         });
     };
 
@@ -249,6 +257,7 @@ export default function RoomPage() {
       try {
         setSyncDone(false);
         setSyncError(null);
+        setAccessError(null);
         setLogRecords([]);
         setProposals([]);
         setTimeline([]);
@@ -342,6 +351,11 @@ export default function RoomPage() {
 
         setMarkdown(yText.toString());
       } catch (err) {
+        if (isDecryptFailure(err)) {
+          setAccessError("This project key could not decrypt the room. Paste the correct #key fragment to continue.");
+          setIsKeyConfigured(false);
+          return;
+        }
         setSyncError(`Sync failed: ${String(err)}`);
       }
     };
@@ -1401,11 +1415,12 @@ export default function RoomPage() {
     });
   }, [projectName, roomId, roomSecret, serverUrl]);
 
-  if (!isKeyConfigured) {
+  if (!isKeyConfigured || accessError) {
     return (
       <RoomAccessGate
         roomSecret={roomSecret}
         serverUrl={serverUrl}
+        error={accessError}
         onRoomSecretChange={setRoomSecret}
         onServerUrlChange={setServerUrl}
         onSubmit={handleConfigureKey}
@@ -2144,6 +2159,16 @@ function defaultAgentProjectOutputPath(alias: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 64);
   return `./fold-project-${slug || "room"}`;
+}
+
+function isDecryptFailure(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === "OperationError" || error.name === "DataError";
+  }
+  if (error instanceof Error) {
+    return /OperationError|DataError|decrypt/i.test(error.message);
+  }
+  return false;
 }
 
 function createHumanInvite({

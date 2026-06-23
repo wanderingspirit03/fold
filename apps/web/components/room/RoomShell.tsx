@@ -1917,6 +1917,7 @@ function ProjectCommandPalette({
         label: trimmedQuote ? "Add comment to selection" : "Add file comment",
         detail: trimmedQuote ? truncatePaletteDetail(trimmedQuote) : selectedFilePath,
         group: "actions",
+        searchText: "add file comment note annotation review",
         icon: <MessageSquarePlus className="h-4 w-4" />,
         action: onFocusCommentComposer,
       },

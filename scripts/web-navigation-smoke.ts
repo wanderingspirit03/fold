@@ -5,8 +5,6 @@ import { chromium, type Page } from "playwright";
 
 const DEFAULT_URLS = ["http://localhost:3001", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
-const EDIT_MODE_COMMENT_MARKER = `Edit mode source comment ${Date.now()}.`;
-const EDIT_MODE_CURSOR_COMMENT_MARKER = `Edit mode cursor comment ${Date.now()}.`;
 const AGENT_REQUEST_MARKER = `Agent request ${Date.now()}.`;
 const PROPERTY_COMMENT_MARKER = `Property anchor comment ${Date.now()}.`;
 const PROJECT_RENAME_MARKER = `Smoke Project ${Date.now()}`;
@@ -51,67 +49,26 @@ async function main() {
     await page.getByRole("button", { name: "Edit", exact: true }).click();
     const sourceEditor = page.getByRole("textbox", { name: /markdown source/i });
     await sourceEditor.waitFor({ state: "visible", timeout: 8_000 });
-    const editModeAnchor = await sourceEditor.evaluate((element) => {
+    await sourceEditor.evaluate((element) => {
       if (!(element instanceof HTMLTextAreaElement)) throw new Error("Markdown source editor is not a textarea.");
       const candidates = ["single Markdown room", "inline comment markers", "dark-first project workspace"];
       const anchor = candidates.find((candidate) => element.value.includes(candidate));
-      if (!anchor) throw new Error("Could not find a stable source-editor phrase to annotate.");
+      if (!anchor) throw new Error("Could not find a stable source-editor phrase for edit-mode selection.");
       const start = element.value.indexOf(anchor);
       element.focus();
       element.setSelectionRange(start, start + anchor.length);
       element.dispatchEvent(new Event("select", { bubbles: true }));
       element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-      return anchor;
     });
     await page.getByRole("button", { name: /open command palette/i }).click();
     const editModePaletteInput = page.getByRole("combobox", { name: /search commands and files/i });
     await editModePaletteInput.fill("comment");
-    await page.getByRole("option", { name: /add file comment/i }).first().waitFor({ state: "visible", timeout: 8_000 });
+    await page.waitForTimeout(250);
+    if (await page.getByRole("option", { name: /add file comment/i }).count() > 0) {
+      throw new Error("Edit mode command palette should not expose file comments.");
+    }
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: /add comment to source selection/i }).click({ timeout: 8_000 });
-    await page.waitForSelector('[data-comment-composer]', { timeout: 8_000 });
-    await page.getByRole("textbox", { name: /^inline comment$/i }).fill(EDIT_MODE_COMMENT_MARKER);
-    await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("button", { name: "Read", exact: true }).click();
-    await page.waitForFunction(
-      (anchor) => document.querySelector("[data-inline-comment-marker]")?.textContent?.includes(anchor),
-      editModeAnchor,
-      { timeout: 8_000 },
-    );
-    await page.getByRole("button", { name: new RegExp(`open inline comment for ${escapeRegExp(editModeAnchor)}`, "i") }).click({ timeout: 8_000 });
-    await page.waitForFunction(
-      (marker) => document.body.innerText.includes(marker),
-      EDIT_MODE_COMMENT_MARKER,
-      { timeout: 8_000 },
-    );
-    await page.keyboard.press("Escape");
-
-    await page.getByRole("button", { name: "Edit", exact: true }).click();
-    const cursorEditor = page.getByRole("textbox", { name: /markdown source/i });
-    await cursorEditor.waitFor({ state: "visible", timeout: 8_000 });
-    await cursorEditor.evaluate((element) => {
-      if (!(element instanceof HTMLTextAreaElement)) throw new Error("Markdown source editor is not a textarea.");
-      const candidates = ["Keep Markdown canonical.", "Room URL stays shareable.", "Review Flow"];
-      const anchor = candidates.find((candidate) => element.value.includes(candidate));
-      if (!anchor) throw new Error("Could not find a stable source-editor phrase for cursor annotation.");
-      const offset = element.value.indexOf(anchor) + anchor.length;
-      element.focus();
-      element.setSelectionRange(offset, offset);
-      element.dispatchEvent(new Event("select", { bubbles: true }));
-      element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-    });
-    await page.getByRole("button", { name: /add comment at source cursor/i }).click({ timeout: 8_000 });
-    await page.waitForSelector('[data-comment-composer]', { timeout: 8_000 });
-    await page.getByRole("textbox", { name: /^cursor comment$/i }).fill(EDIT_MODE_CURSOR_COMMENT_MARKER);
-    await page.getByRole("button", { name: "Add", exact: true }).click();
-    await page.getByRole("button", { name: "Read", exact: true }).click();
-    await page.getByRole("button", { name: /open 1 file comment/i }).click({ timeout: 8_000 });
-    await page.waitForFunction(
-      (marker) => document.body.innerText.includes(marker) && document.body.innerText.includes("Insertion point"),
-      EDIT_MODE_CURSOR_COMMENT_MARKER,
-      { timeout: 8_000 },
-    );
-    await page.getByRole("button", { name: /close file comments/i }).click();
 
     const agentRequestAnchor = "Keep Markdown canonical.";
     await selectDocumentText(page, agentRequestAnchor, "keyup");

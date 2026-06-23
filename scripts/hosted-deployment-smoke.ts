@@ -1,6 +1,15 @@
 interface HealthResponse {
   ok?: unknown;
   service?: unknown;
+  deployment?: {
+    singleInstanceRequired?: unknown;
+  };
+  store?: {
+    fileBacked?: unknown;
+    hasConfiguredDirectory?: unknown;
+    kind?: unknown;
+  };
+  version?: unknown;
 }
 
 async function main(argv: readonly string[]): Promise<void> {
@@ -14,6 +23,15 @@ async function main(argv: readonly string[]): Promise<void> {
   const body = await response.json() as HealthResponse;
   if (body.ok !== true || body.service !== 'fold') {
     throw new Error('Health check did not return a Fold ok response');
+  }
+  if (typeof body.version !== 'string' || body.version.length === 0) {
+    throw new Error('Health check did not return a Fold version');
+  }
+  if (body.store?.kind !== 'file' || body.store.fileBacked !== true || body.store.hasConfiguredDirectory !== true) {
+    throw new Error('Health check did not report a configured file-backed append-log store');
+  }
+  if (body.deployment?.singleInstanceRequired !== true) {
+    throw new Error('Health check did not report the file-store single-instance requirement');
   }
 
   console.log(`Fold deployment smoke passed: ${healthUrl.toString()}`);
