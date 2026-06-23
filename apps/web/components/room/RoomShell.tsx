@@ -21,6 +21,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Trash2,
   Upload,
   UsersRound,
   X,
@@ -71,6 +72,7 @@ interface RoomShellProps {
   onModeChange: (mode: RoomMode) => void;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
+  onDeleteFile: (path: string) => void;
   onImportFile: (file: File) => void;
   onRenameProject: (name: string) => void;
   onCopyProjectLink?: () => void;
@@ -102,6 +104,7 @@ export function RoomShell({
   onModeChange,
   onFileSelect,
   onCreateFile,
+  onDeleteFile,
   onImportFile,
   onRenameProject,
   onCopyProjectLink,
@@ -254,6 +257,7 @@ export function RoomShell({
             humanInviteTooltip={humanInviteTooltip}
             onFileSelect={onFileSelect}
             onCreateFile={onCreateFile}
+            onDeleteFile={onDeleteFile}
             onImportFile={openImportPicker}
             onOpenReview={() => setReviewOpen(true)}
           />
@@ -442,6 +446,9 @@ export function RoomShell({
                 onCreateFile={(path) => {
                   onCreateFile(path);
                   setProjectFilesOpen(false);
+                }}
+                onDeleteFile={(path) => {
+                  onDeleteFile(path);
                 }}
                 onImportFile={() => {
                   openImportPicker();
@@ -904,6 +911,7 @@ function ProjectFileSidebar({
   humanInviteTooltip,
   onFileSelect,
   onCreateFile,
+  onDeleteFile,
   onImportFile,
   onOpenReview,
 }: {
@@ -920,6 +928,7 @@ function ProjectFileSidebar({
   humanInviteTooltip?: string;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
+  onDeleteFile: (path: string) => void;
   onImportFile: () => void;
   onOpenReview: () => void;
 }) {
@@ -943,6 +952,7 @@ function ProjectFileSidebar({
         recentFiles={recentFiles}
         onFileSelect={onFileSelect}
         onCreateFile={onCreateFile}
+        onDeleteFile={onDeleteFile}
         onImportFile={onImportFile}
         onOpenReview={onOpenReview}
       />
@@ -1118,6 +1128,7 @@ function ProjectFilesBody({
   autoFocusSearch = false,
   onFileSelect,
   onCreateFile,
+  onDeleteFile,
   onImportFile,
   onOpenReview,
 }: {
@@ -1127,6 +1138,7 @@ function ProjectFilesBody({
   autoFocusSearch?: boolean;
   onFileSelect: (path: string) => void;
   onCreateFile: (path: string) => void;
+  onDeleteFile: (path: string) => void;
   onImportFile: () => void;
   onOpenReview?: () => void;
 }) {
@@ -1152,6 +1164,7 @@ function ProjectFilesBody({
     : false;
   const canCreateFromSearch = Boolean(normalizedQuery && requestedSearchPath && !hasExactSearchPath);
   const canCreateNewFile = Boolean(requestedNewFilePath && !hasExactNewFilePath);
+  const canDeleteFiles = files.length > 1;
   const activeFiles = useMemo(
     () => files
       .filter((file) => uniquePresencesByPersona(file.activePresences || []).length > 1)
@@ -1385,7 +1398,14 @@ function ProjectFilesBody({
             />
           )}
           {fileTree.files.map((file) => (
-            <SidebarFile key={file.path} file={file} depth={0} onFileSelect={handleFileSelect} />
+            <SidebarFile
+              key={file.path}
+              file={file}
+              depth={0}
+              canDelete={canDeleteFiles}
+              onFileSelect={handleFileSelect}
+              onDeleteFile={onDeleteFile}
+            />
           ))}
           {fileTree.folders.map((folder) => (
             <SidebarTreeFolder
@@ -1396,6 +1416,8 @@ function ProjectFilesBody({
               openFolders={openFolders}
               onToggle={toggleFolder}
               onFileSelect={handleFileSelect}
+              onDeleteFile={onDeleteFile}
+              canDeleteFiles={canDeleteFiles}
             />
           ))}
           {normalizedQuery && !hasSearchResults && !canCreateFromSearch && (
@@ -1472,21 +1494,65 @@ function SidebarFolder({
 function SidebarFile({
   file,
   onFileSelect,
+  onDeleteFile,
   depth = 0,
   showUpdatedAt = false,
   ariaLabel,
+  canDelete = false,
 }: {
   file: ProjectFile;
   onFileSelect: (path: string) => void;
+  onDeleteFile?: (path: string) => void;
   depth?: number;
   showUpdatedAt?: boolean;
   ariaLabel?: string;
+  canDelete?: boolean;
 }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const reviewTotal = fileReviewTotal(file);
+  const deleteLabel = canDelete
+    ? `Delete ${file.path}`
+    : "Create another file before deleting this one";
+
+  if (confirmingDelete) {
+    return (
+      <div
+        data-file-delete-confirm={file.path}
+        style={{ paddingLeft: `${0.5 + depth * 0.85}rem` }}
+        className="flex min-h-11 w-full items-center gap-2 rounded-md border border-studio-line bg-studio-sunken px-2 py-1.5 text-sm md:min-h-8"
+      >
+        <Trash2 className="h-3.5 w-3.5 shrink-0 text-ink-subtle" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-medium text-ink">Delete {file.name}?</span>
+          {reviewTotal > 0 && (
+            <span className="block truncate text-[10px] text-ink-subtle">Review history stays encrypted in the room.</span>
+          )}
+        </span>
+        <button
+          type="button"
+          aria-label={`Confirm delete ${file.path}`}
+          onClick={() => {
+            setConfirmingDelete(false);
+            onDeleteFile?.(file.path);
+          }}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-midnight-strong hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-6 md:w-6"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Cancel delete ${file.path}`}
+          onClick={() => setConfirmingDelete(false)}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-ink-subtle hover:bg-porcelain hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong md:h-6 md:w-6"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      onClick={() => onFileSelect(file.path)}
+    <div
       data-onboarding-target={file.active ? "project-file-active" : undefined}
       style={{ paddingLeft: `${0.5 + depth * 0.85}rem` }}
       className={cn(
@@ -1496,20 +1562,41 @@ function SidebarFile({
           : "text-ink-muted hover:bg-porcelain hover:text-ink",
       )}
     >
-      <File className="h-3.5 w-3.5 shrink-0 text-ink-subtle group-hover:text-ink-muted" />
-      <span className="min-w-0 flex-1 truncate">{file.name}</span>
-      <FilePresenceIndicators presences={file.activePresences || []} />
-      <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />
-      {showUpdatedAt && file.updatedAt && (
-        <span className="hidden shrink-0 font-mono text-[10px] text-ink-subtle group-hover:text-ink-muted lg:inline">
-          {formatRelativeTime(file.updatedAt)}
-        </span>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={() => onFileSelect(file.path)}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong focus-visible:ring-offset-1 focus-visible:ring-offset-studio-paper"
+      >
+        <File className="h-3.5 w-3.5 shrink-0 text-ink-subtle group-hover:text-ink-muted" />
+        <span className="min-w-0 flex-1 truncate">{file.name}</span>
+        <FilePresenceIndicators presences={file.activePresences || []} />
+        <FileReviewIndicators commentCount={file.commentCount || 0} requestCount={file.requestCount || 0} pendingCount={file.pendingCount || 0} conflictCount={file.conflictCount || 0} />
+        {showUpdatedAt && file.updatedAt && (
+          <span className="hidden shrink-0 font-mono text-[10px] text-ink-subtle group-hover:text-ink-muted lg:inline">
+            {formatRelativeTime(file.updatedAt)}
+          </span>
+        )}
+        {file.status && <span className="rounded bg-studio-sunken px-1 text-[10px] text-ink-subtle">{file.status}</span>}
+      </button>
+      {onDeleteFile && (
+        <button
+          type="button"
+          aria-label={deleteLabel}
+          title={deleteLabel}
+          disabled={!canDelete}
+          onClick={() => {
+            if (!canDelete) return;
+            setConfirmingDelete(true);
+          }}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-ink-subtle opacity-100 transition-colors hover:bg-studio-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong disabled:cursor-not-allowed disabled:opacity-35 md:h-6 md:w-6 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       )}
-      {file.status && <span className="rounded bg-studio-sunken px-1 text-[10px] text-ink-subtle">{file.status}</span>}
-    </button>
+    </div>
   );
 }
-
 function FilePresenceIndicators({ presences }: { presences: CollaborationPresence[] }) {
   if (presences.length === 0) return null;
 
@@ -1624,6 +1711,8 @@ function SidebarTreeFolder({
   openFolders,
   onToggle,
   onFileSelect,
+  onDeleteFile,
+  canDeleteFiles,
 }: {
   folder: ProjectTreeFolder;
   depth: number;
@@ -1631,6 +1720,8 @@ function SidebarTreeFolder({
   openFolders: Record<string, boolean>;
   onToggle: (path: string) => void;
   onFileSelect: (path: string) => void;
+  onDeleteFile: (path: string) => void;
+  canDeleteFiles: boolean;
 }) {
   const open = Boolean(forceOpen || (openFolders[folder.path] ?? true));
   const reviewCounts = folderReviewCounts(folder);
@@ -1658,10 +1749,19 @@ function SidebarTreeFolder({
               openFolders={openFolders}
               onToggle={onToggle}
               onFileSelect={onFileSelect}
+              onDeleteFile={onDeleteFile}
+              canDeleteFiles={canDeleteFiles}
             />
           ))}
           {folder.files.map((file) => (
-            <SidebarFile key={file.path} file={file} depth={depth + 1} onFileSelect={onFileSelect} />
+            <SidebarFile
+              key={file.path}
+              file={file}
+              depth={depth + 1}
+              canDelete={canDeleteFiles}
+              onFileSelect={onFileSelect}
+              onDeleteFile={onDeleteFile}
+            />
           ))}
         </>
       )}

@@ -1299,6 +1299,45 @@ export default function RoomPage() {
     setEditMode("edit");
     void persistProjectFileSnapshot(path, nextMarkdown);
   };
+
+  const handleDeleteProjectFile = async (rawPath: string) => {
+    const path = normalizeProjectFilePath(rawPath);
+    if (!path || path === LIVE_FILE_PATH) return;
+
+    const currentFiles = virtualFilesRef.current;
+    if (!Object.prototype.hasOwnProperty.call(currentFiles, path)) return;
+
+    const remainingEntries = Object.entries(currentFiles).filter(([filePath]) => filePath !== path);
+    if (remainingEntries.length === 0) return;
+
+    clearPendingProjectFileTimer(path);
+
+    const remainingFiles = Object.fromEntries(remainingEntries);
+    const nextSelectedPath = selectedFilePathRef.current === path
+      ? nextSelectedPathAfterDeletion(remainingFiles, projectPrimaryPathRef.current)
+      : selectedFilePathRef.current;
+    const nextPrimaryPath = projectPrimaryPathRef.current === path
+      ? nextSelectedPath
+      : projectPrimaryPathRef.current || nextSelectedPath;
+
+    try {
+      await persistProjectSnapshot({
+        schema: PROJECT_SCHEMA,
+        primaryPath: nextPrimaryPath,
+        files: remainingEntries.map(([filePath, markdown]) => ({ path: filePath, markdown })),
+        updatedAt: new Date().toISOString(),
+      });
+      setSelectedFilePath(nextSelectedPath);
+      setSelectedQuote("");
+      setSelectedInsertionOffset(null);
+      setNewCommentText("");
+      clearPresenceActivity();
+      setEditMode("read");
+    } catch (err) {
+      setSyncError(`Could not delete project file: ${String(err)}`);
+    }
+  };
+
   const handleImportProjectFile = async (file: File) => {
     const baseName = file.name || "imported.md";
     const importedPath = uniqueProjectFilePath(
@@ -1454,6 +1493,7 @@ export default function RoomPage() {
         humanInvite={humanInvite}
         agentInvite={agentInvite}
         onCreateFile={handleCreateProjectFile}
+        onDeleteFile={handleDeleteProjectFile}
         onImportFile={handleImportProjectFile}
         onRenameProject={persistRoomProfile}
         onFocusCommentComposer={() => setComposerFocusToken((token) => token + 1)}
