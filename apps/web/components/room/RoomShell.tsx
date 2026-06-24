@@ -119,6 +119,7 @@ export function RoomShell({
   const [agentInviteCopied, setAgentInviteCopied] = useState(false);
   const [recentFilePaths, setRecentFilePaths] = useState<string[]>([]);
   const [tourReplayToken, setTourReplayToken] = useState(0);
+  const [onboardingProgress, setOnboardingProgress] = useState<RoomOnboardingProgress>({});
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const readModeCommentComposer = mode === "read" ? onFocusCommentComposer : undefined;
   const selectedFile = useMemo(
@@ -183,6 +184,10 @@ export function RoomShell({
   }, [recentStorageKey, selectedFilePath]);
 
   useEffect(() => {
+    setOnboardingProgress(readRoomOnboardingProgress(roomId));
+  }, [roomId]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -213,6 +218,7 @@ export function RoomShell({
   const copyProjectLink = async () => {
     await copyText(humanInvite?.text || window.location.href);
     setProjectLinkCopied(true);
+    updateOnboardingProgress({ inviteCopiedAt: new Date().toISOString() });
     window.setTimeout(() => setProjectLinkCopied(false), 1400);
     onCopyProjectLink?.();
   };
@@ -220,7 +226,25 @@ export function RoomShell({
     if (!agentInvite) return;
     await copyText(agentInvite.text);
     setAgentInviteCopied(true);
+    updateOnboardingProgress({ agentHandoffCopiedAt: new Date().toISOString() });
     window.setTimeout(() => setAgentInviteCopied(false), 1400);
+  };
+  const focusProjectTitle = () => {
+    setProjectFilesOpen(true);
+    window.requestAnimationFrame(() => {
+      const titleButton = Array.from(window.document.querySelectorAll<HTMLButtonElement>("[data-project-title]"))
+        .find((element) => element.offsetParent !== null);
+      titleButton?.focus();
+      titleButton?.click();
+    });
+  };
+  const openProjectSetup = () => setTourReplayToken((token) => token + 1);
+  const updateOnboardingProgress = (patch: RoomOnboardingProgress) => {
+    setOnboardingProgress((current) => {
+      const next = { ...current, ...patch };
+      writeRoomOnboardingProgress(roomId, next);
+      return next;
+    });
   };
   const openImportPicker = () => importInputRef.current?.click();
   const handleImportFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -547,12 +571,26 @@ export function RoomShell({
               setCommandOpen(false);
             }}
             onOpenProjectSetup={() => {
-              setTourReplayToken((token) => token + 1);
+              openProjectSetup();
               setCommandOpen(false);
             }}
           />
         )}
-        <RoomOnboardingTour replayToken={tourReplayToken} onOpenProjectFiles={() => setProjectFilesOpen(true)} />
+        <RoomOnboardingTour
+          roomId={roomId}
+          replayToken={tourReplayToken}
+          projectName={projectName}
+          files={files}
+          reviewCount={reviewCount}
+          progress={onboardingProgress}
+          canCopyAgentInvite={Boolean(agentInvite)}
+          onFocusProjectTitle={focusProjectTitle}
+          onOpenProjectFiles={() => setProjectFilesOpen(true)}
+          onCopyProjectLink={() => void copyProjectLink()}
+          onOpenReview={() => setReviewOpen(true)}
+          onCopyAgentInvite={() => void copyAgentInvite()}
+          onProgressChange={updateOnboardingProgress}
+        />
       </div>
     </TooltipProvider>
   );
@@ -586,21 +624,65 @@ interface ProjectFile {
   activePresences?: CollaborationPresence[];
 }
 
-const ROOM_ONBOARDING_STORAGE_KEY = "fold:onboarding:web-room:v1";
+const ROOM_ONBOARDING_AUTO_STORAGE_KEY = "fold:onboarding:auto-opened:v1";
+const ROOM_ONBOARDING_LEGACY_STORAGE_KEY = "fold:onboarding:web-room:v1";
+const ROOM_ONBOARDING_PROGRESS_STORAGE_PREFIX = "fold:onboarding:room:v1:";
 
 type OnboardingSurface = "welcome" | "checklist";
+type OnboardingItemId = "project-name" | "files" | "invite" | "review" | "agent";
+
+interface RoomOnboardingProgress {
+  completedAt?: string;
+  dismissedAt?: string;
+  inviteCopiedAt?: string;
+  agentHandoffCopiedAt?: string;
+}
 
 function RoomOnboardingTour({
+  roomId,
   replayToken,
+  projectName,
+  files,
+  reviewCount,
+  progress,
+  canCopyAgentInvite,
+  onFocusProjectTitle,
   onOpenProjectFiles,
+  onCopyProjectLink,
+  onOpenReview,
+  onCopyAgentInvite,
+  onProgressChange,
 }: {
+  roomId: string;
   replayToken: number;
+  projectName: string;
+  files: ProjectFile[];
+  reviewCount: number;
+  progress: RoomOnboardingProgress;
+  canCopyAgentInvite: boolean;
+  onFocusProjectTitle: () => void;
   onOpenProjectFiles: () => void;
+  onCopyProjectLink: () => void;
+  onOpenReview: () => void;
+  onCopyAgentInvite: () => void;
+  onProgressChange: (patch: RoomOnboardingProgress) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [surface, setSurface] = useState<OnboardingSurface>("welcome");
   const welcomeRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const items = getOnboardingItems({
+    projectName,
+    files,
+    reviewCount,
+    progress,
+    canCopyAgentInvite,
+    onFocusProjectTitle,
+    onOpenProjectFiles,
+    onCopyProjectLink,
+    onOpenReview,
+    onCopyAgentInvite,
+  });
 
   useEffect(() => {
     const previewSurface = readOnboardingPreviewSurface();
@@ -610,14 +692,14 @@ function RoomOnboardingTour({
       return;
     }
 
-    const stored = readOnboardingState();
-    if (stored.completedAt || stored.skippedAt) return;
+    if (readOnboardingAutoState().openedAt) return;
     const timer = window.setTimeout(() => {
+      writeOnboardingAutoState({ version: 1, roomId, openedAt: new Date().toISOString() });
       setSurface("welcome");
       setIsOpen(true);
     }, 700);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [roomId]);
 
   useEffect(() => {
     if (replayToken <= 0) return;
@@ -667,17 +749,14 @@ function RoomOnboardingTour({
     <RoomOnboardingChecklist
       onClose={() => closeOnboarding("skipped")}
       onComplete={() => closeOnboarding("completed")}
-      onOpenProjectFiles={onOpenProjectFiles}
+      items={items}
     />
   );
 
   function closeOnboarding(status: "completed" | "skipped") {
-    writeOnboardingState({
-      version: 1,
-      ...(status === "completed"
-        ? { completedAt: new Date().toISOString() }
-        : { skippedAt: new Date().toISOString() }),
-    });
+    onProgressChange(status === "completed"
+      ? { completedAt: new Date().toISOString() }
+      : { dismissedAt: new Date().toISOString() });
     setIsOpen(false);
   }
 }
@@ -745,19 +824,13 @@ function RoomWelcomeOnboarding({
 function RoomOnboardingChecklist({
   onClose,
   onComplete,
-  onOpenProjectFiles,
+  items,
 }: {
   onClose: () => void;
   onComplete: () => void;
-  onOpenProjectFiles: () => void;
+  items: OnboardingChecklistItem[];
 }) {
-  const items = [
-    { title: "Name the project", body: "Use a name that will make sense in the local index.", action: "Title is in the rail" },
-    { title: "Add Markdown files", body: "Create a clean README or import existing notes.", action: "Open files", onAction: onOpenProjectFiles },
-    { title: "Invite a person", body: "Copy the encrypted invite link from the left rail.", action: "Copy from rail" },
-    { title: "Review together", body: "Use comments and suggestions while the Markdown stays canonical.", action: "Review button" },
-    { title: "Bring in an agent", body: "Copy the agent handoff when CLI help is useful.", action: "Toolbar handoff" },
-  ];
+  const completedCount = items.filter((item) => item.completed).length;
 
   return (
     <aside
@@ -771,7 +844,7 @@ function RoomOnboardingChecklist({
             <ListChecks className="h-4 w-4 text-ink-muted" />
             <h2 className="text-sm font-semibold">Project setup</h2>
           </div>
-          <p className="mt-1 text-xs leading-5 text-ink-muted">A quiet checklist for the first few room actions.</p>
+          <p className="mt-1 text-xs leading-5 text-ink-muted">{completedCount} of {items.length} complete. A quiet guide for the first few room actions.</p>
         </div>
         <button
           type="button"
@@ -782,22 +855,29 @@ function RoomOnboardingChecklist({
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="max-h-[52dvh] overflow-y-auto p-2">
+      <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto p-2">
         {items.map((item, index) => (
-          <div key={item.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 rounded px-2 py-2">
-            <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-studio-line font-mono text-[10px] text-ink-subtle">
-              {index + 1}
+          <div key={item.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 rounded px-2 py-2">
+            <span
+              className={cn(
+                "mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border font-mono text-[10px]",
+                item.completed
+                  ? "border-midnight-strong bg-midnight-strong text-white"
+                  : "border-studio-line text-ink-subtle",
+              )}
+            >
+              {item.completed ? <Check className="h-3 w-3" /> : index + 1}
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-medium text-ink">{item.title}</span>
               <span className="mt-0.5 block text-xs leading-5 text-ink-muted">{item.body}</span>
               <button
                 type="button"
-                onClick={item.onAction}
-                disabled={!item.onAction}
+                onClick={item.action}
+                disabled={item.disabled}
                 className="mt-2 h-7 rounded border border-studio-line px-2 text-[11px] font-medium text-ink-muted transition-colors enabled:hover:bg-studio-sunken enabled:hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-midnight-strong disabled:cursor-default disabled:opacity-60"
               >
-                {item.action}
+                {item.actionLabel}
               </button>
             </span>
           </div>
@@ -815,6 +895,88 @@ function RoomOnboardingChecklist({
       </div>
     </aside>
   );
+}
+
+interface OnboardingChecklistItem {
+  id: OnboardingItemId;
+  title: string;
+  body: string;
+  actionLabel: string;
+  action: () => void;
+  completed: boolean;
+  disabled?: boolean;
+}
+
+function getOnboardingItems({
+  projectName,
+  files,
+  reviewCount,
+  progress,
+  canCopyAgentInvite,
+  onFocusProjectTitle,
+  onOpenProjectFiles,
+  onCopyProjectLink,
+  onOpenReview,
+  onCopyAgentInvite,
+}: {
+  projectName: string;
+  files: ProjectFile[];
+  reviewCount: number;
+  progress: RoomOnboardingProgress;
+  canCopyAgentInvite: boolean;
+  onFocusProjectTitle: () => void;
+  onOpenProjectFiles: () => void;
+  onCopyProjectLink: () => void;
+  onOpenReview: () => void;
+  onCopyAgentInvite: () => void;
+}): OnboardingChecklistItem[] {
+  const hasNamedProject = Boolean(projectName.trim()) && projectName.trim().toLowerCase() !== "untitled project";
+  const hasAddedFiles = files.length > 1;
+  const hasReviewActivity = reviewCount > 0;
+
+  return [
+    {
+      id: "project-name",
+      title: "Name the project",
+      body: "Give this room a name humans and agents can recognize.",
+      actionLabel: hasNamedProject ? "Rename" : "Name project",
+      action: onFocusProjectTitle,
+      completed: hasNamedProject,
+    },
+    {
+      id: "files",
+      title: "Add Markdown files",
+      body: "Create or import the files this project is about.",
+      actionLabel: "Open files",
+      action: onOpenProjectFiles,
+      completed: hasAddedFiles,
+    },
+    {
+      id: "invite",
+      title: "Invite a person",
+      body: "Copy a private encrypted link for a collaborator.",
+      actionLabel: progress.inviteCopiedAt ? "Copy again" : "Copy invite",
+      action: onCopyProjectLink,
+      completed: Boolean(progress.inviteCopiedAt),
+    },
+    {
+      id: "review",
+      title: "Review changes",
+      body: "Use comments and suggestions to decide what lands.",
+      actionLabel: "Open review",
+      action: onOpenReview,
+      completed: hasReviewActivity,
+    },
+    {
+      id: "agent",
+      title: "Bring in an agent",
+      body: "Copy a handoff so an agent can join with the right context.",
+      actionLabel: progress.agentHandoffCopiedAt ? "Copy again" : "Copy handoff",
+      action: onCopyAgentInvite,
+      completed: Boolean(progress.agentHandoffCopiedAt),
+      disabled: !canCopyAgentInvite,
+    },
+  ];
 }
 
 function WelcomeOnboardingRow({
@@ -849,28 +1011,55 @@ function readOnboardingPreviewSurface(): OnboardingSurface | null {
   }
 }
 
-function readOnboardingState(): {
+function readOnboardingAutoState(): {
   version?: number;
-  completedAt?: string;
-  skippedAt?: string;
+  roomId?: string;
+  openedAt?: string;
 } {
   try {
-    const stored = window.localStorage.getItem(ROOM_ONBOARDING_STORAGE_KEY);
+    const stored = window.localStorage.getItem(ROOM_ONBOARDING_AUTO_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+    const legacy = window.localStorage.getItem(ROOM_ONBOARDING_LEGACY_STORAGE_KEY);
+    const legacyState = legacy ? JSON.parse(legacy) : null;
+    if (legacyState?.completedAt || legacyState?.skippedAt) {
+      return { version: 1, openedAt: legacyState.completedAt || legacyState.skippedAt };
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOnboardingAutoState(state: {
+  version: number;
+  roomId: string;
+  openedAt: string;
+}) {
+  try {
+    window.localStorage.setItem(ROOM_ONBOARDING_AUTO_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Tour state is a local convenience; failing to persist should not block the room.
+  }
+}
+
+function roomOnboardingProgressStorageKey(roomId: string) {
+  return `${ROOM_ONBOARDING_PROGRESS_STORAGE_PREFIX}${roomId}`;
+}
+
+function readRoomOnboardingProgress(roomId: string): RoomOnboardingProgress {
+  try {
+    const stored = window.localStorage.getItem(roomOnboardingProgressStorageKey(roomId));
     return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
   }
 }
 
-function writeOnboardingState(state: {
-  version: number;
-  completedAt?: string;
-  skippedAt?: string;
-}) {
+function writeRoomOnboardingProgress(roomId: string, progress: RoomOnboardingProgress) {
   try {
-    window.localStorage.setItem(ROOM_ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(roomOnboardingProgressStorageKey(roomId), JSON.stringify(progress));
   } catch {
-    // Tour state is a local convenience; failing to persist should not block the room.
+    // Setup progress is a local convenience; the room itself should remain usable.
   }
 }
 

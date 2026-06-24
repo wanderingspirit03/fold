@@ -5,7 +5,9 @@ import { chromium, type Page } from "playwright";
 
 const DEFAULT_URLS = ["http://127.0.0.1:3001", "http://localhost:3001", "http://127.0.0.1:3000", "http://localhost:3000"];
 const DEFAULT_SYNC_URL = "http://127.0.0.1:8787";
-const ONBOARDING_STORAGE_KEY = "fold:onboarding:web-room:v1";
+const ONBOARDING_AUTO_STORAGE_KEY = "fold:onboarding:auto-opened:v1";
+const ONBOARDING_LEGACY_STORAGE_KEY = "fold:onboarding:web-room:v1";
+const ONBOARDING_PROGRESS_STORAGE_PREFIX = "fold:onboarding:room:v1:";
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
@@ -28,14 +30,42 @@ async function main() {
 
     await page.getByRole("button", { name: "Show checklist" }).click();
     await page.getByRole("heading", { name: "Project setup" }).waitFor({ state: "visible" });
+    const checklist = page.locator("[data-onboarding-tour]");
+    await page.getByText("0 of 5 complete").waitFor({ state: "visible" });
     await assertNoHorizontalOverflow(page, "desktop checklist");
     await page.screenshot({ path: join(screenshotDir, "desktop-checklist.png"), fullPage: true, caret: "initial" });
 
+    await checklist.getByRole("button", { name: "Name project", exact: true }).click();
+    await page.getByRole("textbox", { name: "Project name" }).fill("Launch plan");
+    await page.keyboard.press("Enter");
+    await page.getByText("1 of 5 complete").waitFor({ state: "visible" });
+
+    await checklist.getByRole("button", { name: "Open files" }).click();
+    await page.getByRole("button", { name: "Create Markdown file" }).click();
+    await page.getByRole("textbox", { name: "New Markdown file path" }).fill("docs/onboarding-check.md");
+    await page.getByRole("button", { name: "Create file" }).click();
+    await page.getByText("2 of 5 complete").waitFor({ state: "visible" });
+
+    await checklist.getByRole("button", { name: "Copy invite", exact: true }).click();
+    await checklist.getByRole("button", { name: "Copy again" }).first().waitFor({ state: "visible" });
+    await page.getByText("3 of 5 complete").waitFor({ state: "visible" });
+
+    await checklist.getByRole("button", { name: "Copy handoff", exact: true }).click();
+    await page.getByText("4 of 5 complete").waitFor({ state: "visible" });
+
+    await checklist.getByRole("button", { name: "Open review" }).click();
+    await page.getByRole("button", { name: "Close review", exact: true }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Close review", exact: true }).click();
+
     await page.getByRole("button", { name: "Done" }).click();
     await page.waitForSelector("[data-onboarding-tour]", { state: "detached", timeout: 5_000 });
-    await assertStoredState(page, "completedAt");
+    await assertAutoStoredState(page);
+    await assertProgressState(page, "completedAt");
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
+    await assertTourDoesNotAutoOpen(page);
+
+    await openFreshProject(page, baseUrl, { clearOnboarding: false });
     await assertTourDoesNotAutoOpen(page);
 
     await page.getByRole("button", { name: /open command palette/i }).click();
@@ -48,7 +78,7 @@ async function main() {
 
     const skipPage = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
     await preparePage(skipPage, "mobile", logs);
-    await openFreshProject(skipPage, baseUrl);
+    await openFreshProject(skipPage, withOnboardingSurface(baseUrl, "welcome"), { clearOnboarding: false });
     await skipPage.waitForSelector("[data-onboarding-tour]", { timeout: 10_000 });
     await skipPage.getByRole("heading", { name: "Start with the room essentials" }).waitFor({ state: "visible" });
     await assertDialogFocus(skipPage, "mobile welcome");
@@ -60,11 +90,11 @@ async function main() {
     await skipPage.screenshot({ path: join(screenshotDir, "mobile-checklist.png"), fullPage: true, caret: "initial" });
     await skipPage.getByRole("button", { name: "Hide" }).click();
     await skipPage.waitForSelector("[data-onboarding-tour]", { state: "detached", timeout: 5_000 });
-    await assertStoredState(skipPage, "skippedAt");
+    await assertProgressState(skipPage, "dismissedAt");
 
     const checklistPage = await browser.newPage({ viewport: { width: 1366, height: 900 } });
     await preparePage(checklistPage, "checklist-query", logs);
-    await openFreshProject(checklistPage, withOnboardingSurface(baseUrl, "checklist"));
+    await openFreshProject(checklistPage, withOnboardingSurface(baseUrl, "checklist"), { clearOnboarding: false });
     await checklistPage.getByRole("heading", { name: "Project setup" }).waitFor({ state: "visible" });
     await assertNoHorizontalOverflow(checklistPage, "checklist query");
     await checklistPage.close();
@@ -80,9 +110,21 @@ async function main() {
   }
 }
 
-async function openFreshProject(page: Page, baseUrl: string) {
+async function openFreshProject(page: Page, baseUrl: string, options: { clearOnboarding?: boolean } = {}) {
   await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
-  await page.evaluate((key) => localStorage.removeItem(key), ONBOARDING_STORAGE_KEY);
+  if (options.clearOnboarding !== false) {
+    await page.evaluate(({ autoKey, legacyKey, progressPrefix }) => {
+      localStorage.removeItem(autoKey);
+      localStorage.removeItem(legacyKey);
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(progressPrefix)) localStorage.removeItem(key);
+      }
+    }, {
+      autoKey: ONBOARDING_AUTO_STORAGE_KEY,
+      legacyKey: ONBOARDING_LEGACY_STORAGE_KEY,
+      progressPrefix: ONBOARDING_PROGRESS_STORAGE_PREFIX,
+    });
+  }
   await page.getByRole("button", { name: /create project/i }).click();
   await page.waitForSelector('[data-document-surface="true"]', { timeout: 10_000 });
 }
@@ -110,11 +152,20 @@ async function assertDialogFocus(page: Page, label: string) {
   if (!focusedDialog) throw new Error(`${label}: welcome dialog did not receive focus.`);
 }
 
-async function assertStoredState(page: Page, key: "completedAt" | "skippedAt") {
+async function assertAutoStoredState(page: Page) {
   const stored = await page.evaluate((storageKey) => {
     const value = localStorage.getItem(storageKey);
     return value ? JSON.parse(value) : null;
-  }, ONBOARDING_STORAGE_KEY);
+  }, ONBOARDING_AUTO_STORAGE_KEY);
+  if (!stored?.openedAt) throw new Error("Onboarding did not persist auto-open state.");
+}
+
+async function assertProgressState(page: Page, key: "completedAt" | "dismissedAt") {
+  const stored = await page.evaluate((storageKey) => {
+    const roomId = window.location.pathname.split("/").filter(Boolean).pop();
+    const value = roomId ? localStorage.getItem(`${storageKey}${roomId}`) : null;
+    return value ? JSON.parse(value) : null;
+  }, ONBOARDING_PROGRESS_STORAGE_PREFIX);
   if (!stored?.[key]) throw new Error(`Onboarding did not persist ${key}.`);
 }
 
