@@ -11,7 +11,8 @@ const ONBOARDING_PROGRESS_STORAGE_PREFIX = "fold:onboarding:room:v1:";
 
 async function main() {
   const baseUrl = await resolveBaseUrl();
-  await assertSyncServerReady(DEFAULT_SYNC_URL);
+  const syncUrl = process.env.FOLD_SYNC_URL || DEFAULT_SYNC_URL;
+  await assertSyncServerReady(syncUrl);
   const screenshotDir = process.env.FOLD_SMOKE_SCREENSHOT_DIR || join(tmpdir(), "fold-web-onboarding-smoke");
   await mkdir(screenshotDir, { recursive: true });
 
