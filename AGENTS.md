@@ -18,7 +18,8 @@ Start with `PLAN.md` before making product or architecture changes.
 - Public agent handoffs use the published `fold-agent` npm package. Fresh agents should run `npx --yes fold-agent@0.1.2 bootstrap ...`; generated handoffs should use an alias-specific output directory such as `./fold-project-launch`, not a bare shared project directory.
 - Local development usually starts with `npm run server -- --port 8787 --data ./data`, `npm run web:dev`, then `npm run --silent cli -- publish ./notes.md --app-url http://127.0.0.1:3000 --sync-url http://127.0.0.1:8787 --json`.
 - Hosted alpha deployment usually starts with `npm run build`, `npm start`, `FOLD_PUBLIC_URL`, and a persistent `FOLD_DATA_DIR`.
-- Current CLI room workflow includes `publish`, `resume`, `room create/add/list/show/set-url/forget/invite`, `status`, `export`, `context`, `comment`, `reply`, `comments`, `requests`, `propose`, `proposals`, `show-proposal`, `accept`, `reject`, and legacy `patch` as a compatibility wrapper around proposal submission.
+- Current CLI room workflow includes `publish`, `resume`, `room create/add/list/show/set-url/forget/invite`, `status`, `export`, `context`, `comment`, `reply`, `comments`, `requests`, `post`, `propose`, `proposals`, `show-proposal`, `accept`, `reject`, and legacy `patch` as a compatibility wrapper around proposal submission.
+- Fresh Markdown files should use `post`; existing-file changes should use reviewable `propose` submissions.
 - Proposal records, proposal status/timeline events, comments, file versions, persona metadata, project snapshots, and document Markdown are encrypted room payloads decrypted/replayed client-side. Proposal status is derived by replaying encrypted room records, not by trusting mutable plaintext server state.
 - Presence payloads are encrypted client-side and broadcast over WebSocket only; they are not persisted in the durable append log.
 - Routine JSON command outputs must stay redacted: only explicit create, publish, room profile, and invite workflows should emit decryption-capable room URLs, tokens, or secrets.
@@ -52,6 +53,11 @@ Run these before reporting completion:
 ```bash
 npm run check
 ```
+
+For release-quality UI, handoff, or deployment changes, also run the focused
+smokes that match the changed surface, such as `npm run web:smoke:onboarding`,
+`npm run web:smoke:proposal`, `npm run web:smoke:hosted-create`, or
+`npm run smoke:deploy -- --base-url <origin>`.
 
 `npm run spike:document-model:report` is a non-mutating freshness check. Use
 `npm run spike:document-model:report:update` only when intentionally

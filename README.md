@@ -195,19 +195,19 @@ npm run --silent cli -- export --room launch --output ./exported-project --json
 Agents should join with `fold-agent bootstrap`, inspect the returned requests/comments/proposals, edit exported files locally, and submit a reviewable proposal instead of overwriting accepted content.
 
 ```bash
-npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+npx --yes fold-agent@0.1.2 bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 Inside this repository during development, use the local wrapper:
 
 ```bash
-npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./accepted-project --json
+npm run --silent cli -- bootstrap --room "fold:v1:..." --alias launch --output ./fold-project-launch --json
 ```
 
 After editing existing files locally:
 
 ```bash
-npx --yes fold-agent@0.1.2 propose ./accepted-project \
+npx --yes fold-agent@0.1.2 propose ./fold-project-launch \
   --room launch \
   --title "Update project docs" \
   --comment "Clarifies the README and preserves portable Markdown export." \
@@ -266,6 +266,7 @@ the bundled Fold skill, imports a `fold:v1:` token with `--alias`, exports
 accepted files, prints redacted room context, lists requests/comments/proposals,
 and returns exact next commands. `resume` is the warm-agent repeat path after an
 alias is saved. `patch` is a compatibility wrapper around proposal submission.
+Use `post` for fresh Markdown files and `propose` for edits to existing files.
 
 ## Security Model
 
@@ -337,6 +338,8 @@ See:
 
 - [spikes/document-model/README.md](spikes/document-model/README.md)
 - [spikes/document-model/COMPARISON.md](spikes/document-model/COMPARISON.md)
+- [docs/production-readiness.md](docs/production-readiness.md)
+- [docs/end-to-end-verification.md](docs/end-to-end-verification.md)
 
 ## What Works Today
 
@@ -351,6 +354,7 @@ See:
 - Redacted `fold-agent bootstrap`, `fold resume --room`, and `fold context --room` packets for agent handoff.
 - Next.js web room app at `/room/:roomId#key=...`.
 - Web room unlock with key fragment/manual key flow.
+- First-run web onboarding with a quiet project setup checklist.
 - Project file tree, recent files, local Markdown import, current-file export.
 - Sanitized Markdown read mode with GFM and math support.
 - Source Markdown edit mode.
